@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<T3locallang>
+	<meta type="array">
+		<type>database</type>
+		<description>Language labels for database tables/fields belonging to extension 'dataquery'</description>
+	</meta>
+	<data type="array">
+		<languageKey index="default" type="array">
+			<label index="tx_dataquery_queries">Data Queries</label>
+			<label index="tx_dataquery_queries.title">Title</label>
+			<label index="tx_dataquery_queries.description">Description</label>
+			<label index="tx_dataquery_queries.sql_query">SQL Query</label>
+			<label index="tx_dataquery_queries.t3_mechanisms.I.0">Use deleted flag</label>
+			<label index="tx_dataquery_queries.t3_mechanisms.I.1">Use enable fields</label>
+			<label index="tx_dataquery_queries.t3_mechanisms.I.2">Use languages</label>
+			<label index="tx_dataquery_queries.t3_mechanisms.I.3">Use versioning</label>
+			<label index="tx_dataquery_queries.t3_mechanisms">TYPO3 Mechanisms</label>
+		</languageKey>
+		<languageKey index="fr" type="array">
+			<label index="tx_dataquery_queries">Requêtes</label>
+			<label index="tx_dataquery_queries.title">Titre</label>
+			<label index="tx_dataquery_queries.description">Description</label>
+			<label index="tx_dataquery_queries.sql_query">Requête SQL</label>
+			<label index="tx_dataquery_queries.t3_mechanisms.I.0">Honorer le champ &quot;Supprimé&quot;</label>
+			<label index="tx_dataquery_queries.t3_mechanisms.I.1">Honorer les champs d'activation</label>
+			<label index="tx_dataquery_queries.t3_mechanisms.I.2">Honorer la sélection de langue</label>
+			<label index="tx_dataquery_queries.t3_mechanisms.I.3">Honorer la gestion de version</label>
+			<label index="tx_dataquery_queries.t3_mechanisms">Mécanismes de TYPO3</label>
+		</languageKey>
+	</data>
+</T3locallang>
