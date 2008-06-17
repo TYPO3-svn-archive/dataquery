@@ -12,10 +12,10 @@
 
 $EM_CONF[$_EXTKEY] = array(
 	'title' => 'Data Query Engine',
-	'description' => 'Assemble a query on data stored in the TYPO3 local database, automatically enforcing criteria like languages and versioning. Returns a standardised data set.',
+	'description' => 'Assembles a query on data stored in the TYPO3 local database, automatically enforcing criteria like languages and versioning, and returns a standardised data set. Acts as a Data Provider for the Display Controller.',
 	'category' => 'misc',
 	'author' => 'Francois Suter (Cobweb)',
-	'author_email' => 'support@cobweb.ch',
+	'author_email' => 'typo3@cobweb.ch',
 	'shy' => '',
 	'dependencies' => '',
 	'conflicts' => '',
@@ -29,7 +29,7 @@ $EM_CONF[$_EXTKEY] = array(
 	'clearCacheOnLoad' => 0,
 	'lockType' => '',
 	'author_company' => '',
-	'version' => '0.1.4',
+	'version' => '0.2.0',
 	'constraints' => array(
 		'depends' => array(
 		),
