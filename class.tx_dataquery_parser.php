@@ -2,7 +2,7 @@
 /***************************************************************
 *  Copyright notice
 *
-*  (c) 2007 Francois Suter (Cobweb) <support@cobweb.ch>
+*  (c) 2007 Francois Suter (Cobweb) <typo3@cobweb.ch>
 *  All rights reserved
 *
 *  This script is part of the TYPO3 project. The TYPO3 project is
@@ -28,7 +28,7 @@
 /**
  * This class is used to parse a SELECT SQL query into a structured array
  *
- * @author	Francois Suter (Cobweb) <support@cobweb.ch>
+ * @author	Francois Suter (Cobweb) <typo3@cobweb.ch>
  * @package	TYPO3
  * @subpackage	tx_dataquery
  */
