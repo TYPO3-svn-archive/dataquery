@@ -24,7 +24,8 @@
 * $Id: class.tx_dataquery_wrapper.php 3939 2008-06-04 10:27:36Z fsuter $
 ***************************************************************/
 
-require_once(t3lib_extMgm::extPath('dataquery','class.tx_dataquery_parser.php'));
+require_once(t3lib_extMgm::extPath('dataquery', 'class.tx_dataquery_parser.php'));
+require_once(t3lib_extMgm::extPath('basecontroller', 'services/class.tx_basecontroller_providerbase.php'));
 
 /**
  * Wrapper for data query
@@ -34,10 +35,11 @@ require_once(t3lib_extMgm::extPath('dataquery','class.tx_dataquery_parser.php'))
  * @package	TYPO3
  * @subpackage	tx_dataquery
  */
-class tx_dataquery_wrapper {
-	var $extKey = 'dataquery';
-	var $configuration; // Extension configuration
-	var $mainTable; // Store the name of the main table of the query
+class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
+	public $extKey = 'dataquery';
+	protected $configuration; // Extension configuration
+	protected $mainTable; // Store the name of the main table of the query
+	protected static $providedStructure = 'recordset';
 
 	public function __construct() {
 		$this->configuration = unserialize($GLOBALS['TYPO3_CONF_VARS']['EXT']['extConf'][$this->extKey]);
@@ -147,6 +149,36 @@ class tx_dataquery_wrapper {
 	 */
 	public function getMainTableName() {
 		return $this->mainTable;
+	}
+
+// Data Provider interface methods
+
+	/**
+	 * This method returns the type of data structure that the Data Provider can prepare
+	 *
+	 * @return	string	type of the provided data structure
+	 */
+	public function getProvidedDataStructure() {
+		return self::$$providedStructure;
+	}
+
+	/**
+	 * This method indicates whether the Data Provider can create the type of data structure requested or not
+	 *
+	 * @param	string		$type: type of data structure
+	 * @return	boolean		true if it can handle the requested type, false otherwise
+	 */
+	public function providesDataStructure($type) {
+		return $type == self::$$providedStructure;
+	}
+
+	/**
+	 * This method assembles the data structure and returns it
+	 *
+	 * @return	array	standardised data structure
+	 */
+	public function getDataStructure() {
+		return array('Hello!');
 	}
 }
 
