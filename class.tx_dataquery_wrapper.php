@@ -39,7 +39,8 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 	public $extKey = 'dataquery';
 	protected $configuration; // Extension configuration
 	protected $mainTable; // Store the name of the main table of the query
-	protected static $providedStructure = 'recordset';
+	protected $table; // Name of the table where the details about the data query are stored
+	protected $uid; // Primary key of the record to fetch for the details
 
 	public function __construct() {
 		$this->configuration = unserialize($GLOBALS['TYPO3_CONF_VARS']['EXT']['extConf'][$this->extKey]);
@@ -48,96 +49,103 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 	/**
 	 * This method is used to get the data for the given query and return it in a standardised format
 	 *
-	 * @param	integer		uid of a data query
-	 * @param	arrray		key-value pairs of search parameters
-	 *
-	 * @return	mixed		array containing the data or false if it failed
+	 * @return	mixed		array containing the data structure or false if it failed
 	 */
-	public function getData($uid, $searchParameters = '') {
-		global $TCA;
-
-		if (empty($uid)) {
+	public function getData() {
+		$tableTCA = $GLOBALS['TCA'][$this->table];
+		$whereClause = "uid = '".$this->uid."'";
+		$whereClause .= $GLOBALS['TSFE']->sys_page->enableFields($this->table, $GLOBALS['TSFE']->showHiddenRecords);
+		$res = $GLOBALS['TYPO3_DB']->exec_SELECTquery('sql_query, t3_mechanisms', $this->table, $whereClause);
+		if ($GLOBALS['TYPO3_DB']->sql_num_rows($res) == 0) {
 			return false;
 		}
 		else {
-			$tableName = 'tx_dataquery_queries';
-			$tableTCA = $TCA['tx_dataquery_queries'];
-			$whereClause = "uid = '".$uid."' AND ".$tableTCA['ctrl']['delete']." = '0'";
-			$res = $GLOBALS['TYPO3_DB']->exec_SELECTquery('sql_query,t3_mechanisms',$tableName,$whereClause);
-			if ($GLOBALS['TYPO3_DB']->sql_num_rows($res) == 0) {
-				return false;
-			}
-			else {
 
 // Get query and parse it
 
-				$dataQuery = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res);
-				$sqlParser = t3lib_div::makeInstance('tx_dataquery_parser');
-				$sqlParser->parseQuery($dataQuery['sql_query']);
-				$this->mainTable = $sqlParser->getMainTableName();
+			$dataQuery = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res);
+			$sqlParser = t3lib_div::makeInstance('tx_dataquery_parser');
+			$sqlParser->parseQuery($dataQuery['sql_query']);
+			$this->mainTable = $sqlParser->getMainTableName();
 
 // Add the SQL conditions for the selected TYPO3 mechanisms
 
-				if (!empty($dataQuery['t3_mechanisms'])) $sqlParser->addTypo3Mechanisms($dataQuery['t3_mechanisms']);
+			if (!empty($dataQuery['t3_mechanisms'])) $sqlParser->addTypo3Mechanisms($dataQuery['t3_mechanisms']);
 
 // Assemble search query elements
 
-				$sqlParser->parseSearch($searchParameters);
+			$sqlParser->parseSearch($searchParameters);
 
 // Build the complete query
 
-				$query = $sqlParser->buildQuery();
-				if ($this->configuration['debug']) t3lib_div::devLog($query, $this->extKey);
+			$query = $sqlParser->buildQuery();
+			if ($this->configuration['debug']) t3lib_div::devLog($query, $this->extKey);
 
-				$res2 = $GLOBALS['TYPO3_DB']->sql_query($query);
-				$records = array('name' => $this->mainTable, 'records' => array());
-				if (!$sqlParser->hasMergedResults()) {
-					$subtables = $sqlParser->getSubtablesNames();
-					$oldUID = 0;
-					$mainRecords = array();
-					$subRecords = array();
-					while ($row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res2)) {
-						$currentUID = $row['mainid'];
-						if ($currentUID != $oldUID) {
-							$mainRecords[$currentUID] = array();
-							$subRecords[$currentUID] = array();
-							$subRecordsCounter = 0;
-							$oldUID = $currentUID;
-						}
-						foreach ($row as $fieldName => $fieldValue) {
-							$fieldNameParts = t3lib_div::trimExplode('$', $fieldName);
-							if (in_array($fieldNameParts[0], $subtables)) {
-								$subtableName = $fieldNameParts[0];
-								if (!isset($subRecords[$currentUID][$subtableName])) {
-									$subRecords[$currentUID][$subtableName] = array();
-								}
+			$res2 = $GLOBALS['TYPO3_DB']->sql_query($query);
+			$records = array('name' => $this->mainTable, 'records' => array());
+			if (!$sqlParser->hasMergedResults()) {
+				$subtables = $sqlParser->getSubtablesNames();
+				$oldUID = 0;
+				$mainRecords = array();
+				$mainUIDs = array();
+				$subRecords = array();
+				while ($row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res2)) {
+					$currentUID = $row['mainid'];
+					if ($currentUID != $oldUID) {
+						$mainRecords[$currentUID] = array();
+						$mainUIDs[] = $currentUID;
+						$subRecords[$currentUID] = array();
+						$subUIDs[$currentUID] = array();
+						$subRecordsCounter = 0;
+						$oldUID = $currentUID;
+					}
+					foreach ($row as $fieldName => $fieldValue) {
+						$fieldNameParts = t3lib_div::trimExplode('$', $fieldName);
+						if (in_array($fieldNameParts[0], $subtables)) {
+							$subtableName = $fieldNameParts[0];
+							if (!isset($subRecords[$currentUID][$subtableName])) {
+								$subRecords[$currentUID][$subtableName] = array();
+								$subUIDs[$currentUID][$subtableName] = array();
+							}
+							if (isset($fieldValue)) {
 								$subRecords[$currentUID][$subtableName][$subRecordsCounter][$fieldNameParts[1]] = $fieldValue;
-							}
-							else {
-								$fieldName = (isset($fieldNameParts[1])) ? $fieldNameParts[1] : $fieldNameParts[0];
-								$mainRecords[$currentUID][$fieldName] = $fieldValue;
-							}
-						}
-						$subRecordsCounter++;
-					}
-					foreach ($mainRecords as $uid => $theRecord) {
-						if (isset($subRecords[$uid])) {
-							$theRecord['subtables'] = array();
-							foreach ($subRecords[$uid] as $name => $data) {
-								$theRecord['subtables'][] = array('name' => $name, 'records' => $data);
+								if ($fieldNameParts[1] == 'uid') {
+									$subUIDs[$currentUID][$subtableName][] = $fieldValue;
+								}
 							}
 						}
-						$records['records'][] = $theRecord;
+						else {
+							$fieldName = (isset($fieldNameParts[1])) ? $fieldNameParts[1] : $fieldNameParts[0];
+							$mainRecords[$currentUID][$fieldName] = $fieldValue;
+						}
 					}
+					$subRecordsCounter++;
 				}
-				else {
-					while ($row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res2)) {
-						$records['records'][] = $row;
+				foreach ($mainRecords as $uid => $theRecord) {
+					if (isset($subRecords[$uid])) {
+						foreach ($subRecords[$uid] as $name => $data) {
+							if (count($data) > 0) {
+								if (!isset($theRecord['sds:subtables'])) {
+									$theRecord['sds:subtables'] = array();
+								}
+								$theRecord['sds:subtables'][] = array('name' => $name, 'count' => count($data), 'uidList' => implode(',', $subUIDs[$uid][$name]), 'records' => $data);
+							}
+						}
 					}
+					$records['records'][] = $theRecord;
 				}
-//t3lib_div::debug($records);
-				return $records;
 			}
+			else {
+				$mainUIDs = array();
+				while ($row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res2)) {
+					$records['records'][] = $row;
+					$mainUIDs[] = (isset($row['mainid'])) ? $row['mainid'] : $row['uid'];
+				}
+			}
+			$records['uidList'] = implode(',', $mainUIDs);
+			$records['count'] = count($records['records']);
+//t3lib_div::debug($records);
+			return $records;
 		}
 	}
 
@@ -159,7 +167,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 	 * @return	string	type of the provided data structure
 	 */
 	public function getProvidedDataStructure() {
-		return self::$$providedStructure;
+		return tx_basecontroller::$recordsetStructureType;
 	}
 
 	/**
@@ -169,7 +177,19 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 	 * @return	boolean		true if it can handle the requested type, false otherwise
 	 */
 	public function providesDataStructure($type) {
-		return $type == self::$$providedStructure;
+		return $type == tx_basecontroller::$recordsetStructureType;
+	}
+
+	/**
+	 * This method is used to load the details about the Data Provider passing it whatever data it needs
+	 * This will generally be a table name and a primary key value
+	 *
+	 * @param	array	$data: Data for the Data Provider
+	 * @return	void
+	 */
+	public function loadProviderData($data) {
+		$this->table = $data['table'];
+		$this->uid = $data['uid'];
 	}
 
 	/**
@@ -178,7 +198,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 	 * @return	array	standardised data structure
 	 */
 	public function getDataStructure() {
-		return array('Hello!');
+		return $this->getData();
 	}
 }
 
