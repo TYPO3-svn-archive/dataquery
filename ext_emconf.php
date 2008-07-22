@@ -11,7 +11,7 @@
 ########################################################################
 
 $EM_CONF[$_EXTKEY] = array(
-	'title' => 'Data Query Engine',
+	'title' => 'Data Query Engine (Data Provider)',
 	'description' => 'Assembles a query on data stored in the TYPO3 local database, automatically enforcing criteria like languages and versioning, and returns a standardised data set. Acts as a Data Provider for the Display Controller.',
 	'category' => 'misc',
 	'author' => 'Francois Suter (Cobweb)',
