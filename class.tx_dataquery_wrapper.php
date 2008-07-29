@@ -21,7 +21,7 @@
 *
 *  This copyright notice MUST APPEAR in all copies of the script!
 *
-* $Id: class.tx_dataquery_wrapper.php 3939 2008-06-04 10:27:36Z fsuter $
+* $Id$
 ***************************************************************/
 
 require_once(t3lib_extMgm::extPath('dataquery', 'class.tx_dataquery_parser.php'));

@@ -21,7 +21,7 @@
 *
 *  This copyright notice MUST APPEAR in all copies of the script!
 *
-* $Id: class.tx_dataquery_parser.php 3937 2008-06-04 08:36:39Z fsuter $
+* $Id$
 ***************************************************************/
 
 
