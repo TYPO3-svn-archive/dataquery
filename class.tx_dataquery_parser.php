@@ -39,6 +39,7 @@ class tx_dataquery_parser {
 	protected $mainTable;
 	protected $isMergedResult = false;
 	protected $subtables = array();
+	protected $queryFields = array();
 	static $useDeletedFlag = 1;
 	static $useEnableFields = 2;
 	static $useLanguageOverlays = 4;
@@ -68,6 +69,7 @@ class tx_dataquery_parser {
 
 		$i = 0;
 		$numMatches = count($matches);
+		$aliases = array();
 		while ($i < $numMatches) {
 //		foreach ($matches[1] as $index => $keyword) {
 			$keyword = $matches[$i];
@@ -84,19 +86,16 @@ class tx_dataquery_parser {
 
 					$selectString = trim($value);
 					$selectArray = t3lib_div::trimExplode(',', $selectString, 1);
-					foreach ($selectArray as $index => $value) {
-						if ($value != '*' && strpos($value, 'AS') === false && strpos($value, '.')) {
-							$valueParts = t3lib_div::trimExplode('.', $value, 1);
-							$selectArray[$index] = $value.' AS '.implode('$', $valueParts);
-						}
+					foreach ($selectArray as $value) {
+						$this->structure[$keyword][] = $value;
 					}
-					$this->structure[$keyword][] = implode(',', $selectArray);
 					break;
 				case 'FROM':
 					$fromParts = explode('AS',$value);
 					$this->structure[$keyword]['table'] = trim($fromParts[0]);
 					if (count($fromParts) > 1) {
 						$this->structure[$keyword]['alias'] = trim($fromParts[1]);
+						$aliases[$fromParts[1]] = $this->structure[$keyword]['table'];
 					}
 					else {
 						$this->structure[$keyword]['alias'] = $this->structure[$keyword]['table'];
@@ -114,6 +113,7 @@ class tx_dataquery_parser {
 					$theJoin['type'] = $joinType;
 					if (count($moreParts) > 1) {
 						$theJoin['alias'] = trim($moreParts[1]);
+						$aliases[$moreParts[1]] = $theJoin['table'];
 					}
 					else {
 						$theJoin['alias'] = $theJoin['table'];
@@ -149,11 +149,90 @@ class tx_dataquery_parser {
 					break;
 			}
 		}
+
+// Loop again on all SELECT items
+
+		$numSelects = count($this->structure['SELECT']);
+		for ($i = 0; $i < $numSelects; $i++) {
+			$selector = $this->structure['SELECT'][$i];
+			$alias = '';
+			$fieldAlias = '';
+			if (stristr($selector, '*')) { // If the string is just * (or possibly table.*), get all the fields for the table
+				if ($selector == '*') { // It's only *, get list of fields for the main table
+					$table = $this->mainTable;
+					$alias = $table;
+                }
+				else { // It's table.*, get list of fields for the given table
+					$selectorParts = t3lib_div::trimExplode('.', $selector, 1);
+					$table = (isset($aliases[$selectorParts[0]]) ? $aliases[$selectorParts[0]] : $selectorParts[0]);
+					$alias = $selectorParts[0];
+                }
+				$fieldInfo = $GLOBALS['TYPO3_DB']->admin_get_fields($table);
+				$fields = array_keys($fieldInfo);
+            }
+			else { // Else, the field is some string, analyse it
+				if (stristr($selector, 'AS')) { // If there's an alias, extract it and contrinue parsing
+					$selectorParts = t3lib_div::trimExplode('AS', $selector, 1);
+					$selector = $selectorParts[0];
+					$fieldAlias = $selectorParts[1];
+                }
+				if (stristr($selector, '.')) { // If there's a dot, get table name
+					$selectorParts = t3lib_div::trimExplode('.', $selector, 1);
+					$table = (isset($aliases[$selectorParts[0]]) ? $aliases[$selectorParts[0]] : $selectorParts[0]);
+					$alias = $selectorParts[0];
+					$fields = array($selectorParts[1]);
+                }
+				else { // No dot, the table is the main one
+					$fields = array($selector);
+					$table = $this->mainTable;
+                }
+            }
+			if (!isset($this->queryFields[$table])) $this->queryFields[$table] = array();
+			$this->queryFields[$table] = array_merge($this->queryFields[$table], $fields);
+
+// Assemble full names for each field
+// The full name is:
+//	1) the name of the table or its alias
+//	2) a dot
+//	3) the name of the table
+//
+// If it's the main table and there's an alias for the field
+//
+//	4a) AS and the field alias
+//
+// If it's not the main table, all fields get an alias using either their own name or the given field alias
+//
+//	4b) AS and $ and the field or its alias
+//
+// So something like foo.bar AS boink will get transformed into foo.bar AS foo$boink
+//
+// The $ sign is used in class tx_dataquery_wrapper for building the data structure
+
+			$prefix = (empty($alias) ? $table : $alias);
+			$completeFields = array();
+			foreach ($fields as $name) {
+				$fullField = $prefix.'.'.$name;
+				if ($table == $this->mainTable) {
+					if (!empty($fieldAlias)) $fullField .= ' AS '.$fieldAlias;
+                }
+				else {
+					$fullField .= ' AS ';
+					if (empty($fieldAlias)) {
+						$fullField .= $prefix.'$'.$name;
+					}
+					else {
+						$fullField .= $prefix.'$'.$fieldAlias;
+                    }
+                }
+				$completeFields[] = $fullField;
+			}
+			$this->structure['SELECT'][$i] = implode(',', $completeFields);
+        }
 //t3lib_div::debug($this->structure);
 	}
 
 	/**
-	 * This method add where clause elements related to typical TYPO3 control parameters:
+	 * This method adds where clause elements related to typical TYPO3 control parameters:
 	 *
 	 *	- the deleted flag
 	 *	- the enable fields

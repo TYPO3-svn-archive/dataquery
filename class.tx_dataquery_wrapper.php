@@ -79,7 +79,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 // Build the complete query
 
 			$query = $sqlParser->buildQuery();
-			if ($this->configuration['debug']) t3lib_div::devLog($query, $this->extKey);
+			if ($this->configuration['debug'] || TYPO3_DLOG) t3lib_div::devLog($query, $this->extKey);
 
 			$res2 = $GLOBALS['TYPO3_DB']->sql_query($query);
 			$records = array('name' => $this->mainTable, 'records' => array());
@@ -90,7 +90,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 				$mainUIDs = array();
 				$subRecords = array();
 				while ($row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res2)) {
-					$currentUID = $row['mainid'];
+					$currentUID = $row['uid'];
 					if ($currentUID != $oldUID) {
 						$mainRecords[$currentUID] = array();
 						$mainUIDs[] = $currentUID;
