@@ -187,8 +187,16 @@ class tx_dataquery_parser {
 					$table = $this->mainTable;
                 }
             }
-			if (!isset($this->queryFields[$table])) $this->queryFields[$table] = array();
-			$this->queryFields[$table] = array_merge($this->queryFields[$table], $fields);
+
+// Assemble list of fields per table
+// The name of the field is used both as key and value, but the value will be replaced by the fields' labels in getLocalizedLabels()
+
+			if (!isset($this->queryFields[$table])) {
+				$this->queryFields[$table] = array('name' => $table, 'fields' => array());
+			}
+			foreach ($fields as $aField) {
+				$this->queryFields[$table]['fields'][$aField] = $aField;
+            }
 
 // Assemble full names for each field
 // The full name is:
@@ -230,6 +238,50 @@ class tx_dataquery_parser {
         }
 //t3lib_div::debug($this->structure);
 	}
+
+	/**
+     * This method gets the localized labels for all tables and fields in the query in the given language
+     * 
+     * @param	string	$language: two-letter ISO code of a language
+     *
+     * @return	array	list of all localized labels
+     */
+	public function getLocalizedLabels($language = '') {
+		if (isset($GLOBALS['lang'])) {
+			$lang = $GLOBALS['lang'];
+        }
+		else {
+			require_once(PATH_typo3.'sysext/lang/lang.php');
+			$lang = t3lib_div::makeInstance('language');
+			if (empty($language)) {
+				if (TYPO3_MODE == 'BE') {
+					global $BE_USER;
+					$languageCode = $BE_USER->uc['lang'];
+                }
+				else {
+					// TODO: get 2-letter iso code of FE language
+                }
+            }
+			else {
+				$languageCode = $language;
+            }
+			$GLOBALS['LANG']->init($language);
+		}
+		foreach ($this->queryFields as $table => $tableData) {
+			t3lib_div::loadTCA($table);
+			if (isset($GLOBALS['TCA'][$table]['ctrl']['title'])) {
+				$tableName = $lang->sL($GLOBALS['TCA'][$table]['ctrl']['title']);
+				$this->queryFields[$table]['name'] = $tableName;
+			}
+			foreach ($tableData['fields'] as $key => $value) {
+				if (isset($GLOBALS['TCA'][$table]['columns'][$key]['label'])) {
+					$fieldName = $lang->sL($GLOBALS['TCA'][$table]['columns'][$key]['label']);
+					$this->queryFields[$table]['fields'][$key] = $fieldName;
+                }
+            }
+        }
+		return $this->queryFields;
+    }
 
 	/**
 	 * This method adds where clause elements related to typical TYPO3 control parameters:
