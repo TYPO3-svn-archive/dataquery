@@ -55,6 +55,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 	public function getData() {
 		$this->loadQuery();
 		$this->mainTable = $this->sqlParser->getMainTableName();
+		$tableAndFieldLabels = $this->sqlParser->getLocalizedLabels($language);
 
 // Add the SQL conditions for the selected TYPO3 mechanisms
 
@@ -71,6 +72,10 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 
 		$res2 = $GLOBALS['TYPO3_DB']->sql_query($query);
 		$records = array('name' => $this->mainTable, 'records' => array());
+		$records['header'] = array();
+		foreach ($tableAndFieldLabels[$this->mainTable]['fields'] as $key => $label) {
+			$records['header'][$key] = array('label' => $label);
+        }
 		if (!$this->sqlParser->hasMergedResults()) {
 			$subtables = $this->sqlParser->getSubtablesNames();
 			$oldUID = 0;
@@ -116,7 +121,11 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 							if (!isset($theRecord['sds:subtables'])) {
 								$theRecord['sds:subtables'] = array();
 							}
-							$theRecord['sds:subtables'][] = array('name' => $name, 'count' => count($data), 'uidList' => implode(',', $subUIDs[$uid][$name]), 'records' => $data);
+							$subtableHeader = array();
+							foreach ($tableAndFieldLabels[$name]['fields'] as $key => $label) {
+								$subtableHeader[$key] = array('label' => $label);
+							}
+							$theRecord['sds:subtables'][] = array('name' => $name, 'count' => count($data), 'uidList' => implode(',', $subUIDs[$uid][$name]), 'header' => $subtableHeader, 'records' => $data);
 						}
 					}
 				}
@@ -127,7 +136,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 			$mainUIDs = array();
 			while ($row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res2)) {
 				$records['records'][] = $row;
-				$mainUIDs[] = (isset($row['mainid'])) ? $row['mainid'] : $row['uid'];
+				$mainUIDs[] = $row['uid'];
 			}
 		}
 		$records['uidList'] = implode(',', $mainUIDs);
