@@ -247,32 +247,54 @@ class tx_dataquery_parser {
      * @return	array	list of all localized labels
      */
 	public function getLocalizedLabels($language = '') {
+			// Make sure we have a lang object available
+			// Use the global one, if it exists
 		if (isset($GLOBALS['lang'])) {
 			$lang = $GLOBALS['lang'];
         }
+			// If no language object is available, create one
 		else {
 			require_once(PATH_typo3.'sysext/lang/lang.php');
 			$lang = t3lib_div::makeInstance('language');
+				// Find out which language to use
 			if (empty($language)) {
+				$languageCode = '';
+					// If in the BE, it's taken from the user's preferences
 				if (TYPO3_MODE == 'BE') {
 					global $BE_USER;
 					$languageCode = $BE_USER->uc['lang'];
                 }
+					// In the FE, we use the config.language TS property
 				else {
-					// TODO: get 2-letter iso code of FE language
+					if (isset($GLOBALS['TSFE']->tmpl->setup['config.']['language'])) $languageCode = $GLOBALS['TSFE']->tmpl->setup['config.']['language'];
                 }
             }
 			else {
 				$languageCode = $language;
             }
-			$GLOBALS['LANG']->init($language);
+			$lang->init($languageCode);
 		}
+
+			// Now that we have a properly initialised language object,
+			// loop on all labels and get any existing localised string
+		$hasFullTCA = false;
 		foreach ($this->queryFields as $table => $tableData) {
-			t3lib_div::loadTCA($table);
+				// For the pages table, the t3lib_div::loadTCA() method does not work
+				// We have to load the full TCA. Set a flag to signal that it's pointless
+				// to call t3lib_div::loadTCA() after that, since the whole TCA is loaded anyway
+			if ($table == 'pages') {
+				$GLOBALS['TSFE']->includeTCA();
+				$hasFullTCA = true;
+            }
+			else {
+				if (!$hasFullTCA) t3lib_div::loadTCA($table);
+			}
+				// Get the labels for the tables
 			if (isset($GLOBALS['TCA'][$table]['ctrl']['title'])) {
 				$tableName = $lang->sL($GLOBALS['TCA'][$table]['ctrl']['title']);
 				$this->queryFields[$table]['name'] = $tableName;
 			}
+				// Get the labels for the fields
 			foreach ($tableData['fields'] as $key => $value) {
 				if (isset($GLOBALS['TCA'][$table]['columns'][$key]['label'])) {
 					$fieldName = $lang->sL($GLOBALS['TCA'][$table]['columns'][$key]['label']);
