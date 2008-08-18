@@ -282,9 +282,12 @@ class tx_dataquery_parser {
 				// For the pages table, the t3lib_div::loadTCA() method does not work
 				// We have to load the full TCA. Set a flag to signal that it's pointless
 				// to call t3lib_div::loadTCA() after that, since the whole TCA is loaded anyway
+				// Note: this is necessary only for the FE
 			if ($table == 'pages') {
-				$GLOBALS['TSFE']->includeTCA();
-				$hasFullTCA = true;
+				if (TYPO3_MODE == 'FE') {
+					$GLOBALS['TSFE']->includeTCA();
+					$hasFullTCA = true;
+				}
             }
 			else {
 				if (!$hasFullTCA) t3lib_div::loadTCA($table);
