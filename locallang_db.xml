@@ -15,6 +15,7 @@
 			<label index="tx_dataquery_queries.t3_mechanisms.I.2">Use languages</label>
 			<label index="tx_dataquery_queries.t3_mechanisms.I.3">Use versioning</label>
 			<label index="tx_dataquery_queries.t3_mechanisms">TYPO3 Mechanisms</label>
+			<label index="wizards.add_dataquery">Add a new Data Query</label>
 		</languageKey>
 		<languageKey index="fr" type="array">
 			<label index="tx_dataquery_queries">Requêtes</label>
@@ -26,6 +27,7 @@
 			<label index="tx_dataquery_queries.t3_mechanisms.I.2">Honorer la sélection de langue</label>
 			<label index="tx_dataquery_queries.t3_mechanisms.I.3">Honorer la gestion de version</label>
 			<label index="tx_dataquery_queries.t3_mechanisms">Mécanismes de TYPO3</label>
+			<label index="wizards.add_dataquery">Ajouter une nouvelle requête</label>
 		</languageKey>
 	</data>
 </T3locallang>
