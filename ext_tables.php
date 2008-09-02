@@ -1,4 +1,6 @@
 <?php
+// $Id$
+
 if (!defined ('TYPO3_MODE')) 	die ('Access denied.');
 
 // Define main TCA for table tx_dataquery_queries
