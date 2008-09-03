@@ -325,7 +325,7 @@ class tx_dataquery_parser {
 // Mechanisms to use are selected using checkboxes, which means they are stored in a bit-wise fashion
 // To get actual values we need to AND the total parameters values with individual flag values
 
-		$hasDeletedFlag = $parameters & self::$useDeletedFlag;
+		$hasDeletedFlag = $parameters & self::$useDeletedFlag; // FIXME: "delete" is in enableFields too!?
 		$hasEnableFlag = $parameters & self::$useEnableFields;
 		$hasLanguageFlag = $parameters & self::$useLanguageOverlays;
 		$hasVersioningFlag = $parameters & self::$useVersioning;
@@ -355,6 +355,33 @@ class tx_dataquery_parser {
 				}
 			}
 */
+		}
+	}
+
+	/**
+	 * This method takes a Data Filter structure and turns it into SQL WHERE clauses
+	 *
+	 * @param	array	$filter: Data Filter structure
+	 * @return	void
+	 */
+	public function addFilter($filter) {
+		$completeFilter = '';
+		$logicalOperator = (empty($filter['logicalOperator'])) ? 'AND' : $filter['logicalOperator'];
+		if (isset($filter['filters']) && is_array($filter['filters'])) {
+			foreach ($filter['filters'] as $filterData) {
+				if (!empty($completeFilter)) $completeFilter .= ' '.$logicalOperator.' ';
+				$table = (empty($filterData['table'])) ? $this->mainTable: $filterData['table'];
+				$field = $filterData['field'];
+				$condition = '';
+				foreach ($filterData['conditions'] as $conditionData) {
+					if (!empty($condition)) {
+						$condition .= ' AND ';
+						$condition .= $table.'.'.$field.' '.$allowedComparisons[$conditionData['operator']].' '.$GLOBALS['TYPO3_DB']->fullQuoteStr($conditionData['value'], $table);
+					}
+				}
+				$completeFilter .= '('.$condition.')';
+			}
+			$this->addWhereClause($completeFilter);
 		}
 	}
 

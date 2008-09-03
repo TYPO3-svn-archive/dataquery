@@ -42,6 +42,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 	protected $table; // Name of the table where the details about the data query are stored
 	protected $uid; // Primary key of the record to fetch for the details
 	protected $sqlParser; // Local instance of the SQL parser class (tx_dataquery_parser)
+	protected $filter; // Data Filter structure
 
 	public function __construct() {
 		$this->configuration = unserialize($GLOBALS['TYPO3_CONF_VARS']['EXT']['extConf'][$this->extKey]);
@@ -61,9 +62,9 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 
 		if (!empty($dataQuery['t3_mechanisms'])) $this->sqlParser->addTypo3Mechanisms($dataQuery['t3_mechanisms']);
 
-// Assemble search query elements
+// Assemble filters
 
-		$this->sqlParser->parseSearch($searchParameters);
+		$this->sqlParser->addFilters($this->filter);
 
 // Build the complete query
 
@@ -229,6 +230,16 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 		$this->loadQuery();
 		return $this->sqlParser->getLocalizedLabels($language);
     }
+
+	/**
+	 * This method is used to pass a Data Filter structure to the Data Consumer
+	 *
+	 * @param	DataFilter	$filter: Data Filter structure
+	 * @return	void
+	 */
+	public function setDataFilter($filter) {
+		if (is_array($filter)) $this->filter = $filter;
+	}
 }
 
 
