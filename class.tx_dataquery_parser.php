@@ -294,7 +294,7 @@ class tx_dataquery_parser {
 			}
 				// Get the labels for the tables
 			if (isset($GLOBALS['TCA'][$table]['ctrl']['title'])) {
-				$tableName = t3lib_BEfunc::getRecordTitle($table, array());
+				$tableName = $tableName = $lang->sL($GLOBALS['TCA'][$table]['ctrl']['title']);
 				$this->queryFields[$table]['name'] = $tableName;
 			}
 				// Get the labels for the fields
