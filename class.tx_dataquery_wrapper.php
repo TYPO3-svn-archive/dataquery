@@ -64,7 +64,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 
 // Assemble filters
 
-		$this->sqlParser->addFilters($this->filter);
+		$this->sqlParser->addFilter($this->filter);
 
 // Build the complete query
 
