@@ -33,17 +33,17 @@
  * @subpackage	tx_dataquery
  */
 class tx_dataquery_parser {
-	protected  $tokens = array('SELECT', 'FROM', 'INNER JOIN', 'LEFT JOIN', 'RIGHT JOIN', 'WHERE', 'GROUP BY', 'ORDER BY', 'LIMIT', 'OFFSET', 'MERGED');
-	protected $allowedComparisons = array('eq' => '=','ne' => '!=','lt' => '<','le' => '<=','gt' => '>','ge' => '>=','like' => 'LIKE');
+	protected static $tokens = array('SELECT', 'FROM', 'INNER JOIN', 'LEFT JOIN', 'RIGHT JOIN', 'WHERE', 'GROUP BY', 'ORDER BY', 'LIMIT', 'OFFSET', 'MERGED');
+	protected static $allowedComparisons = array('eq' => '=','ne' => '!=','lt' => '<','le' => '<=','gt' => '>','ge' => '>=','like' => 'LIKE');
 	protected $structure = array();
 	protected $mainTable;
 	protected $isMergedResult = false;
 	protected $subtables = array();
 	protected $queryFields = array();
-	static $useDeletedFlag = 1;
-	static $useEnableFields = 2;
-	static $useLanguageOverlays = 4;
-	static $useVersioning = 8;
+	protected static $useDeletedFlag = 1;
+	protected static $useEnableFields = 2;
+	protected static $useLanguageOverlays = 4;
+	protected static $useVersioning = 8;
 
 	/**
 	 * This method is used to parse a SELECT SQL query.
@@ -54,12 +54,12 @@ class tx_dataquery_parser {
 	 * @return	mixed		array containing the query parts or false if the query was empty or invalid
 	 */
 	public function parseQuery($query) {
-		$query = str_replace(array("\r","\n","\f"),' ',$query);
+		$query = str_replace(array("\r", "\n", "\f"),' ',$query);
 
 // Get all parts of the query, using the SQL keywords as tokens
 // The returned matches array contains the keywords matched (in position 2) and the string after each keyword (in position 3)
 
-		$regexp = '/('.implode('|', $this->tokens).')/';
+		$regexp = '/('.implode('|', self::$tokens).')/';
 		$matches = preg_split($regexp, $query, -1, PREG_SPLIT_NO_EMPTY | PREG_SPLIT_DELIM_CAPTURE);
 //t3lib_div::debug($regexp);
 //t3lib_div::debug($query);
@@ -381,8 +381,8 @@ class tx_dataquery_parser {
 				foreach ($filterData['conditions'] as $conditionData) {
 					if (!empty($condition)) {
 						$condition .= ' AND ';
-						$condition .= $table.'.'.$field.' '.$allowedComparisons[$conditionData['operator']].' '.$GLOBALS['TYPO3_DB']->fullQuoteStr($conditionData['value'], $table);
 					}
+					$condition .= $table.'.'.$field.' '.self::$allowedComparisons[$conditionData['operator']].' '.$GLOBALS['TYPO3_DB']->fullQuoteStr($conditionData['value'], $table);
 				}
 				$completeFilter .= '('.$condition.')';
 			}
