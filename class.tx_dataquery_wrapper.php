@@ -43,6 +43,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 	protected $uid; // Primary key of the record to fetch for the details
 	protected $sqlParser; // Local instance of the SQL parser class (tx_dataquery_parser)
 	protected $filter; // Data Filter structure
+	protected $structure; // Input standardised data structure
 
 	public function __construct() {
 		$this->configuration = unserialize($GLOBALS['TYPO3_CONF_VARS']['EXT']['extConf'][$this->extKey]);
@@ -198,13 +199,32 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 	}
 
 	/**
+	 * This method returns the type of data structure that the Data Provider can receive as input
+	 *
+	 * @return	string	type of used data structures
+	 */
+	public function getAcceptedDataStructure() {
+		return tx_basecontroller::$idlistStructureType;
+	}
+
+	/**
+	 * This method indicates whether the Data Provider can use as input the type of data structure requested or not
+	 *
+	 * @param	string		$type: type of data structure
+	 * @return	boolean		true if it can use the requested type, false otherwise
+	 */
+	public function acceptsDataStructure($type) {
+		return $type == tx_basecontroller::$idlistStructureType;
+	}
+
+	/**
 	 * This method is used to load the details about the Data Provider passing it whatever data it needs
 	 * This will generally be a table name and a primary key value
 	 *
 	 * @param	array	$data: Data for the Data Provider
 	 * @return	void
 	 */
-	public function loadProviderData($data) {
+	public function loadData($data) {
 		$this->table = $data['table'];
 		$this->uid = $data['uid'];
 	}
@@ -219,6 +239,26 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 	}
 
 	/**
+	 * This method is used to pass a data structure to the Data Provider
+	 *
+	 * @param 	array	$structure: standardised data structure
+	 * @return	void
+	 */
+	public function setDataStructure($structure) {
+		if (is_array($structure)) $this->structure = $structure;
+	}
+
+	/**
+	 * This method is used to pass a Data Filter structure to the Data Provider
+	 *
+	 * @param	DataFilter	$filter: Data Filter structure
+	 * @return	void
+	 */
+	public function setDataFilter($filter) {
+		if (is_array($filter)) $this->filter = $filter;
+	}
+
+	/**
      * This method loads the query and gets the list of tables and fields,
      * complete with localized labels
      *
@@ -230,16 +270,6 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 		$this->loadQuery();
 		return $this->sqlParser->getLocalizedLabels($language);
     }
-
-	/**
-	 * This method is used to pass a Data Filter structure to the Data Consumer
-	 *
-	 * @param	DataFilter	$filter: Data Filter structure
-	 * @return	void
-	 */
-	public function setDataFilter($filter) {
-		if (is_array($filter)) $this->filter = $filter;
-	}
 }
 
 
