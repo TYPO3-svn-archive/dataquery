@@ -63,9 +63,13 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 
 		if (!empty($dataQuery['t3_mechanisms'])) $this->sqlParser->addTypo3Mechanisms($dataQuery['t3_mechanisms']);
 
-// Assemble filters
+// Assemble filters, if defined
 
-		$this->sqlParser->addFilter($this->filter);
+		if (is_array($this->filter)) $this->sqlParser->addFilter($this->filter);
+
+// Use idList from input SDS, if defined
+
+		if (is_array($this->structure)) $this->sqlParser->addIdList($this->structure);
 
 // Build the complete query
 
@@ -251,7 +255,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 	/**
 	 * This method is used to pass a Data Filter structure to the Data Provider
 	 *
-	 * @param	DataFilter	$filter: Data Filter structure
+	 * @param	array	$filter: Data Filter structure
 	 * @return	void
 	 */
 	public function setDataFilter($filter) {

@@ -106,7 +106,7 @@ class tx_dataquery_parser {
 				case 'LEFT JOIN':
 				case 'RIGHT JOIN':
 					$joinType = strtolower(substr($keyword, 0, strpos($keyword,'JOIN') - 1));
-					$parts = explode('ON',$value);
+					$parts = explode('ON', $value);
 					$moreParts = explode('AS',$parts[0]);
 					$theJoin = array();
 					$theJoin['table'] = trim($moreParts[0]);
@@ -119,9 +119,14 @@ class tx_dataquery_parser {
 						$theJoin['alias'] = $theJoin['table'];
 					}
 					$this->subtables[] = $theJoin['alias'];
-					if (count($parts) > 1) $theJoin['on'] = trim($parts[1]);
+					if (count($parts) > 1) {
+						$theJoin['on'] = trim($parts[1]);
+					}
+					else {
+						$theJoin['on'] = '';
+					}
 					if (!isset($this->structure['JOIN'])) $this->structure['JOIN'] = array();
-					$this->structure['JOIN'][] = $theJoin;
+					$this->structure['JOIN'][$theJoin['alias']] = $theJoin;
 					break;
 				case 'WHERE':
 					$this->structure[$keyword][] = trim($value);
@@ -386,6 +391,38 @@ class tx_dataquery_parser {
 	}
 
 	/**
+	 * This method takes a list of uid's prepended by their table name,
+	 * as returned in the "uidListWithTable" property of a idList-type SDS,
+	 * and makes it into appropriate SQL IN conditions for every table that matches those used in the query
+	 *
+	 * @param	array	$idList: Comma-separated list of uid's prepended by their table name
+	 * @return	void
+	 */
+	public function addIdList($idList) {
+		$idArray = t3lib_div::trimExplode(',', $idList);
+		$idlistsPerTable = array();
+			// First assemble a list of all uid's for each table
+		foreach ($idArray as $item) {
+			list($table, $uid) = t3lib_div::trimExplode('_', $item);
+				// If table is not defined, assume it's the main table
+			if (empty($table)) $table = $this->mainTable;
+			if (!isset($idlistsPerTable[$table])) $idlistsPerTable[$table] = array();
+			$idlistsPerTable[$table][] = $uid;
+		}
+			// Loop on all tables and add test on list of uid's, if table is indeed in query
+		foreach ($idlistsPerTable as $table => $uidArray) {
+			$condition = $table.'.uid IN ('.implode(',', $uidArray).')';
+			if ($table == $this->mainTable) {
+				$this->addWhereClause($condition);
+			}
+			elseif (in_array($table, $this->subtables)) {
+				if (!empty($this->structure['JOIN'][$table]['on'])) $this->structure['JOIN'][$table]['on'] .= ' AND ';
+				$this->structure['JOIN'][$table]['on'] .= $condition;
+			}
+		}
+	}
+
+	/**
 	 * This method builds up the query with all the data stored in the structure
 	 *
 	 * @return	string	the assembled SQL query
@@ -433,7 +470,6 @@ class tx_dataquery_parser {
 	 * @param	array	search fields structure
 	 *
 	 * @return	void
-	 */
 	public function parseSearch($searchParameters) {
 		$whereClause = '';
 		if (is_array($searchParameters) && count($searchParameters) > 0) {
@@ -472,6 +508,7 @@ class tx_dataquery_parser {
 		}
 		$this->addWhereClause($whereClause);
 	}
+	 */
 
 // Setters and getters
 
