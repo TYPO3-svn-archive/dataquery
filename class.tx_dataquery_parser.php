@@ -234,7 +234,7 @@ class tx_dataquery_parser {
                 }
 				$completeFields[] = $fullField;
 			}
-			$this->structure['SELECT'][$i] = implode(',', $completeFields);
+			$this->structure['SELECT'][$i] = implode(', ', $completeFields);
         }
 //t3lib_div::debug($this->structure);
 	}
