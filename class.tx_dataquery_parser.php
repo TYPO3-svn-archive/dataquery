@@ -415,34 +415,36 @@ class tx_dataquery_parser {
 	 * @return	void
 	 */
 	public function addIdList($idList) {
-		$idArray = t3lib_div::trimExplode(',', $idList);
-		$idlistsPerTable = array();
-			// First assemble a list of all uid's for each table
-		foreach ($idArray as $item) {
-				// Code inspired from t3lib_loadDBGroup
-				// String is reversed before exploding, to get uid first
-			list($uid, $table) = explode('_', strrev($item), 2);
-				// Exploded parts are reversed back
-			$uid = strrev($uid);
-				// If table is not defined, assume it's the main table
-			if (empty($table)) {
-				$table = $this->mainTable;
+		if (!empty($idList)) {
+			$idArray = t3lib_div::trimExplode(',', $idList);
+			$idlistsPerTable = array();
+				// First assemble a list of all uid's for each table
+			foreach ($idArray as $item) {
+					// Code inspired from t3lib_loadDBGroup
+					// String is reversed before exploding, to get uid first
+				list($uid, $table) = explode('_', strrev($item), 2);
+					// Exploded parts are reversed back
+				$uid = strrev($uid);
+					// If table is not defined, assume it's the main table
+				if (empty($table)) {
+					$table = $this->mainTable;
+				}
+				else {
+					$table = strrev($table);
+				}
+				if (!isset($idlistsPerTable[$table])) $idlistsPerTable[$table] = array();
+				$idlistsPerTable[$table][] = $uid;
 			}
-			else {
-				$table = strrev($table);
-			}
-			if (!isset($idlistsPerTable[$table])) $idlistsPerTable[$table] = array();
-			$idlistsPerTable[$table][] = $uid;
-		}
-			// Loop on all tables and add test on list of uid's, if table is indeed in query
-		foreach ($idlistsPerTable as $table => $uidArray) {
-			$condition = $table.'.uid IN ('.implode(',', $uidArray).')';
-			if ($table == $this->mainTable) {
-				$this->addWhereClause($condition);
-			}
-			elseif (in_array($table, $this->subtables)) {
-				if (!empty($this->structure['JOIN'][$table]['on'])) $this->structure['JOIN'][$table]['on'] .= ' AND ';
-				$this->structure['JOIN'][$table]['on'] .= $condition;
+				// Loop on all tables and add test on list of uid's, if table is indeed in query
+			foreach ($idlistsPerTable as $table => $uidArray) {
+				$condition = $table.'.uid IN ('.implode(',', $uidArray).')';
+				if ($table == $this->mainTable) {
+					$this->addWhereClause($condition);
+				}
+				elseif (in_array($table, $this->subtables)) {
+					if (!empty($this->structure['JOIN'][$table]['on'])) $this->structure['JOIN'][$table]['on'] .= ' AND ';
+					$this->structure['JOIN'][$table]['on'] .= $condition;
+				}
 			}
 		}
 	}
