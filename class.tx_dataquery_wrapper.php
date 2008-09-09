@@ -69,7 +69,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 
 // Use idList from input SDS, if defined
 
-		if (is_array($this->structure)) $this->sqlParser->addIdList($this->structure);
+		if (is_array($this->structure)) $this->sqlParser->addIdList($this->structure['uidListWithTable']);
 
 // Build the complete query
 

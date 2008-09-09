@@ -403,9 +403,18 @@ class tx_dataquery_parser {
 		$idlistsPerTable = array();
 			// First assemble a list of all uid's for each table
 		foreach ($idArray as $item) {
-			list($table, $uid) = t3lib_div::trimExplode('_', $item);
+				// Code inspired from t3lib_loadDBGroup
+				// String is reversed before exploding, to get uid first
+			list($uid, $table) = explode('_', strrev($item), 2);
+				// Exploded parts are reversed back
+			$uid = strrev($uid);
 				// If table is not defined, assume it's the main table
-			if (empty($table)) $table = $this->mainTable;
+			if (empty($table)) {
+				$table = $this->mainTable;
+			}
+			else {
+				$table = strrev($table);
+			}
 			if (!isset($idlistsPerTable[$table])) $idlistsPerTable[$table] = array();
 			$idlistsPerTable[$table][] = $uid;
 		}
