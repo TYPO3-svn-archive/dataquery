@@ -80,9 +80,8 @@ class tx_dataquery_parser {
 			switch ($keyword) {
 				case 'SELECT':
 
-// Explode the select string in its constituent parts
-// For each part that is not "*", does not already contain an alias (AS) and contains a dot (.)
-// automatically create an alias by replacing the dot with an underscore
+// Explode the select string in its constituent parts and store it as is
+// More processing takes place later on
 
 					$selectString = trim($value);
 					$selectArray = t3lib_div::trimExplode(',', $selectString, 1);
@@ -158,6 +157,7 @@ class tx_dataquery_parser {
 // Loop again on all SELECT items
 
 		$numSelects = count($this->structure['SELECT']);
+		$tableHasUid = array();
 		for ($i = 0; $i < $numSelects; $i++) {
 			$selector = $this->structure['SELECT'][$i];
 			$alias = '';
@@ -176,7 +176,7 @@ class tx_dataquery_parser {
 				$fields = array_keys($fieldInfo);
             }
 			else { // Else, the field is some string, analyse it
-				if (stristr($selector, 'AS')) { // If there's an alias, extract it and contrinue parsing
+				if (stristr($selector, 'AS')) { // If there's an alias, extract it and continue parsing
 					$selectorParts = t3lib_div::trimExplode('AS', $selector, 1);
 					$selector = $selectorParts[0];
 					$fieldAlias = $selectorParts[1];
@@ -201,7 +201,14 @@ class tx_dataquery_parser {
 			}
 			foreach ($fields as $aField) {
 				$this->queryFields[$table]['fields'][$aField] = $aField;
-            }
+			}
+
+// Keep track of whether a field called "uid" (either its true name or an alias)
+// exists for every table. If not, it will be added later
+// (there must be a primary key, if it is not called "uid", an alias called "uid" must be used in the query)
+
+            if (!isset($tableHasUid[$table])) $tableHasUid[$table] = false; // Initialise to false
+			if (in_array('uid', $fields) || (isset($fieldAlias) && $fieldAlias == 'uid')) $tableHasUid[$table] &= true;
 
 // Assemble full names for each field
 // The full name is:
@@ -240,6 +247,15 @@ class tx_dataquery_parser {
 				$completeFields[] = $fullField;
 			}
 			$this->structure['SELECT'][$i] = implode(', ', $completeFields);
+        }
+        foreach ($tableHasUid as $table => $flag) {
+        	if (!$flag) {
+        		$fullField = $table.'.uid';
+				if ($table != $this->mainTable) {
+	       			$fullField .= ' AS '.$table.'$uid';
+				}
+				$this->structure['SELECT'][] = $fullField;
+        	}
         }
 //t3lib_div::debug($this->structure);
 	}
