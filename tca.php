@@ -72,7 +72,6 @@ $TCA['tx_dataquery_queries'] = array(
 					array('LLL:EXT:dataquery/locallang_db.xml:tx_dataquery_queries.t3_mechanisms.I.0', ''),
 					array('LLL:EXT:dataquery/locallang_db.xml:tx_dataquery_queries.t3_mechanisms.I.1', ''),
 					array('LLL:EXT:dataquery/locallang_db.xml:tx_dataquery_queries.t3_mechanisms.I.2', ''),
-					array('LLL:EXT:dataquery/locallang_db.xml:tx_dataquery_queries.t3_mechanisms.I.3', ''),
 				),
 			)
 		),

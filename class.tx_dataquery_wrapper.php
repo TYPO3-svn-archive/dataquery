@@ -68,6 +68,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 	protected $sqlParser; // Local instance of the SQL parser class (tx_dataquery_parser)
 	protected $filter; // Data Filter structure
 	protected $structure; // Input standardised data structure
+	protected $dataQuery = array(); // Stores the DB record related to the current data query
 
 	public function __construct() {
 		$this->configuration = unserialize($GLOBALS['TYPO3_CONF_VARS']['EXT']['extConf'][$this->extKey]);
@@ -85,7 +86,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 
 // Add the SQL conditions for the selected TYPO3 mechanisms
 
-		if (!empty($dataQuery['t3_mechanisms'])) $this->sqlParser->addTypo3Mechanisms($dataQuery['t3_mechanisms']);
+		if (!empty($this->dataQuery['t3_mechanisms'])) $this->sqlParser->addTypo3Mechanisms($this->dataQuery['t3_mechanisms']);
 
 // Assemble filters, if defined
 
@@ -194,9 +195,9 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 
 // Get query and parse it
 
-			$dataQuery = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res);
+			$this->dataQuery = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res);
 			$this->sqlParser = t3lib_div::makeInstance('tx_dataquery_parser');
-			$this->sqlParser->parseQuery($dataQuery['sql_query']);
+			$this->sqlParser->parseQuery($this->dataQuery['sql_query']);
 		}
 
     }

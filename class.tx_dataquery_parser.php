@@ -62,10 +62,9 @@ class tx_dataquery_parser {
 	protected $isMergedResult = false;
 	protected $subtables = array();
 	protected $queryFields = array();
-	protected static $useDeletedFlag = 1;
-	protected static $useEnableFields = 2;
-	protected static $useLanguageOverlays = 4;
-	protected static $useVersioning = 8;
+	protected static $useEnableFields = 1;
+	protected static $useLanguageOverlays = 2;
+	protected static $useVersioning = 4;
 
 	/**
 	 * This method is used to parse a SELECT SQL query.
@@ -92,7 +91,6 @@ class tx_dataquery_parser {
 		$numMatches = count($matches);
 		$aliases = array();
 		while ($i < $numMatches) {
-//		foreach ($matches[1] as $index => $keyword) {
 			$keyword = $matches[$i];
 			$i++;
 			$value = $matches[$i];
@@ -365,36 +363,32 @@ class tx_dataquery_parser {
 // Mechanisms to use are selected using checkboxes, which means they are stored in a bit-wise fashion
 // To get actual values we need to AND the total parameters values with individual flag values
 
-		$hasDeletedFlag = $parameters & self::$useDeletedFlag; // FIXME: "delete" is in enableFields too!?
 		$hasEnableFlag = $parameters & self::$useEnableFields;
 		$hasLanguageFlag = $parameters & self::$useLanguageOverlays;
 		$hasVersioningFlag = $parameters & self::$useVersioning;
 
-// Add the deleted clause
+// Add the enable fields, first to the main table
 
-		if ($hasDeletedFlag) {
-			$tableTCA = $GLOBALS['TCA'][$this->structure['FROM']['table']]['ctrl'];
-			if (!empty($tableTCA['delete'])) {
-				$deleteClause = $this->mainTable.'.'.$tableTCA['delete']." = '0'";
-				$this->addWhereClause($deleteClause);
-			}
-// TODO: add deleted clause to JOINed tables
-// The code below is functional, but it is not always desirable to set all TYPO3 mechanisms for JOINed tables. This needs more thinking...
-/*
-			$numJoins = 0;
-			if (isset($this->structure['JOIN'])) $numJoins = count($this->structure['JOIN']);
-			if ($numJoins > 0) {
-				for ($i = 0; $i < $numJoins; $i++) {
-					$tableTCA = $GLOBALS['TCA'][$this->structure['JOIN'][$i]['table']]['ctrl'];
-					if (!empty($tableTCA['delete'])) {
-						$tableName = (empty($this->structure['JOIN'][$i]['alias'])) ? $this->structure['JOIN'][$i]['table'] : $this->structure['JOIN'][$i]['alias'];
-						$deleteClause = $tableName.'.'.$tableTCA['delete']." = '0'";
-						if (!empty($this->structure['JOIN'][$i]['on'])) $this->structure['JOIN'][$i]['on'] .= ' AND ';
-						$this->structure['JOIN'][$i]['on'] .= '('.$deleteClause.')';
+		if ($hasEnableFlag) {
+			$this->addWhereClause($this->strippedEnableClause($this->mainTable));
+
+// Add enable fields to JOINed tables
+
+			if (isset($this->structure['JOIN']) && is_array($this->structure['JOIN'])) {
+				foreach ($this->structure['JOIN'] as $tableIndex => $joinData) {
+					$table = $joinData['table'];
+					$enableClause = $this->strippedEnableClause($table);
+					if (!empty($enableClause)) {
+						if (!empty($this->structure['JOIN'][$tableIndex]['on'])) $this->structure['JOIN'][$tableIndex]['on'] .= ' AND ';
+						$this->structure['JOIN'][$tableIndex]['on'] .= '('.$enableClause.')';
 					}
 				}
 			}
-*/
+		}
+
+// Add the language condition and set the overlay flag
+
+		if ($hasLanguageFlag) {
 		}
 	}
 
@@ -597,6 +591,24 @@ class tx_dataquery_parser {
 	 */
 	public function hasMergedResults() {
 		return $this->isMergedResult;
+	}
+
+// Utility methods
+
+	/**
+	 * This methods calls t3lib_page::enableFields() and returns that string
+	 * after having removed the ' AND ' at the start of that string
+	 *
+	 * @param	string	$table: name of the table to assemble the enable clause for
+	 * @return	string	The SQL enable clause
+	 */
+	protected function strippedEnableClause($table) {
+		$enableClause = $GLOBALS['TSFE']->sys_page->enableFields($table);
+			// If an enable clause was returned, strip the first ' AND '
+		if (!empty($enableClause)) {
+			$enableClause = substr($enableClause, strlen(' AND '));
+		}
+		return $enableClause;
 	}
 }
 

@@ -10,10 +10,9 @@
 			<label index="tx_dataquery_queries.title">Title</label>
 			<label index="tx_dataquery_queries.description">Description</label>
 			<label index="tx_dataquery_queries.sql_query">SQL Query</label>
-			<label index="tx_dataquery_queries.t3_mechanisms.I.0">Use deleted flag</label>
-			<label index="tx_dataquery_queries.t3_mechanisms.I.1">Use enable fields</label>
-			<label index="tx_dataquery_queries.t3_mechanisms.I.2">Use languages</label>
-			<label index="tx_dataquery_queries.t3_mechanisms.I.3">Use versioning</label>
+			<label index="tx_dataquery_queries.t3_mechanisms.I.0">Use enable fields</label>
+			<label index="tx_dataquery_queries.t3_mechanisms.I.1">Use languages</label>
+			<label index="tx_dataquery_queries.t3_mechanisms.I.2">Use versioning</label>
 			<label index="tx_dataquery_queries.t3_mechanisms">TYPO3 Mechanisms</label>
 			<label index="wizards.add_dataquery">Add a new Data Query</label>
 		</languageKey>
@@ -22,10 +21,9 @@
 			<label index="tx_dataquery_queries.title">Titre</label>
 			<label index="tx_dataquery_queries.description">Description</label>
 			<label index="tx_dataquery_queries.sql_query">Requête SQL</label>
-			<label index="tx_dataquery_queries.t3_mechanisms.I.0">Honorer le champ &quot;Supprimé&quot;</label>
-			<label index="tx_dataquery_queries.t3_mechanisms.I.1">Honorer les champs d'activation</label>
-			<label index="tx_dataquery_queries.t3_mechanisms.I.2">Honorer la sélection de langue</label>
-			<label index="tx_dataquery_queries.t3_mechanisms.I.3">Honorer la gestion de version</label>
+			<label index="tx_dataquery_queries.t3_mechanisms.I.0">Honorer les champs d'activation</label>
+			<label index="tx_dataquery_queries.t3_mechanisms.I.1">Honorer la sélection de langue</label>
+			<label index="tx_dataquery_queries.t3_mechanisms.I.2">Honorer la gestion de version</label>
 			<label index="tx_dataquery_queries.t3_mechanisms">Mécanismes de TYPO3</label>
 			<label index="wizards.add_dataquery">Ajouter une nouvelle requête</label>
 		</languageKey>
