@@ -23,6 +23,28 @@
 *
 * $Id$
 ***************************************************************/
+/**
+ * [CLASS/FUNCTION INDEX of SCRIPT]
+ *
+ *
+ *
+ *   57: class tx_dataquery_parser
+ *   77:     public function parseQuery($query)
+ *  290:     public function getLocalizedLabels($language = '')
+ *  363:     public function addTypo3Mechanisms($parameters)
+ *  407:     public function addFilter($filter)
+ *  436:     public function addIdList($idList)
+ *  476:     public function buildQuery()
+ *  519:     public function parseSearch($searchParameters)
+ *  567:     public function addWhereClause($clause)
+ *  579:     public function getMainTableName()
+ *  589:     public function getSubtablesNames()
+ *  598:     public function hasMergedResults()
+ *
+ * TOTAL FUNCTIONS: 11
+ * (This index is automatically created/updated by the extension "extdeveval")
+ *
+ */
 
 
 /**
@@ -34,7 +56,7 @@
  */
 class tx_dataquery_parser {
 	protected static $tokens = array('SELECT', 'FROM', 'INNER JOIN', 'LEFT JOIN', 'RIGHT JOIN', 'WHERE', 'GROUP BY', 'ORDER BY', 'LIMIT', 'OFFSET', 'MERGED');
-	protected static $allowedComparisons = array('eq' => '=','ne' => '!=','lt' => '<','le' => '<=','gt' => '>','ge' => '>=','like' => 'LIKE');
+	protected static $allowedComparisons = array('eq' => '=', 'ne' => '!=', 'lt' => '<', 'le' => '<=', 'gt' => '>', 'ge' => '>=', 'in' => 'IN', 'like' => 'LIKE');
 	protected $structure = array();
 	protected $mainTable;
 	protected $isMergedResult = false;
@@ -50,11 +72,10 @@ class tx_dataquery_parser {
 	 * It is a simple parser and no way generic. It expects queries to be written a certain way.
 	 *
 	 * @param	string		the query to be parsed
-	 *
 	 * @return	mixed		array containing the query parts or false if the query was empty or invalid
 	 */
 	public function parseQuery($query) {
-		$query = str_replace(array("\r", "\n", "\f"),' ',$query);
+		$query = str_replace(array("\r", "\n", "\f"), ' ', $query);
 
 // Get all parts of the query, using the SQL keywords as tokens
 // The returned matches array contains the keywords matched (in position 2) and the string after each keyword (in position 3)
@@ -261,12 +282,11 @@ class tx_dataquery_parser {
 	}
 
 	/**
-     * This method gets the localized labels for all tables and fields in the query in the given language
-     * 
-     * @param	string	$language: two-letter ISO code of a language
-     *
-     * @return	array	list of all localized labels
-     */
+	 * This method gets the localized labels for all tables and fields in the query in the given language
+	 *
+	 * @param	string		$language: two-letter ISO code of a language
+	 * @return	array		list of all localized labels
+	 */
 	public function getLocalizedLabels($language = '') {
 			// Make sure we have a lang object available
 			// Use the global one, if it exists
@@ -332,13 +352,12 @@ class tx_dataquery_parser {
 	/**
 	 * This method adds where clause elements related to typical TYPO3 control parameters:
 	 *
-	 *	- the deleted flag
-	 *	- the enable fields
-	 *	- the language overlays
-	 *	- the versioning system
+	 * 	- the deleted flag
+	 * 	- the enable fields
+	 * 	- the language overlays
+	 * 	- the versioning system
 	 *
 	 * @param	integer		selected mechanisms
-	 *
 	 * @return	void
 	 */
 	public function addTypo3Mechanisms($parameters) {
@@ -382,7 +401,7 @@ class tx_dataquery_parser {
 	/**
 	 * This method takes a Data Filter structure and turns it into SQL WHERE clauses
 	 *
-	 * @param	array	$filter: Data Filter structure
+	 * @param	array		$filter: Data Filter structure
 	 * @return	void
 	 */
 	public function addFilter($filter) {
@@ -411,7 +430,7 @@ class tx_dataquery_parser {
 	 * as returned in the "uidListWithTable" property of a idList-type SDS,
 	 * and makes it into appropriate SQL IN conditions for every table that matches those used in the query
 	 *
-	 * @param	array	$idList: Comma-separated list of uid's prepended by their table name
+	 * @param	array		$idList: Comma-separated list of uid's prepended by their table name
 	 * @return	void
 	 */
 	public function addIdList($idList) {
@@ -452,7 +471,7 @@ class tx_dataquery_parser {
 	/**
 	 * This method builds up the query with all the data stored in the structure
 	 *
-	 * @return	string	the assembled SQL query
+	 * @return	string		the assembled SQL query
 	 */
 	public function buildQuery() {
 		$query = 'SELECT '.implode(', ',$this->structure['SELECT']).' ';
@@ -542,8 +561,7 @@ class tx_dataquery_parser {
 	/**
 	 * Add a condition for the WHERE clause
 	 *
-	 * @param	string	SQL WHERE clause (without WHERE)
-	 *
+	 * @param	string		SQL WHERE clause (without WHERE)
 	 * @return	void
 	 */
 	public function addWhereClause($clause) {
@@ -556,7 +574,7 @@ class tx_dataquery_parser {
 	 * This method returns the name of the main table of the query,
 	 * which is the table name that appears in the FROM clause, or the alias, if any
 	 *
-	 * @return	string	main table name
+	 * @return	string		main table name
 	 */
 	public function getMainTableName() {
 		return $this->mainTable;
@@ -566,7 +584,7 @@ class tx_dataquery_parser {
 	 * This method returns an array containing the list of all subtables in the query,
 	 * i.e. the tables that appear in any of the JOIN statements
 	 *
-	 * @return	array	names of all the joined tables
+	 * @return	array		names of all the joined tables
 	 */
 	public function getSubtablesNames() {
 		return $this->subtables;

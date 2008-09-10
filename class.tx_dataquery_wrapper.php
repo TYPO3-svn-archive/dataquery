@@ -23,6 +23,30 @@
 *
 * $Id$
 ***************************************************************/
+/**
+ * [CLASS/FUNCTION INDEX of SCRIPT]
+ *
+ *
+ *
+ *   62: class tx_dataquery_wrapper extends tx_basecontroller_providerbase
+ *   72:     public function __construct()
+ *   81:     public function getData()
+ *  183:     protected function loadQuery()
+ *  209:     public function getMainTableName()
+ *  220:     public function getProvidedDataStructure()
+ *  230:     public function providesDataStructure($type)
+ *  239:     public function getAcceptedDataStructure()
+ *  249:     public function acceptsDataStructure($type)
+ *  260:     public function loadData($data)
+ *  270:     public function getDataStructure()
+ *  280:     public function setDataStructure($structure)
+ *  290:     public function setDataFilter($filter)
+ *  301:     public function getTablesAndFields($language = '')
+ *
+ * TOTAL FUNCTIONS: 13
+ * (This index is automatically created/updated by the extension "extdeveval")
+ *
+ */
 
 require_once(t3lib_extMgm::extPath('dataquery', 'class.tx_dataquery_parser.php'));
 require_once(t3lib_extMgm::extPath('basecontroller', 'services/class.tx_basecontroller_providerbase.php'));
@@ -151,6 +175,11 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 		return $records;
 	}
 
+	/**
+	 * This method loads the current query's details from the database and starts the parser
+	 *
+	 * @return	void
+	 */
 	protected function loadQuery() {
 		$tableTCA = $GLOBALS['TCA'][$this->table];
 		$whereClause = "uid = '".$this->uid."'";
@@ -171,11 +200,12 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 		}
 
     }
-	/**
+
+    /**
 	 * This method returns the name of the main table of the query,
 	 * which is the table name that appears in the FROM clause, or the alias, if any
 	 *
-	 * @return	string	main table name
+	 * @return	string		main table name
 	 */
 	public function getMainTableName() {
 		return $this->mainTable;
@@ -186,7 +216,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 	/**
 	 * This method returns the type of data structure that the Data Provider can prepare
 	 *
-	 * @return	string	type of the provided data structure
+	 * @return	string		type of the provided data structure
 	 */
 	public function getProvidedDataStructure() {
 		return tx_basecontroller::$recordsetStructureType;
@@ -205,7 +235,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 	/**
 	 * This method returns the type of data structure that the Data Provider can receive as input
 	 *
-	 * @return	string	type of used data structures
+	 * @return	string		type of used data structures
 	 */
 	public function getAcceptedDataStructure() {
 		return tx_basecontroller::$idlistStructureType;
@@ -225,7 +255,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 	 * This method is used to load the details about the Data Provider passing it whatever data it needs
 	 * This will generally be a table name and a primary key value
 	 *
-	 * @param	array	$data: Data for the Data Provider
+	 * @param	array		$data: Data for the Data Provider
 	 * @return	void
 	 */
 	public function loadData($data) {
@@ -236,7 +266,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 	/**
 	 * This method assembles the data structure and returns it
 	 *
-	 * @return	array	standardised data structure
+	 * @return	array		standardised data structure
 	 */
 	public function getDataStructure() {
 		return $this->getData();
@@ -245,7 +275,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 	/**
 	 * This method is used to pass a data structure to the Data Provider
 	 *
-	 * @param 	array	$structure: standardised data structure
+	 * @param	array		$structure: standardised data structure
 	 * @return	void
 	 */
 	public function setDataStructure($structure) {
@@ -255,7 +285,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 	/**
 	 * This method is used to pass a Data Filter structure to the Data Provider
 	 *
-	 * @param	array	$filter: Data Filter structure
+	 * @param	array		$filter: Data Filter structure
 	 * @return	void
 	 */
 	public function setDataFilter($filter) {
@@ -263,13 +293,12 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 	}
 
 	/**
-     * This method loads the query and gets the list of tables and fields,
-     * complete with localized labels
-     *
-     * @param	string	$language: 2-letter iso code for language
-     *
-     * @return	array	list of tables and fields
-     */
+	 * This method loads the query and gets the list of tables and fields,
+	 * complete with localized labels
+	 *
+	 * @param	string		$language: 2-letter iso code for language
+	 * @return	array		list of tables and fields
+	 */
 	public function getTablesAndFields($language = '') {
 		$this->loadQuery();
 		return $this->sqlParser->getLocalizedLabels($language);
