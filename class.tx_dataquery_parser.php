@@ -603,10 +603,14 @@ class tx_dataquery_parser {
 	 * @return	string	The SQL enable clause
 	 */
 	protected function strippedEnableClause($table) {
-		$enableClause = $GLOBALS['TSFE']->sys_page->enableFields($table);
-			// If an enable clause was returned, strip the first ' AND '
-		if (!empty($enableClause)) {
-			$enableClause = substr($enableClause, strlen(' AND '));
+		$enableClause = '';
+			// First check if table has a TCA ctrl section, otherwise t3lib_page::enableFields() will die() (stupid thing!)
+		if (isset($GLOBALS['TCA'][$table]['ctrl'])) {
+			$enableClause = $GLOBALS['TSFE']->sys_page->enableFields($table);
+				// If an enable clause was returned, strip the first ' AND '
+			if (!empty($enableClause)) {
+				$enableClause = substr($enableClause, strlen(' AND '));
+			}
 		}
 		return $enableClause;
 	}
