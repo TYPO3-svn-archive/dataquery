@@ -46,6 +46,7 @@
  *
  */
 
+require_once(t3lib_extMgm::extPath('overlays', 'class.tx_overlays.php'));
 
 /**
  * This class is used to parse a SELECT SQL query into a structured array
@@ -62,6 +63,7 @@ class tx_dataquery_parser {
 	protected $isMergedResult = false;
 	protected $subtables = array();
 	protected $queryFields = array();
+	protected $doOverlays = array(); // Flag for each table whether to perform overlays or not
 	protected static $useEnableFields = 1;
 	protected static $useLanguageOverlays = 2;
 	protected static $useVersioning = 4;
@@ -227,7 +229,7 @@ class tx_dataquery_parser {
 // (there must be a primary key, if it is not called "uid", an alias called "uid" must be used in the query)
 
             if (!isset($tableHasUid[$table])) $tableHasUid[$table] = false; // Initialise to false
-			if (in_array('uid', $fields) || (isset($fieldAlias) && $fieldAlias == 'uid')) $tableHasUid[$table] &= true;
+			if (in_array('uid', $fields) || (isset($fieldAlias) && $fieldAlias == 'uid')) $tableHasUid[$table] |= true;
 
 // Assemble full names for each field
 // The full name is:
@@ -370,14 +372,14 @@ class tx_dataquery_parser {
 // Add the enable fields, first to the main table
 
 		if ($hasEnableFlag) {
-			$this->addWhereClause($this->strippedEnableClause($this->mainTable));
+			$this->addWhereClause(tx_overlays::getEnableFieldsCondition($this->mainTable));
 
 // Add enable fields to JOINed tables
 
 			if (isset($this->structure['JOIN']) && is_array($this->structure['JOIN'])) {
 				foreach ($this->structure['JOIN'] as $tableIndex => $joinData) {
 					$table = $joinData['table'];
-					$enableClause = $this->strippedEnableClause($table);
+					$enableClause = tx_overlays::getEnableFieldsCondition($table);
 					if (!empty($enableClause)) {
 						if (!empty($this->structure['JOIN'][$tableIndex]['on'])) $this->structure['JOIN'][$tableIndex]['on'] .= ' AND ';
 						$this->structure['JOIN'][$tableIndex]['on'] .= '('.$enableClause.')';
@@ -389,6 +391,43 @@ class tx_dataquery_parser {
 // Add the language condition and set the overlay flag
 
 		if ($hasLanguageFlag) {
+//t3lib_div::debug($this->structure);
+//t3lib_div::debug($this->queryFields);
+				// Loop on all tables involved
+			foreach ($this->queryFields as $table => $tableData) {
+				$fields = array_keys($tableData['fields']);
+					// For each table, make sure that the fields necessary for handling the language overlay are included in the list of selected fields
+				try {
+					$fieldsForOverlay = tx_overlays::selectOverlayFields($table, implode(',', $fields));
+					$fieldsForOverlayArray = t3lib_div::trimExplode(',', $fieldsForOverlay);
+						// Extract which fields were added and add them the list of fields to select
+					$addedFields = array_diff($fieldsForOverlayArray, $fields);
+					if (count($addedFields) > 0) {
+						foreach ($addedFields as $aField) {
+							$this->structure['SELECT'][] = $table.'.'.$aField.' AS '.$table.'$'.$aField;
+							$this->queryFields[$table]['fields'][$aField] = $aField;
+						}
+					}
+					$this->doOverlays[$table] = true;
+						// Add the language condition for the given table
+					$languageCondition = tx_overlays::getLanguageCondition($table);
+					if ($table == $this->mainTable) {
+						$this->addWhereClause($languageCondition);
+					}
+					else {
+							// FIXME: use of table is not proper, because table may have alias
+							// Check what is stored in $this->queryFields when there is an alias!!!
+						if (!empty($this->structure['JOIN'][$table]['on'])) $this->structure['JOIN'][$table]['on'] .= ' AND ';
+						$this->structure['JOIN'][$table]['on'] .= '('.$languageCondition.')';
+					}
+				}
+				catch (Exception $e) {
+					$this->doOverlays[$table] = false;
+				}
+			}
+// FIXME: why is the language condition not added for the pages table?
+t3lib_div::debug($this->structure);
+//t3lib_div::debug($this->queryFields);
 		}
 	}
 
@@ -601,11 +640,13 @@ class tx_dataquery_parser {
 	 *
 	 * @param	string	$table: name of the table to assemble the enable clause for
 	 * @return	string	The SQL enable clause
-	 */
 	protected function strippedEnableClause($table) {
 		$enableClause = '';
 			// First check if table has a TCA ctrl section, otherwise t3lib_page::enableFields() will die() (stupid thing!)
 		if (isset($GLOBALS['TCA'][$table]['ctrl'])) {
+// TODO: check how enableFields is called from tslib_content!
+// return $GLOBALS['TSFE']->sys_page->enableFields($table,$show_hidden?$show_hidden:($table=='pages' ? $GLOBALS['TSFE']->showHiddenPage : $GLOBALS['TSFE']->showHiddenRecords));
+
 			$enableClause = $GLOBALS['TSFE']->sys_page->enableFields($table);
 				// If an enable clause was returned, strip the first ' AND '
 			if (!empty($enableClause)) {
@@ -614,6 +655,7 @@ class tx_dataquery_parser {
 		}
 		return $enableClause;
 	}
+	 */
 }
 
 
