@@ -426,7 +426,7 @@ class tx_dataquery_parser {
 				}
 			}
 // FIXME: why is the language condition not added for the pages table?
-t3lib_div::debug($this->structure);
+//t3lib_div::debug($this->structure);
 //t3lib_div::debug($this->queryFields);
 		}
 	}
