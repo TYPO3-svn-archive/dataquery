@@ -86,7 +86,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 
 // Add the SQL conditions for the selected TYPO3 mechanisms
 
-		if (!empty($this->dataQuery['t3_mechanisms'])) $this->sqlParser->addTypo3Mechanisms($this->dataQuery['t3_mechanisms']);
+		$this->sqlParser->addTypo3Mechanisms($this->dataQuery);
 
 // Assemble filters, if defined
 
@@ -187,7 +187,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 		if (isset($GLOBALS['TSFE'])) {
 			$whereClause .= $GLOBALS['TSFE']->sys_page->enableFields($this->table, $GLOBALS['TSFE']->showHiddenRecords);
 		}
-		$res = $GLOBALS['TYPO3_DB']->exec_SELECTquery('sql_query, t3_mechanisms', $this->table, $whereClause);
+		$res = $GLOBALS['TYPO3_DB']->exec_SELECTquery('*', $this->table, $whereClause);
 		if ($GLOBALS['TYPO3_DB']->sql_num_rows($res) == 0) {
 			throw new Exception('No query found');
 		}

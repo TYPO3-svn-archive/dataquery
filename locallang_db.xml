@@ -10,10 +10,14 @@
 			<label index="tx_dataquery_queries.title">Title</label>
 			<label index="tx_dataquery_queries.description">Description</label>
 			<label index="tx_dataquery_queries.sql_query">SQL Query</label>
-			<label index="tx_dataquery_queries.t3_mechanisms.I.0">Use enable fields</label>
-			<label index="tx_dataquery_queries.t3_mechanisms.I.1">Use languages</label>
-			<label index="tx_dataquery_queries.t3_mechanisms.I.2">Use versioning</label>
-			<label index="tx_dataquery_queries.t3_mechanisms">TYPO3 Mechanisms</label>
+			<label index="tx_dataquery_queries.use_enable_fields">Use enable fields</label>
+			<label index="tx_dataquery_queries.use_enable_fields.I.0">Use all fields like deleted, hidden, starttime, endtime and access</label>
+			<label index="tx_dataquery_queries.language_handling">Language handling</label>
+			<label index="tx_dataquery_queries.language_handling.I.0">None</label>
+			<label index="tx_dataquery_queries.language_handling.I.1">Direct selection</label>
+			<label index="tx_dataquery_queries.language_handling.I.2">Standard overlays</label>
+			<label index="tx_dataquery_queries.use_versioning">Use versioning</label>
+			<label index="tx_dataquery_queries.use_versioning.I.0">Handle versions of records (workspaces)</label>
 			<label index="wizards.add_dataquery">Add a new Data Query</label>
 		</languageKey>
 		<languageKey index="fr" type="array">
@@ -21,10 +25,14 @@
 			<label index="tx_dataquery_queries.title">Titre</label>
 			<label index="tx_dataquery_queries.description">Description</label>
 			<label index="tx_dataquery_queries.sql_query">Requête SQL</label>
-			<label index="tx_dataquery_queries.t3_mechanisms.I.0">Honorer les champs d'activation</label>
-			<label index="tx_dataquery_queries.t3_mechanisms.I.1">Honorer la sélection de langue</label>
-			<label index="tx_dataquery_queries.t3_mechanisms.I.2">Honorer la gestion de version</label>
-			<label index="tx_dataquery_queries.t3_mechanisms">Mécanismes de TYPO3</label>
+			<label index="tx_dataquery_queries.use_enable_fields">Honorer les champs d'activation</label>
+			<label index="tx_dataquery_queries.use_enable_fields.I.0">Utiliser tous les champs d'activations tels que deleted, hidden, starttime, endtime et access</label>
+			<label index="tx_dataquery_queries.language_handling">Traitement des langues</label>
+			<label index="tx_dataquery_queries.language_handling.I.0">Aucun</label>
+			<label index="tx_dataquery_queries.language_handling.I.1">Sélection directe</label>
+			<label index="tx_dataquery_queries.language_handling.I.2">Mécanisme standard (overlays)</label>
+			<label index="tx_dataquery_queries.use_versioning">Honorer la gestion de version</label>
+			<label index="tx_dataquery_queries.use_versioning.I.0">Honore les versions des enregistrements (workspaces)</label>
 			<label index="wizards.add_dataquery">Ajouter une nouvelle requête</label>
 		</languageKey>
 	</data>

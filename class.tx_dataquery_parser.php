@@ -354,15 +354,14 @@ class tx_dataquery_parser {
 	/**
 	 * This method adds where clause elements related to typical TYPO3 control parameters:
 	 *
-	 * 	- the deleted flag
 	 * 	- the enable fields
-	 * 	- the language overlays
+	 * 	- the language handling
 	 * 	- the versioning system
 	 *
-	 * @param	integer		selected mechanisms
+	 * @param	array		$settings: database record corresponding to the current Data Query
 	 * @return	void
 	 */
-	public function addTypo3Mechanisms($parameters) {
+	public function addTypo3Mechanisms($settings) {
 
 // Mechanisms to use are selected using checkboxes, which means they are stored in a bit-wise fashion
 // To get actual values we need to AND the total parameters values with individual flag values
@@ -373,7 +372,7 @@ class tx_dataquery_parser {
 
 // Add the enable fields, first to the main table
 
-		if ($hasEnableFlag) {
+		if (!empty($settings['use_enable_fields'])) {
 			$this->addWhereClause(tx_overlays::getEnableFieldsCondition($this->mainTable));
 
 // Add enable fields to JOINed tables
@@ -393,50 +392,52 @@ class tx_dataquery_parser {
 
 // Add the language condition and set the overlay flag
 
-		if ($hasLanguageFlag) {
+		if (!empty($settings['language_handling'])) {
+			if ($settings['language_handling'] == 'overlay') {
 //t3lib_div::debug($this->structure);
 //t3lib_div::debug($this->queryFields);
 				// Loop on all tables involved
-			foreach ($this->queryFields as $alias => $tableData) {
-				$table = $tableData['table'];
-				$fields = array_keys($tableData['fields']);
-					// For each table, make sure that the fields necessary for handling the language overlay are included in the list of selected fields
-				try {
-					$fieldsForOverlay = tx_overlays::selectOverlayFields($table, implode(',', $fields));
-					$fieldsForOverlayArray = t3lib_div::trimExplode(',', $fieldsForOverlay);
-						// Strip the "[table name]." prefix
-					$numFields = count($fieldsForOverlayArray);
-					for ($i = 0; $i < $numFields; $i++) {
-						$fieldsForOverlayArray[$i] = str_replace($table.'.', '', $fieldsForOverlayArray[$i]);
-					}
-						// Extract which fields were added and add them the list of fields to select
-					$addedFields = array_diff($fieldsForOverlayArray, $fields);
-					if (count($addedFields) > 0) {
-						foreach ($addedFields as $aField) {
-							$this->structure['SELECT'][] = $alias.'.'.$aField.' AS '.$alias.'$'.$aField;
-							$this->queryFields[$table]['fields'][$aField] = $aField;
+				foreach ($this->queryFields as $alias => $tableData) {
+					$table = $tableData['table'];
+					$fields = array_keys($tableData['fields']);
+						// For each table, make sure that the fields necessary for handling the language overlay are included in the list of selected fields
+					try {
+						$fieldsForOverlay = tx_overlays::selectOverlayFields($table, implode(',', $fields));
+						$fieldsForOverlayArray = t3lib_div::trimExplode(',', $fieldsForOverlay);
+							// Strip the "[table name]." prefix
+						$numFields = count($fieldsForOverlayArray);
+						for ($i = 0; $i < $numFields; $i++) {
+							$fieldsForOverlayArray[$i] = str_replace($table.'.', '', $fieldsForOverlayArray[$i]);
+						}
+							// Extract which fields were added and add them the list of fields to select
+						$addedFields = array_diff($fieldsForOverlayArray, $fields);
+						if (count($addedFields) > 0) {
+							foreach ($addedFields as $aField) {
+								$this->structure['SELECT'][] = $alias.'.'.$aField.' AS '.$alias.'$'.$aField;
+								$this->queryFields[$table]['fields'][$aField] = $aField;
+							}
+						}
+						$this->doOverlays[$table] = true;
+							// Add the language condition for the given table
+						$languageCondition = tx_overlays::getLanguageCondition($table);
+						if ($table != $alias) $languageCondition = str_replace($table, $alias, $languageCondition);
+						if ($table == $this->mainTable) {
+							$this->addWhereClause($languageCondition);
+						}
+						else {
+								// FIXME: use of table is not proper, because table may have alias
+								// Check what is stored in $this->queryFields when there is an alias!!!
+							if (!empty($this->structure['JOIN'][$alias]['on'])) $this->structure['JOIN'][$alias]['on'] .= ' AND ';
+							$this->structure['JOIN'][$alias]['on'] .= '('.$languageCondition.')';
 						}
 					}
-					$this->doOverlays[$table] = true;
-						// Add the language condition for the given table
-					$languageCondition = tx_overlays::getLanguageCondition($table);
-					if ($table != $alias) $languageCondition = str_replace($table, $alias, $languageCondition);
-					if ($table == $this->mainTable) {
-						$this->addWhereClause($languageCondition);
-					}
-					else {
-							// FIXME: use of table is not proper, because table may have alias
-							// Check what is stored in $this->queryFields when there is an alias!!!
-						if (!empty($this->structure['JOIN'][$alias]['on'])) $this->structure['JOIN'][$alias]['on'] .= ' AND ';
-						$this->structure['JOIN'][$alias]['on'] .= '('.$languageCondition.')';
+					catch (Exception $e) {
+						$this->doOverlays[$table] = false;
 					}
 				}
-				catch (Exception $e) {
-					$this->doOverlays[$table] = false;
-				}
-			}
 //t3lib_div::debug($this->structure);
 //t3lib_div::debug($this->queryFields);
+			}
 		}
 	}
 
