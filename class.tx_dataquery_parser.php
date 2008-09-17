@@ -348,6 +348,9 @@ class tx_dataquery_parser {
 					$this->queryFields[$alias]['fields'][$key] = $fieldName;
                 }
             }
+            	// By default disable language overlays for all tables
+            	// Overlays are activated again on a case by case basis in addTypo3Mechanisms()
+			$this->doOverlays[$alias] = false;
         }
 		return $this->queryFields;
     }
@@ -628,10 +631,10 @@ class tx_dataquery_parser {
 	}
 
 	/**
-	 * This method returns the name of the main table of the query,
+	 * This method returns the name (alias) of the main table of the query,
 	 * which is the table name that appears in the FROM clause, or the alias, if any
 	 *
-	 * @return	string		main table name
+	 * @return	string		main table name (alias)
 	 */
 	public function getMainTableName() {
 		return $this->mainTable;
@@ -656,30 +659,17 @@ class tx_dataquery_parser {
 		return $this->isMergedResult;
 	}
 
-// Utility methods
-
 	/**
-	 * This methods calls t3lib_page::enableFields() and returns that string
-	 * after having removed the ' AND ' at the start of that string
+	 * This method indicates whether the language overlay mechanism must/can be handled for a given table
 	 *
-	 * @param	string	$table: name of the table to assemble the enable clause for
-	 * @return	string	The SQL enable clause
-	protected function strippedEnableClause($table) {
-		$enableClause = '';
-			// First check if table has a TCA ctrl section, otherwise t3lib_page::enableFields() will die() (stupid thing!)
-		if (isset($GLOBALS['TCA'][$table]['ctrl'])) {
-// TODO: check how enableFields is called from tslib_content!
-// return $GLOBALS['TSFE']->sys_page->enableFields($table,$show_hidden?$show_hidden:($table=='pages' ? $GLOBALS['TSFE']->showHiddenPage : $GLOBALS['TSFE']->showHiddenRecords));
-
-			$enableClause = $GLOBALS['TSFE']->sys_page->enableFields($table);
-				// If an enable clause was returned, strip the first ' AND '
-			if (!empty($enableClause)) {
-				$enableClause = substr($enableClause, strlen(' AND '));
-			}
-		}
-		return $enableClause;
-	}
+	 * @param	string		$table: name (alias) of the table to handle
+	 * @return	boolean		true if language overlay must and can be performed, false otherwise
+	 *
+	 * @see tx_dataquery_parser::addTypo3Mechanisms()
 	 */
+	public function mustHandleLanguageOverlay($table) {
+		return (isset($this->doOverlays[$table])) ? $this->doOverlays[$table] : false;
+	}
 }
 
 
