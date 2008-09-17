@@ -115,7 +115,7 @@ class tx_dataquery_parser {
 					$this->structure[$keyword]['table'] = trim($fromParts[0]);
 					if (count($fromParts) > 1) {
 						$this->structure[$keyword]['alias'] = trim($fromParts[1]);
-						$aliases[$fromParts[1]] = $this->structure[$keyword]['table'];
+						$aliases[$this->structure[$keyword]['alias']] = $this->structure[$keyword]['table'];
 					}
 					else {
 						$this->structure[$keyword]['alias'] = $this->structure[$keyword]['table'];
@@ -133,7 +133,7 @@ class tx_dataquery_parser {
 					$theJoin['type'] = $joinType;
 					if (count($moreParts) > 1) {
 						$theJoin['alias'] = trim($moreParts[1]);
-						$aliases[$moreParts[1]] = $theJoin['table'];
+						$aliases[$theJoin['alias']] = $theJoin['table'];
 					}
 					else {
 						$theJoin['alias'] = $theJoin['table'];
@@ -211,25 +211,26 @@ class tx_dataquery_parser {
 				else { // No dot, the table is the main one
 					$fields = array($selector);
 					$table = $this->mainTable;
-                }
+					$alias = $table;
+				}
             }
 
 // Assemble list of fields per table
 // The name of the field is used both as key and value, but the value will be replaced by the fields' labels in getLocalizedLabels()
 
-			if (!isset($this->queryFields[$table])) {
-				$this->queryFields[$table] = array('name' => $table, 'fields' => array());
+			if (!isset($this->queryFields[$alias])) {
+				$this->queryFields[$alias] = array('name' => $table, 'table' => (empty($aliases[$alias])) ? $table : $aliases[$alias], 'fields' => array());
 			}
 			foreach ($fields as $aField) {
-				$this->queryFields[$table]['fields'][$aField] = $aField;
+				$this->queryFields[$alias]['fields'][$aField] = $aField;
 			}
 
 // Keep track of whether a field called "uid" (either its true name or an alias)
 // exists for every table. If not, it will be added later
 // (there must be a primary key, if it is not called "uid", an alias called "uid" must be used in the query)
 
-            if (!isset($tableHasUid[$table])) $tableHasUid[$table] = false; // Initialise to false
-			if (in_array('uid', $fields) || (isset($fieldAlias) && $fieldAlias == 'uid')) $tableHasUid[$table] |= true;
+            if (!isset($tableHasUid[$alias])) $tableHasUid[$alias] = false; // Initialise to false
+			if (in_array('uid', $fields) || (isset($fieldAlias) && $fieldAlias == 'uid')) $tableHasUid[$alias] |= true;
 
 // Assemble full names for each field
 // The full name is:
@@ -269,11 +270,11 @@ class tx_dataquery_parser {
 			}
 			$this->structure['SELECT'][$i] = implode(', ', $completeFields);
         }
-        foreach ($tableHasUid as $table => $flag) {
+        foreach ($tableHasUid as $alias => $flag) {
         	if (!$flag) {
-        		$fullField = $table.'.uid';
-				if ($table != $this->mainTable) {
-	       			$fullField .= ' AS '.$table.'$uid';
+        		$fullField = $alias.'.uid';
+				if ($alias != $this->mainTable) {
+	       			$fullField .= ' AS '.$alias.'$uid';
 				}
 				$this->structure['SELECT'][] = $fullField;
         	}
@@ -319,7 +320,8 @@ class tx_dataquery_parser {
 			// Now that we have a properly initialised language object,
 			// loop on all labels and get any existing localised string
 		$hasFullTCA = false;
-		foreach ($this->queryFields as $table => $tableData) {
+		foreach ($this->queryFields as $alias => $tableData) {
+			$table = $tableData['table'];
 				// For the pages table, the t3lib_div::loadTCA() method does not work
 				// We have to load the full TCA. Set a flag to signal that it's pointless
 				// to call t3lib_div::loadTCA() after that, since the whole TCA is loaded anyway
@@ -336,13 +338,13 @@ class tx_dataquery_parser {
 				// Get the labels for the tables
 			if (isset($GLOBALS['TCA'][$table]['ctrl']['title'])) {
 				$tableName = $tableName = $lang->sL($GLOBALS['TCA'][$table]['ctrl']['title']);
-				$this->queryFields[$table]['name'] = $tableName;
+				$this->queryFields[$alias]['name'] = $tableName;
 			}
 				// Get the labels for the fields
 			foreach ($tableData['fields'] as $key => $value) {
 				if (isset($GLOBALS['TCA'][$table]['columns'][$key]['label'])) {
 					$fieldName = $lang->sL($GLOBALS['TCA'][$table]['columns'][$key]['label']);
-					$this->queryFields[$table]['fields'][$key] = $fieldName;
+					$this->queryFields[$alias]['fields'][$key] = $fieldName;
                 }
             }
         }
@@ -381,6 +383,7 @@ class tx_dataquery_parser {
 					$table = $joinData['table'];
 					$enableClause = tx_overlays::getEnableFieldsCondition($table);
 					if (!empty($enableClause)) {
+						if ($table != $joinData['alias']) $enableClause = str_replace($table, $joinData['alias'], $enableClause);
 						if (!empty($this->structure['JOIN'][$tableIndex]['on'])) $this->structure['JOIN'][$tableIndex]['on'] .= ' AND ';
 						$this->structure['JOIN'][$tableIndex]['on'] .= '('.$enableClause.')';
 					}
@@ -394,38 +397,44 @@ class tx_dataquery_parser {
 //t3lib_div::debug($this->structure);
 //t3lib_div::debug($this->queryFields);
 				// Loop on all tables involved
-			foreach ($this->queryFields as $table => $tableData) {
+			foreach ($this->queryFields as $alias => $tableData) {
+				$table = $tableData['table'];
 				$fields = array_keys($tableData['fields']);
 					// For each table, make sure that the fields necessary for handling the language overlay are included in the list of selected fields
 				try {
 					$fieldsForOverlay = tx_overlays::selectOverlayFields($table, implode(',', $fields));
 					$fieldsForOverlayArray = t3lib_div::trimExplode(',', $fieldsForOverlay);
+						// Strip the "[table name]." prefix
+					$numFields = count($fieldsForOverlayArray);
+					for ($i = 0; $i < $numFields; $i++) {
+						$fieldsForOverlayArray[$i] = str_replace($table.'.', '', $fieldsForOverlayArray[$i]);
+					}
 						// Extract which fields were added and add them the list of fields to select
 					$addedFields = array_diff($fieldsForOverlayArray, $fields);
 					if (count($addedFields) > 0) {
 						foreach ($addedFields as $aField) {
-							$this->structure['SELECT'][] = $table.'.'.$aField.' AS '.$table.'$'.$aField;
+							$this->structure['SELECT'][] = $alias.'.'.$aField.' AS '.$alias.'$'.$aField;
 							$this->queryFields[$table]['fields'][$aField] = $aField;
 						}
 					}
 					$this->doOverlays[$table] = true;
 						// Add the language condition for the given table
 					$languageCondition = tx_overlays::getLanguageCondition($table);
+					if ($table != $alias) $languageCondition = str_replace($table, $alias, $languageCondition);
 					if ($table == $this->mainTable) {
 						$this->addWhereClause($languageCondition);
 					}
 					else {
 							// FIXME: use of table is not proper, because table may have alias
 							// Check what is stored in $this->queryFields when there is an alias!!!
-						if (!empty($this->structure['JOIN'][$table]['on'])) $this->structure['JOIN'][$table]['on'] .= ' AND ';
-						$this->structure['JOIN'][$table]['on'] .= '('.$languageCondition.')';
+						if (!empty($this->structure['JOIN'][$alias]['on'])) $this->structure['JOIN'][$alias]['on'] .= ' AND ';
+						$this->structure['JOIN'][$alias]['on'] .= '('.$languageCondition.')';
 					}
 				}
 				catch (Exception $e) {
 					$this->doOverlays[$table] = false;
 				}
 			}
-// FIXME: why is the language condition not added for the pages table?
 //t3lib_div::debug($this->structure);
 //t3lib_div::debug($this->queryFields);
 		}
