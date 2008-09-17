@@ -59,11 +59,12 @@ class tx_dataquery_parser {
 	protected static $tokens = array('SELECT', 'FROM', 'INNER JOIN', 'LEFT JOIN', 'RIGHT JOIN', 'WHERE', 'GROUP BY', 'ORDER BY', 'LIMIT', 'OFFSET', 'MERGED');
 	protected static $allowedComparisons = array('eq' => '=', 'ne' => '!=', 'lt' => '<', 'le' => '<=', 'gt' => '>', 'ge' => '>=', 'in' => 'IN', 'like' => 'LIKE');
 	protected $structure = array();
-	protected $mainTable;
+	protected $mainTable; // Name (or alias if defined) of the main query table, i.e. the one in the FROM part of the query
+	protected $aliases = array(); // The keys to this array are the aliases of the tables used in the query and they point to the true table names
 	protected $isMergedResult = false;
 	protected $subtables = array();
 	protected $queryFields = array();
-	protected $doOverlays = array(); // Flag for each table whether to perform overlays or not
+	protected $doOverlays = array(); // Flag for each table (or its alias) whether to perform overlays or not
 	protected static $useEnableFields = 1;
 	protected static $useLanguageOverlays = 2;
 	protected static $useVersioning = 4;
@@ -91,7 +92,7 @@ class tx_dataquery_parser {
 
 		$i = 0;
 		$numMatches = count($matches);
-		$aliases = array();
+		$this->aliases = array();
 		while ($i < $numMatches) {
 			$keyword = $matches[$i];
 			$i++;
@@ -115,7 +116,7 @@ class tx_dataquery_parser {
 					$this->structure[$keyword]['table'] = trim($fromParts[0]);
 					if (count($fromParts) > 1) {
 						$this->structure[$keyword]['alias'] = trim($fromParts[1]);
-						$aliases[$this->structure[$keyword]['alias']] = $this->structure[$keyword]['table'];
+						$this->aliases[$this->structure[$keyword]['alias']] = $this->structure[$keyword]['table'];
 					}
 					else {
 						$this->structure[$keyword]['alias'] = $this->structure[$keyword]['table'];
@@ -133,7 +134,7 @@ class tx_dataquery_parser {
 					$theJoin['type'] = $joinType;
 					if (count($moreParts) > 1) {
 						$theJoin['alias'] = trim($moreParts[1]);
-						$aliases[$theJoin['alias']] = $theJoin['table'];
+						$this->aliases[$theJoin['alias']] = $theJoin['table'];
 					}
 					else {
 						$theJoin['alias'] = $theJoin['table'];
@@ -190,7 +191,7 @@ class tx_dataquery_parser {
                 }
 				else { // It's table.*, get list of fields for the given table
 					$selectorParts = t3lib_div::trimExplode('.', $selector, 1);
-					$table = (isset($aliases[$selectorParts[0]]) ? $aliases[$selectorParts[0]] : $selectorParts[0]);
+					$table = (isset($this->aliases[$selectorParts[0]]) ? $this->aliases[$selectorParts[0]] : $selectorParts[0]);
 					$alias = $selectorParts[0];
                 }
 				$fieldInfo = $GLOBALS['TYPO3_DB']->admin_get_fields($table);
@@ -204,7 +205,7 @@ class tx_dataquery_parser {
                 }
 				if (stristr($selector, '.')) { // If there's a dot, get table name
 					$selectorParts = t3lib_div::trimExplode('.', $selector, 1);
-					$table = (isset($aliases[$selectorParts[0]]) ? $aliases[$selectorParts[0]] : $selectorParts[0]);
+					$table = (isset($this->aliases[$selectorParts[0]]) ? $this->aliases[$selectorParts[0]] : $selectorParts[0]);
 					$alias = $selectorParts[0];
 					$fields = array($selectorParts[1]);
                 }
@@ -219,7 +220,7 @@ class tx_dataquery_parser {
 // The name of the field is used both as key and value, but the value will be replaced by the fields' labels in getLocalizedLabels()
 
 			if (!isset($this->queryFields[$alias])) {
-				$this->queryFields[$alias] = array('name' => $table, 'table' => (empty($aliases[$alias])) ? $table : $aliases[$alias], 'fields' => array());
+				$this->queryFields[$alias] = array('name' => $table, 'table' => (empty($this->aliases[$alias])) ? $table : $this->aliases[$alias], 'fields' => array());
 			}
 			foreach ($fields as $aField) {
 				$this->queryFields[$alias]['fields'][$aField] = $aField;
@@ -363,17 +364,12 @@ class tx_dataquery_parser {
 	 */
 	public function addTypo3Mechanisms($settings) {
 
-// Mechanisms to use are selected using checkboxes, which means they are stored in a bit-wise fashion
-// To get actual values we need to AND the total parameters values with individual flag values
-
-		$hasEnableFlag = $parameters & self::$useEnableFields;
-		$hasLanguageFlag = $parameters & self::$useLanguageOverlays;
-		$hasVersioningFlag = $parameters & self::$useVersioning;
-
 // Add the enable fields, first to the main table
 
 		if (!empty($settings['use_enable_fields'])) {
-			$this->addWhereClause(tx_overlays::getEnableFieldsCondition($this->mainTable));
+			$enableClause = tx_overlays::getEnableFieldsCondition($this->aliases[$this->mainTable]);
+			if ($this->mainTable != $this->aliases[$this->mainTable]) $enableClause = str_replace($this->aliases[$this->mainTable], $this->mainTable, $enableClause);
+			$this->addWhereClause($enableClause);
 
 // Add enable fields to JOINed tables
 
@@ -390,12 +386,14 @@ class tx_dataquery_parser {
 			}
 		}
 
-// Add the language condition and set the overlay flag
+// Add the language condition, if necessary
 
 		if (!empty($settings['language_handling'])) {
+
+// Add the DB fields and the SQL conditions necessary for having everything ready to handle overlays
+// as per the standard TYPO3 mechanism
+
 			if ($settings['language_handling'] == 'overlay') {
-//t3lib_div::debug($this->structure);
-//t3lib_div::debug($this->queryFields);
 				// Loop on all tables involved
 				foreach ($this->queryFields as $alias => $tableData) {
 					$table = $tableData['table'];
@@ -417,26 +415,42 @@ class tx_dataquery_parser {
 								$this->queryFields[$table]['fields'][$aField] = $aField;
 							}
 						}
-						$this->doOverlays[$table] = true;
+						$this->doOverlays[$alias] = true;
 							// Add the language condition for the given table
 						$languageCondition = tx_overlays::getLanguageCondition($table);
 						if ($table != $alias) $languageCondition = str_replace($table, $alias, $languageCondition);
-						if ($table == $this->mainTable) {
+						if ($alias == $this->mainTable) {
 							$this->addWhereClause($languageCondition);
 						}
 						else {
-								// FIXME: use of table is not proper, because table may have alias
-								// Check what is stored in $this->queryFields when there is an alias!!!
 							if (!empty($this->structure['JOIN'][$alias]['on'])) $this->structure['JOIN'][$alias]['on'] .= ' AND ';
 							$this->structure['JOIN'][$alias]['on'] .= '('.$languageCondition.')';
 						}
 					}
 					catch (Exception $e) {
-						$this->doOverlays[$table] = false;
+						$this->doOverlays[$alias] = false;
 					}
 				}
-//t3lib_div::debug($this->structure);
-//t3lib_div::debug($this->queryFields);
+			}
+
+// "Simple" language handling is just about adding the proper condition on the sys_language_uid field and nothing more
+// No overlays will be handled at a later time
+
+			elseif ($settings['language_handling'] == 'simple') {
+				foreach ($this->queryFields as $alias => $tableData) {
+					$table = $tableData['table'];
+					if (isset($GLOBALS['TCA'][$table]['ctrl']['languageField'])) {
+							// Take language that corresponds to current language or [All]
+						$languageCondition = $alias.'.'.$GLOBALS['TCA'][$table]['ctrl']['languageField'].' IN ('.$GLOBALS['TSFE']->sys_language_content.', -1)';
+						if ($alias == $this->mainTable) {
+							$this->addWhereClause($languageCondition);
+						}
+						else {
+							if (!empty($this->structure['JOIN'][$alias]['on'])) $this->structure['JOIN'][$alias]['on'] .= ' AND ';
+							$this->structure['JOIN'][$alias]['on'] .= '('.$languageCondition.')';
+						}
+					}
+				}
 			}
 		}
 	}
