@@ -28,20 +28,21 @@
  *
  *
  *
- *   57: class tx_dataquery_parser
- *   77:     public function parseQuery($query)
- *  290:     public function getLocalizedLabels($language = '')
- *  363:     public function addTypo3Mechanisms($parameters)
- *  407:     public function addFilter($filter)
- *  436:     public function addIdList($idList)
- *  476:     public function buildQuery()
- *  519:     public function parseSearch($searchParameters)
- *  567:     public function addWhereClause($clause)
- *  579:     public function getMainTableName()
- *  589:     public function getSubtablesNames()
- *  598:     public function hasMergedResults()
+ *   60: class tx_dataquery_parser
+ *   78:     public function parseQuery($query)
+ *  291:     public function getLocalizedLabels($language = '')
+ *  367:     public function addTypo3Mechanisms($settings)
+ *  466:     public function addFilter($filter)
+ *  495:     public function addIdList($idList)
+ *  535:     public function buildQuery()
+ *  578:     public function parseSearch($searchParameters)
+ *  626:     public function addWhereClause($clause)
+ *  638:     public function getMainTableName()
+ *  648:     public function getSubtablesNames()
+ *  657:     public function hasMergedResults()
+ *  668:     public function mustHandleLanguageOverlay($table)
  *
- * TOTAL FUNCTIONS: 11
+ * TOTAL FUNCTIONS: 12
  * (This index is automatically created/updated by the extension "extdeveval")
  *
  */
@@ -50,6 +51,7 @@ require_once(t3lib_extMgm::extPath('overlays', 'class.tx_overlays.php'));
 
 /**
  * This class is used to parse a SELECT SQL query into a structured array
+ * It can automatically handle a number of TYPO3 constructs, like enable fields and language overlays
  *
  * @author	Francois Suter (Cobweb) <typo3@cobweb.ch>
  * @package	TYPO3
@@ -58,16 +60,13 @@ require_once(t3lib_extMgm::extPath('overlays', 'class.tx_overlays.php'));
 class tx_dataquery_parser {
 	protected static $tokens = array('SELECT', 'FROM', 'INNER JOIN', 'LEFT JOIN', 'RIGHT JOIN', 'WHERE', 'GROUP BY', 'ORDER BY', 'LIMIT', 'OFFSET', 'MERGED');
 	protected static $allowedComparisons = array('eq' => '=', 'ne' => '!=', 'lt' => '<', 'le' => '<=', 'gt' => '>', 'ge' => '>=', 'in' => 'IN', 'like' => 'LIKE');
-	protected $structure = array();
+	protected $structure = array(); // Contains all components of the parsed query
 	protected $mainTable; // Name (or alias if defined) of the main query table, i.e. the one in the FROM part of the query
 	protected $aliases = array(); // The keys to this array are the aliases of the tables used in the query and they point to the true table names
 	protected $isMergedResult = false;
-	protected $subtables = array();
-	protected $queryFields = array();
+	protected $subtables = array(); // List of all subtables, i.e. tables in the JOIN statements
+	protected $queryFields = array(); // List of all fields being queried, arranged per table (aliased)
 	protected $doOverlays = array(); // Flag for each table (or its alias) whether to perform overlays or not
-	protected static $useEnableFields = 1;
-	protected static $useLanguageOverlays = 2;
-	protected static $useVersioning = 4;
 
 	/**
 	 * This method is used to parse a SELECT SQL query.
@@ -664,7 +663,6 @@ class tx_dataquery_parser {
 	 *
 	 * @param	string		$table: name (alias) of the table to handle
 	 * @return	boolean		true if language overlay must and can be performed, false otherwise
-	 *
 	 * @see tx_dataquery_parser::addTypo3Mechanisms()
 	 */
 	public function mustHandleLanguageOverlay($table) {
