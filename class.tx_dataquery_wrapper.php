@@ -63,12 +63,9 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 	public $extKey = 'dataquery';
 	protected $configuration; // Extension configuration
 	protected $mainTable; // Store the name of the main table of the query
-	protected $table; // Name of the table where the details about the data query are stored
-	protected $uid; // Primary key of the record to fetch for the details
 	protected $sqlParser; // Local instance of the SQL parser class (tx_dataquery_parser)
 	protected $filter; // Data Filter structure
 	protected $structure; // Input standardised data structure
-	protected $dataQuery = array(); // Stores the DB record related to the current data query
 
 	public function __construct() {
 		$this->configuration = unserialize($GLOBALS['TYPO3_CONF_VARS']['EXT']['extConf'][$this->extKey]);
@@ -86,7 +83,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 
 // Add the SQL conditions for the selected TYPO3 mechanisms
 
-		$this->sqlParser->addTypo3Mechanisms($this->dataQuery);
+		$this->sqlParser->addTypo3Mechanisms($this->providerData);
 
 // Assemble filters, if defined
 
@@ -182,24 +179,8 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 	 * @return	void
 	 */
 	protected function loadQuery() {
-		$tableTCA = $GLOBALS['TCA'][$this->table];
-		$whereClause = "uid = '".$this->uid."'";
-		if (isset($GLOBALS['TSFE'])) {
-			$whereClause .= $GLOBALS['TSFE']->sys_page->enableFields($this->table, $GLOBALS['TSFE']->showHiddenRecords);
-		}
-		$res = $GLOBALS['TYPO3_DB']->exec_SELECTquery('*', $this->table, $whereClause);
-		if ($GLOBALS['TYPO3_DB']->sql_num_rows($res) == 0) {
-			throw new Exception('No query found');
-		}
-		else {
-
-// Get query and parse it
-
-			$this->dataQuery = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res);
-			$this->sqlParser = t3lib_div::makeInstance('tx_dataquery_parser');
-			$this->sqlParser->parseQuery($this->dataQuery['sql_query']);
-		}
-
+		$this->sqlParser = t3lib_div::makeInstance('tx_dataquery_parser');
+		$this->sqlParser->parseQuery($this->providerData['sql_query']);
     }
 
     /**
@@ -250,18 +231,6 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 	 */
 	public function acceptsDataStructure($type) {
 		return $type == tx_basecontroller::$idlistStructureType;
-	}
-
-	/**
-	 * This method is used to load the details about the Data Provider passing it whatever data it needs
-	 * This will generally be a table name and a primary key value
-	 *
-	 * @param	array		$data: Data for the Data Provider
-	 * @return	void
-	 */
-	public function loadData($data) {
-		$this->table = $data['table'];
-		$this->uid = $data['uid'];
 	}
 
 	/**
