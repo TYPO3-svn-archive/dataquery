@@ -59,7 +59,6 @@ require_once(t3lib_extMgm::extPath('overlays', 'class.tx_overlays.php'));
  */
 class tx_dataquery_parser {
 	protected static $tokens = array('SELECT', 'FROM', 'INNER JOIN', 'LEFT JOIN', 'RIGHT JOIN', 'WHERE', 'GROUP BY', 'ORDER BY', 'LIMIT', 'OFFSET', 'MERGED');
-	protected static $allowedComparisons = array('eq' => '=', 'ne' => '!=', 'lt' => '<', 'le' => '<=', 'gt' => '>', 'ge' => '>=', 'in' => 'IN', 'like' => 'LIKE');
 	protected $structure = array(); // Contains all components of the parsed query
 	protected $mainTable; // Name (or alias if defined) of the main query table, i.e. the one in the FROM part of the query
 	protected $aliases = array(); // The keys to this array are the aliases of the tables used in the query and they point to the true table names
@@ -476,7 +475,7 @@ class tx_dataquery_parser {
 					if (!empty($condition)) {
 						$condition .= ' AND ';
 					}
-					$condition .= $table.'.'.$field.' '.self::$allowedComparisons[$conditionData['operator']].' '.$GLOBALS['TYPO3_DB']->fullQuoteStr($conditionData['value'], $table);
+					$condition .= $table.'.'.$field.' '.$conditionData['operator'].' '.$GLOBALS['TYPO3_DB']->fullQuoteStr($conditionData['value'], $table);
 				}
 				$completeFilter .= '('.$condition.')';
 			}
