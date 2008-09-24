@@ -580,9 +580,9 @@ class tx_dataquery_parser {
 		}
 		if (count($this->structure['LIMIT']) > 0) {
 			$query .= 'LIMIT '.$this->structure['LIMIT'];
-		}
-		if (count($this->structure['OFFSET']) > 0) {
-			$query .= 'OFFSET '.$this->structure['OFFSET'];
+			if (count($this->structure['OFFSET']) > 0) {
+				$query .= 'OFFSET '.$this->structure['OFFSET'];
+			}
 		}
 //t3lib_div::debug($query);
 		return $query;
