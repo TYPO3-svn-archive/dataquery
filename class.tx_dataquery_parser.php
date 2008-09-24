@@ -457,12 +457,13 @@ class tx_dataquery_parser {
 	}
 
 	/**
-	 * This method takes a Data Filter structure and turns it into SQL WHERE clauses
+	 * This method takes a Data Filter structure and processes its instructions
 	 *
 	 * @param	array		$filter: Data Filter structure
 	 * @return	void
 	 */
 	public function addFilter($filter) {
+			// First handle the "filter" part, which will be turned into part of a SQL WHERE clause
 		$completeFilter = '';
 		$logicalOperator = (empty($filter['logicalOperator'])) ? 'AND' : $filter['logicalOperator'];
 		if (isset($filter['filters']) && is_array($filter['filters'])) {
@@ -480,6 +481,25 @@ class tx_dataquery_parser {
 				$completeFilter .= '('.$condition.')';
 			}
 			$this->addWhereClause($completeFilter);
+		}
+			// Add the eventual raw SQL in the filter
+		if (!empty($filter['rawSQL'])) {
+			$this->addWhereClause($filter['rawSQL']);
+		}
+			// Handle the order by clauses
+		if (count($filter['orderby']) > 0) {
+			foreach ($filter['orderby'] as $orderData) {
+				$orderbyClause = ((empty($orderData['table'])) ? $this->mainTable : $orderData['table']).'.'.$orderData['field'].' '.$orderData['order'];
+				$this->structure['ORDER BY'][] = $orderbyClause;
+			}
+		}
+			// Handle limit
+			// This is not so easy: it can be applied directly to SQL only if there are not JOINs in the query
+			// othewise this has to be done PHP-side, after the query
+			// NOTE: this will override any value set in the query itself
+		if (count($this->structure['JOIN']) == 0) {
+			$this->structure['LIMIT'] = $filter['limit']['max'];
+			$this->structure['OFFSET'] = $filter['limit']['offset'] * $filter['limit']['max'];
 		}
 	}
 
@@ -567,52 +587,6 @@ class tx_dataquery_parser {
 //t3lib_div::debug($query);
 		return $query;
 	}
-
-	/**
-	 * Analyse search structure (multidimensional array) and set where fields accordingly
-	 *
-	 * @param	array	search fields structure
-	 *
-	 * @return	void
-	public function parseSearch($searchParameters) {
-		$whereClause = '';
-		if (is_array($searchParameters) && count($searchParameters) > 0) {
-			foreach ($searchParameters as $groupID => $groupData) {
-				$fieldOperator = '';
-				foreach ($groupData['fields'] as $fieldName => $fieldData) {
-					$useField = true;
-					if (isset($fieldData['ignore'])) { // Check if the field must be ignored
-						if ($fieldData['ignore'] == 'empty') {
-							if (empty($fieldData['value'])) $useField = false;
-						}
-						elseif ($fieldData['value'] == $fieldData['ignore']) {
-							$useField = false;
-						}
-					}
-					if ($useField) { // If the field must not be ignored, add it to the where clause
-						if (!empty($fieldOperator)) $whereClause .= ' '.$fieldOperator.' '; // Concatenate with operator from previous field (if any)
-						if (empty($fieldData['comparison'])) { // Default comparison operator is equals
-							$comparison = '=';
-						}
-						else {
-							$fieldComparison = strtolower($fieldData['comparison']);
-							if (isset($this->allowedComparisons[$fieldComparison])) { // Check that comparison operator is valid, else use equals
-								$comparison = $this->allowedComparisons[$fieldComparison];
-							}
-							else {
-								$comparison = '=';
-							}
-						}
-						$whereClause .= ' '.$fieldName.' '.$comparison." '".$fieldData['value']."'"; // Add to where clause
-						$fieldOperator = (empty($fieldData['operator'])) ? 'AND' : $fieldData['operator']; // Prepare logical operator for chaining with next field (if any)
-					}
-				}
-			}
-			// Group operator
-		}
-		$this->addWhereClause($whereClause);
-	}
-	 */
 
 // Setters and getters
 
