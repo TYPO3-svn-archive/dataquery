@@ -64,7 +64,6 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 	protected $configuration; // Extension configuration
 	protected $mainTable; // Store the name of the main table of the query
 	protected $sqlParser; // Local instance of the SQL parser class (tx_dataquery_parser)
-	protected $filter; // Data Filter structure
 	protected $structure; // Input standardised data structure
 
 	public function __construct() {
@@ -250,16 +249,6 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 	 */
 	public function setDataStructure($structure) {
 		if (is_array($structure)) $this->structure = $structure;
-	}
-
-	/**
-	 * This method is used to pass a Data Filter structure to the Data Provider
-	 *
-	 * @param	array		$filter: Data Filter structure
-	 * @return	void
-	 */
-	public function setDataFilter($filter) {
-		if (is_array($filter)) $this->filter = $filter;
 	}
 
 	/**
