@@ -97,7 +97,46 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 		$query = $this->sqlParser->buildQuery();
 		if ($this->configuration['debug'] || TYPO3_DLOG) t3lib_div::devLog($query, $this->extKey);
 
-		$res2 = $GLOBALS['TYPO3_DB']->sql_query($query);
+		// Execute the query
+		$res = $GLOBALS['TYPO3_DB']->sql_query($query);
+		// Make a first loop over all the records
+		// Apply an offset and limit, if any and if not already done in the query itself
+		// If the limit was already applied, set it to 0 so that all records are taken
+		if ($this->sqlParser->isLimitAlreadyApplied()) {
+			$limit = 0;
+			$offset = 0;
+		}
+		// If the limit was not already applied, get it from the filter
+		else {
+			$limit = (isset($this->filter['limit']['max'])) ? $this->filter['limit']['max'] : 0;
+			if ($limit > 0) {
+				$offset = $limit * ((isset($this->filter['limit']['offset'])) ? $this->filter['limit']['offset'] : 0);
+			}
+			else {
+				$offset = 0;
+			}
+		}
+		$counter = 0;
+		$oldUID = 0;
+		$rows = array();
+		// Loop on all records
+		while ($row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res)) {
+			$currentUID = $row['uid'];
+			// Get only those that are after the offset and within the limit
+			if ($counter >= $offset && ($limit == 0 || ($limit > 0 && $counter - $offset < $limit))) {
+				$rows[] = $row;
+			}
+				// If there was a limit and it is passed, stop looping on the records
+			if ($limit > 0 && $counter - $offset >= $limit) {
+				break;
+			}
+			// Increment the counter only if the main id has changed
+			// This way we can indeed capture "limit" records of the main table of the query
+			if ($currentUID != $oldUID) {
+				$oldUID = $currentUID;
+				$counter++;
+			}
+		}
 		$records = array('name' => $this->mainTable, 'records' => array());
 		$records['header'] = array();
 		foreach ($tableAndFieldLabels[$this->mainTable]['fields'] as $key => $label) {
@@ -109,7 +148,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 			$mainRecords = array();
 			$mainUIDs = array();
 			$subRecords = array();
-			while ($row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res2)) {
+			foreach ($rows as $row) {
 				$currentUID = $row['uid'];
 				if ($currentUID != $oldUID) {
 					$mainRecords[$currentUID] = array();
@@ -161,7 +200,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 		}
 		else {
 			$mainUIDs = array();
-			while ($row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res2)) {
+			while ($row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res)) {
 				$records['records'][] = $row;
 				$mainUIDs[] = $row['uid'];
 			}

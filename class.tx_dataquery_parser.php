@@ -66,6 +66,7 @@ class tx_dataquery_parser {
 	protected $subtables = array(); // List of all subtables, i.e. tables in the JOIN statements
 	protected $queryFields = array(); // List of all fields being queried, arranged per table (aliased)
 	protected $doOverlays = array(); // Flag for each table (or its alias) whether to perform overlays or not
+	protected $limitApplied = true; // Flag to indicate whether the LIMIT clause could be applied or not (it is applied only if the query contains no JOIN)
 
 	/**
 	 * This method is used to parse a SELECT SQL query.
@@ -497,9 +498,18 @@ class tx_dataquery_parser {
 			// This is not so easy: it can be applied directly to SQL only if there are not JOINs in the query
 			// othewise this has to be done PHP-side, after the query
 			// NOTE: this will override any value set in the query itself
-		if (count($this->structure['JOIN']) == 0) {
-			$this->structure['LIMIT'] = $filter['limit']['max'];
-			$this->structure['OFFSET'] = $filter['limit']['offset'] * $filter['limit']['max'];
+		if (isset($filter['limit']) && $filter['limit']['max'] > 0) {
+			if (count($this->structure['JOIN']) == 0) {
+				$this->structure['LIMIT'] = $filter['limit']['max'];
+				$this->structure['OFFSET'] = $filter['limit']['offset'] * $filter['limit']['max'];
+				$this->limitApplied = true;
+			}
+			else {
+				$this->limitApplied = false;
+			}
+		}
+		else {
+			$this->limitApplied = false;
 		}
 	}
 
@@ -640,6 +650,17 @@ class tx_dataquery_parser {
 	 */
 	public function mustHandleLanguageOverlay($table) {
 		return (isset($this->doOverlays[$table])) ? $this->doOverlays[$table] : false;
+	}
+
+	/**
+	 * This method returns the value of the limitApplied flag,
+	 * i.e. it returns true if the LIMIT could be applied, that is there was either no LIMIT in the filter
+	 * or the query didn't contain a join
+	 *
+	 * @return	boolean		Has the limit already been applied to the query or not?
+	 */
+	public function isLimitAlreadyApplied() {
+		return $this->limitApplied;
 	}
 }
 
