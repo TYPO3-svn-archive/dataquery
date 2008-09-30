@@ -78,6 +78,10 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 	public function getData() {
 		$this->loadQuery();
 		$this->mainTable = $this->sqlParser->getMainTableName();
+		$subtables = $this->sqlParser->getSubtablesNames();
+		$numSubtables = count($subtables);
+		$allTables = $subtables;
+		array_push($allTables, $this->mainTable);
 		$tableAndFieldLabels = $this->sqlParser->getLocalizedLabels($language);
 
 // Add the SQL conditions for the selected TYPO3 mechanisms
@@ -116,9 +120,227 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 				$offset = 0;
 			}
 		}
+
+		// Initialise array for storing records and uid's per table
+		$rows = array($this->mainTable => array(0 => array()));
+		$uids = array($this->mainTable => array());
+		if ($numSubtables > 0) {
+			foreach ($subtables as $table) {
+				$rows[$table] = array();
+				$uids[$table] = array();
+			}
+		}
+		// Loop on all records to sort them by table. This can be seen as "de-JOINing" the tables.
+		// This is necessary for such operations as overlays. When overlays are done, tables will be joined again
+		// but within the format of Standardised Data Structure
+		$oldUID = 0;
+		while ($row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res)) {
+			$currentUID = $row['uid'];
+			// If we're not handling the same main record as before, perform some initialisations
+			if ($currentUID != $oldUID) {
+				if ($numSubtables > 0) {
+					foreach ($subtables as $table) {
+						$rows[$table][$currentUID] = array();
+					}
+				}
+			}
+			$recordsPerTable = array();
+			foreach ($row as $fieldName => $fieldValue) {
+				$fieldNameParts = t3lib_div::trimExplode('$', $fieldName);
+				// The query contains no joined table
+				// All fields belong to the main table
+				if ($numSubtables == 0) {
+					$fieldName = (isset($fieldNameParts[1])) ? $fieldNameParts[1] : $fieldNameParts[0];
+					$recordsPerTable[$this->mainTable][$fieldName] = $fieldValue;
+				}
+				// There are multiple tables
+				else {
+					// Field belongs to a subtable
+					if (in_array($fieldNameParts[0], $subtables)) {
+						$subtableName = $fieldNameParts[0];
+						if (isset($fieldValue)) {
+							$recordsPerTable[$subtableName][$fieldNameParts[1]] = $fieldValue;
+							// If the field is the uid field, store it in the list of uid's for the given subtable
+							if ($fieldNameParts[1] == 'uid') {
+								$uids[$subtableName][] = $fieldValue;
+							}
+						}
+					}
+					// Else assume the field belongs to the main table
+					else {
+						$fieldName = (isset($fieldNameParts[1])) ? $fieldNameParts[1] : $fieldNameParts[0];
+						$recordsPerTable[$this->mainTable][$fieldName] = $fieldValue;
+					}
+				}
+			}
+			// If we're not handling the same main record as before, store the current information for the main table
+			if ($currentUID != $oldUID) {
+				$uids[$this->mainTable][] = $currentUID;
+				$rows[$this->mainTable][0][] = $recordsPerTable[$this->mainTable];
+				$oldUID = $currentUID;
+			}
+			// Store information for each subtable
+			if ($numSubtables > 0) {
+				foreach ($subtables as $table) {
+					$rows[$table][$currentUID][] = $recordsPerTable[$table];
+				}
+			}
+		}
+//t3lib_div::debug($rows);
+//t3lib_div::debug($uids);
+
+		// If localisation is active and the current language is not the default one,
+		// get the overlays for all tables for which localisation by overlays is needed
+		if ($GLOBALS['TSFE']->sys_language_content > 0) {
+			$overlays = array();
+			foreach ($allTables as $table) {
+				if ($this->sqlParser->mustHandleLanguageOverlay($table)) {
+					$overlays[$table] = tx_overlays::getOverlayRecords($this->sqlParser->getTrueTableName($table), $uids[$table], $GLOBALS['TSFE']->sys_language_content);
+				}
+			}
+		}
+//t3lib_div::debug($overlays['tt_content']);
+
+		// Loop on all records of the main table, applying overlays if needed
+		// Apply limit and offset
 		$counter = 0;
 		$oldUID = 0;
-		$rows = array();
+		$mainRecords = array();
+		// Perform overlays only if language is not default and if necessary for table
+		$doOverlays = ($GLOBALS['TSFE']->sys_language_content > 0) & $this->sqlParser->mustHandleLanguageOverlay($this->mainTable);
+		foreach ($rows[$this->mainTable][0] as $row) {
+			$currentUID = $row['uid'];
+			if ($doOverlays) {
+				if (isset($overlays[$this->mainTable][$row['uid']][$row['pid']])) {
+					$row = tx_overlays::overlaySingleRecord($table, $row, $overlays[$this->mainTable][$row['uid']][$row['pid']]);
+				}
+					// No overlay exists
+				else {
+						// Take original record, only if non-translated are not hidden, or if language is [All]
+					if ($GLOBALS['TSFE']->sys_language_contentOL == 'hideNonTranslated' && $row[$tableCtrl['languageField']] != -1) {
+						continue; // Skip record
+					}
+				}
+			}
+			// Get only those records that are after the offset and within the limit
+			if ($counter >= $offset && ($limit == 0 || ($limit > 0 && $counter - $offset < $limit))) {
+				$mainRecords[] = $row;
+			}
+				// If there was a limit and it is passed, stop looping on the records
+			if ($limit > 0 && $counter - $offset >= $limit) {
+				break;
+			}
+			// Increment the counter only if the main id has changed
+			// This way we can indeed capture "limit" records of the main table of the query
+			if ($currentUID != $oldUID) {
+				$oldUID = $currentUID;
+				$counter++;
+			}
+		}
+//t3lib_div::debug($mainRecords);
+
+		// Prepare the header parts for all tables
+		$headers = array();
+		foreach ($allTables as $table) {
+			$headers[$table] = array();
+			foreach ($tableAndFieldLabels[$table]['fields'] as $key => $label) {
+				$headers[$table][$key] = array('label' => $label);
+	        }
+		}
+
+		// Now loop on the filtered recordset of the main table and join it again to all its subtables
+		// Overlays are applied to subtables as needed
+		$uidList = array();
+		$fullRecords = array();
+		foreach ($mainRecords as $aRecord) {
+			$uidList[] = $aRecord['uid'];
+			$theFullRecord = $aRecord;
+			$theFullRecord['sds:subtables'] = array();
+			// Check if there are any subtables in the query
+			if ($numSubtables > 0) {
+				foreach ($subtables as $table) {
+					// Check if there are any subrecords for this record
+					if (isset($rows[$table][$aRecord['uid']])) {
+						$numSubrecords = count($rows[$table][$aRecord['uid']]);
+						if ($numSubrecords > 0) {
+							// Perform overlays only if language is not default and if necessary for table
+							$doOverlays = ($GLOBALS['TSFE']->sys_language_content > 0) & $this->sqlParser->mustHandleLanguageOverlay($table);
+							$subRecords = array();
+							$subUidList = array();
+							// Loop on all subrecords and perform overlays if necessary
+							foreach ($rows[$table][$aRecord['uid']] as $subRow) {
+								if ($doOverlays) {
+									if (isset($overlays[$table][$subRow['uid']][$subRow['pid']])) {
+										$subRow = tx_overlays::overlaySingleRecord($table, $subRow, $overlays[$table][$subRow['uid']][$subRow['pid']]);
+									}
+										// No overlay exists
+									else {
+										// Take original record, only if non-translated are not hidden, or if language is [All]
+										if ($GLOBALS['TSFE']->sys_language_contentOL == 'hideNonTranslated' && $subRow[$GLOBALS['TCA'][$table]['ctrl']['languageField']] != -1) {
+											continue; // Skip record
+										}
+									}
+								}
+								// No overlays
+								else {
+									// Make sure there's actually something in the JOINed record
+									// (it might be empty in case of LEFT JOIN)
+									if (!isset($subRow['uid'])) {
+										continue;
+									}
+								}
+								$subRecords[] = $subRow;
+								$subUidList[] = $subRow['uid'];
+							}
+							// If there are indeed items, add the subtable to the record
+							$numItems = count($subUidList);
+							if ($numItems > 0) {
+								$theFullRecord['sds:subtables'][] = array(
+																		'name' => $table,
+																		'count' => $numItems,
+																		'uidList' => implode(',' , $subUidList),
+																		'header' => $headers[$table],
+																		'records' => $subRecords
+																	);
+							}
+						}
+					}
+				}
+			}
+			$fullRecords[] = $theFullRecord;
+		}
+		$dataStructure = array(
+							'name' => $this->mainTable,
+							'count' => count($fullRecords),
+							'uidList' => implode(',', $uidList),
+							'header' => $headers[$this->mainTable],
+							'records' => $fullRecords
+						);
+/*
+		// Now loop on the filtered recordset and try to overlay each record
+					$overlaidRecordset = array();
+					foreach ($rows[$table] as $parentID => $tableRows) {
+						$numRows = count($tableRows);
+						for ($i = 0; $i < $numRows; $i++) {
+							$row = $tableRows[$i];
+								// An overlay exists, apply it
+							if (isset($overlays[$row['uid']][$row['pid']])) {
+								$rows[$table][$parentID][$i] = tx_overlays::overlaySingleRecord($table, $row, $overlays[$row['uid']][$row['pid']]);
+							}
+								// No overlay exists
+							else {
+									// Take original record, only if non-translated are not hidden, or if language is [All]
+								if ($OLmode == 'hideNonTranslated' && $row[$tableCtrl['languageField']] != -1) {
+									unset($rows[$table][$parentID][$i]);
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+t3lib_div::debug($rows);
+
 		// Loop on all records
 		while ($row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res)) {
 			$currentUID = $row['uid'];
@@ -209,6 +431,9 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 		$records['count'] = count($records['records']);
 //t3lib_div::debug($records);
 		return $records;
+*/
+//t3lib_div::debug($dataStructure);
+		return $dataStructure;
 	}
 
 	/**

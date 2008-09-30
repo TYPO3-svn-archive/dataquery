@@ -115,12 +115,12 @@ class tx_dataquery_parser {
 					$this->structure[$keyword]['table'] = trim($fromParts[0]);
 					if (count($fromParts) > 1) {
 						$this->structure[$keyword]['alias'] = trim($fromParts[1]);
-						$this->aliases[$this->structure[$keyword]['alias']] = $this->structure[$keyword]['table'];
 					}
 					else {
 						$this->structure[$keyword]['alias'] = $this->structure[$keyword]['table'];
 					}
 					$this->mainTable = $this->structure[$keyword]['alias'];
+					$this->aliases[$this->structure[$keyword]['alias']] = $this->structure[$keyword]['table'];
 					break;
 				case 'INNER JOIN':
 				case 'LEFT JOIN':
@@ -133,12 +133,12 @@ class tx_dataquery_parser {
 					$theJoin['type'] = $joinType;
 					if (count($moreParts) > 1) {
 						$theJoin['alias'] = trim($moreParts[1]);
-						$this->aliases[$theJoin['alias']] = $theJoin['table'];
 					}
 					else {
 						$theJoin['alias'] = $theJoin['table'];
 					}
 					$this->subtables[] = $theJoin['alias'];
+					$this->aliases[$theJoin['alias']] = $theJoin['table'];
 					if (count($parts) > 1) {
 						$theJoin['on'] = trim($parts[1]);
 					}
@@ -279,6 +279,7 @@ class tx_dataquery_parser {
 				$this->structure['SELECT'][] = $fullField;
         	}
         }
+//t3lib_div::debug($this->aliases);
 //t3lib_div::debug($this->structure);
 	}
 
@@ -418,6 +419,8 @@ class tx_dataquery_parser {
 							}
 						}
 						$this->doOverlays[$alias] = true;
+						// TODO: remove this hack once the overlay with foreign table is handled
+						if ($this->aliases[$alias] == 'pages') $this->doOverlays[$alias] = false;
 							// Add the language condition for the given table
 						$languageCondition = tx_overlays::getLanguageCondition($table);
 						if ($table != $alias) $languageCondition = str_replace($table, $alias, $languageCondition);
@@ -455,6 +458,7 @@ class tx_dataquery_parser {
 				}
 			}
 		}
+//t3lib_div::debug($this->doOverlays);
 	}
 
 	/**
@@ -591,7 +595,7 @@ class tx_dataquery_parser {
 		if (count($this->structure['LIMIT']) > 0) {
 			$query .= 'LIMIT '.$this->structure['LIMIT'];
 			if (count($this->structure['OFFSET']) > 0) {
-				$query .= 'OFFSET '.$this->structure['OFFSET'];
+				$query .= ' OFFSET '.$this->structure['OFFSET'];
 			}
 		}
 //t3lib_div::debug($query);
@@ -630,6 +634,16 @@ class tx_dataquery_parser {
 	 */
 	public function getSubtablesNames() {
 		return $this->subtables;
+	}
+
+	/**
+	 * This method takes an alias and returns the true table name
+	 *
+	 * @param	string	$alias: alias of a table
+	 * @return	string	True name of the corresponding table
+	 */
+	public function getTrueTableName($alias) {
+		return $this->aliases[$alias];
 	}
 
 	/**
