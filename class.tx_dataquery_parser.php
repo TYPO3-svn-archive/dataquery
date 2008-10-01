@@ -487,14 +487,20 @@ class tx_dataquery_parser {
 					if ($conditionData['operator'] == 'in') {
 						$condition .= $fullFied.' IN ('.$conditionData['value'].')';
 					}
-						// "ingroup" requires more handling
+						// "andgroup" and "orgroup" requires more handling
 						// The associated value is a list of comma-separated values and each of these values must be handled separately
 						// Furthermore each value will be tested against a comma-separated list of values too, so the test is not so simple
-					elseif ($conditionData['operator'] == 'ingroup') {
+					elseif ($conditionData['operator'] == 'andgroup' || $conditionData['operator'] == 'orgroup') {
 						$values = explode(',', $conditionData['value']);
 						$localCondition = '';
+						if ($conditionData['operator'] == 'andgroup') {
+							$localOperator = 'AND';
+						}
+						else {
+							$localOperator = 'OR';
+						}
 						foreach ($values as $aValue) {
-							if (!empty($localCondition)) $localCondition .= ' OR ';
+							if (!empty($localCondition)) $localCondition .= ' '.$localOperator.' ';
 							$localCondition .= $GLOBALS['TYPO3_DB']->listQuery($fullFied, $aValue, $table);
 						}
 						$condition .= $localCondition;
