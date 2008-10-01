@@ -76,8 +76,13 @@ class tx_dataquery_parser {
 	 * @return	mixed		array containing the query parts or false if the query was empty or invalid
 	 */
 	public function parseQuery($query) {
+			// Put the query into a single line
 		$query = str_replace(array("\r", "\n", "\f"), ' ', $query);
-
+			// Strip backquotes
+		$query = str_replace('`', '', $query);
+		if (strrpos($query, ';') == strlen($query) - 1) {
+			$query = substr($query, 0, strlen($query) - 1);
+		}
 // Get all parts of the query, using the SQL keywords as tokens
 // The returned matches array contains the keywords matched (in position 2) and the string after each keyword (in position 3)
 
@@ -525,6 +530,7 @@ class tx_dataquery_parser {
 				$this->structure['ORDER BY'][] = $orderbyClause;
 			}
 		}
+/*
 			// Handle limit
 			// This is not so easy: it can be applied directly to SQL only if there are not JOINs in the query
 			// othewise this has to be done PHP-side, after the query
@@ -542,6 +548,7 @@ class tx_dataquery_parser {
 		else {
 			$this->limitApplied = false;
 		}
+*/
 	}
 
 	/**

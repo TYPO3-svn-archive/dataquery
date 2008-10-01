@@ -106,12 +106,12 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 		// Make a first loop over all the records
 		// Apply an offset and limit, if any and if not already done in the query itself
 		// If the limit was already applied, set it to 0 so that all records are taken
-		if ($this->sqlParser->isLimitAlreadyApplied()) {
-			$limit = 0;
-			$offset = 0;
-		}
+//		if ($this->sqlParser->isLimitAlreadyApplied()) {
+//			$limit = 0;
+//			$offset = 0;
+//		}
 		// If the limit was not already applied, get it from the filter
-		else {
+//		else {
 			$limit = (isset($this->filter['limit']['max'])) ? $this->filter['limit']['max'] : 0;
 			if ($limit > 0) {
 				$offset = $limit * ((isset($this->filter['limit']['offset'])) ? $this->filter['limit']['offset'] : 0);
@@ -119,7 +119,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 			else {
 				$offset = 0;
 			}
-		}
+//		}
 
 		// Initialise array for storing records and uid's per table
 		$rows = array($this->mainTable => array(0 => array()));
