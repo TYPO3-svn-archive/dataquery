@@ -476,12 +476,33 @@ class tx_dataquery_parser {
 				if (!empty($completeFilter)) $completeFilter .= ' '.$logicalOperator.' ';
 				$table = (empty($filterData['table'])) ? $this->mainTable: $filterData['table'];
 				$field = $filterData['field'];
+				$fullFied = $table.'.'.$field;
 				$condition = '';
 				foreach ($filterData['conditions'] as $conditionData) {
 					if (!empty($condition)) {
 						$condition .= ' AND ';
 					}
-					$condition .= $table.'.'.$field.' '.$conditionData['operator'].' '.$GLOBALS['TYPO3_DB']->fullQuoteStr($conditionData['value'], $table);
+						// Some operators require a bit more handling
+						// "in" values just need to be put within brackets
+					if ($conditionData['operator'] == 'in') {
+						$condition .= $fullFied.' IN ('.$conditionData['value'].')';
+					}
+						// "ingroup" requires more handling
+						// The associated value is a list of comma-separated values and each of these values must be handled separately
+						// Furthermore each value will be tested against a comma-separated list of values too, so the test is not so simple
+					elseif ($conditionData['operator'] == 'ingroup') {
+						$values = explode(',', $conditionData['value']);
+						$localCondition = '';
+						foreach ($values as $aValue) {
+							if (!empty($localCondition)) $localCondition .= ' OR ';
+							$localCondition .= $GLOBALS['TYPO3_DB']->listQuery($fullFied, $aValue, $table);
+						}
+						$condition .= $localCondition;
+					}
+						// Other operators are handled simply
+					else {
+						$condition .= $fullFied.' '.$conditionData['operator'].' '.$GLOBALS['TYPO3_DB']->fullQuoteStr($conditionData['value'], $table);
+					}
 				}
 				$completeFilter .= '('.$condition.')';
 			}
