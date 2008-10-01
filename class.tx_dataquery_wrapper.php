@@ -316,122 +316,15 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 							'header' => $headers[$this->mainTable],
 							'records' => $fullRecords
 						);
-/*
-		// Now loop on the filtered recordset and try to overlay each record
-					$overlaidRecordset = array();
-					foreach ($rows[$table] as $parentID => $tableRows) {
-						$numRows = count($tableRows);
-						for ($i = 0; $i < $numRows; $i++) {
-							$row = $tableRows[$i];
-								// An overlay exists, apply it
-							if (isset($overlays[$row['uid']][$row['pid']])) {
-								$rows[$table][$parentID][$i] = tx_overlays::overlaySingleRecord($table, $row, $overlays[$row['uid']][$row['pid']]);
-							}
-								// No overlay exists
-							else {
-									// Take original record, only if non-translated are not hidden, or if language is [All]
-								if ($OLmode == 'hideNonTranslated' && $row[$tableCtrl['languageField']] != -1) {
-									unset($rows[$table][$parentID][$i]);
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-t3lib_div::debug($rows);
 
-		// Loop on all records
-		while ($row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res)) {
-			$currentUID = $row['uid'];
-			// Get only those that are after the offset and within the limit
-			if ($counter >= $offset && ($limit == 0 || ($limit > 0 && $counter - $offset < $limit))) {
-				$rows[] = $row;
-			}
-				// If there was a limit and it is passed, stop looping on the records
-			if ($limit > 0 && $counter - $offset >= $limit) {
-				break;
-			}
-			// Increment the counter only if the main id has changed
-			// This way we can indeed capture "limit" records of the main table of the query
-			if ($currentUID != $oldUID) {
-				$oldUID = $currentUID;
-				$counter++;
+// Hook for post-processing the data structure
+
+		if (is_array($GLOBALS['TYPO3_CONF_VARS']['EXT_CONF'][$this->extKey]['postProcessDataStructure'])) {
+			foreach($GLOBALS['TYPO3_CONF_VARS']['EXT_CONF'][$this->extKey]['postProcessDataStructure'] as $className) {
+				$postProcessor = &t3lib_div::getUserObj($className);
+				$dataStructure = $postProcessor->postProcessDataStructure($dataStructure, $this);
 			}
 		}
-		$records = array('name' => $this->mainTable, 'records' => array());
-		$records['header'] = array();
-		foreach ($tableAndFieldLabels[$this->mainTable]['fields'] as $key => $label) {
-			$records['header'][$key] = array('label' => $label);
-        }
-		if (!$this->sqlParser->hasMergedResults()) {
-			$subtables = $this->sqlParser->getSubtablesNames();
-			$oldUID = 0;
-			$mainRecords = array();
-			$mainUIDs = array();
-			$subRecords = array();
-			foreach ($rows as $row) {
-				$currentUID = $row['uid'];
-				if ($currentUID != $oldUID) {
-					$mainRecords[$currentUID] = array();
-					$mainUIDs[] = $currentUID;
-					$subRecords[$currentUID] = array();
-					$subUIDs[$currentUID] = array();
-					$subRecordsCounter = 0;
-					$oldUID = $currentUID;
-				}
-				foreach ($row as $fieldName => $fieldValue) {
-					$fieldNameParts = t3lib_div::trimExplode('$', $fieldName);
-					if (in_array($fieldNameParts[0], $subtables)) {
-						$subtableName = $fieldNameParts[0];
-						if (!isset($subRecords[$currentUID][$subtableName])) {
-							$subRecords[$currentUID][$subtableName] = array();
-							$subUIDs[$currentUID][$subtableName] = array();
-						}
-						if (isset($fieldValue)) {
-							$subRecords[$currentUID][$subtableName][$subRecordsCounter][$fieldNameParts[1]] = $fieldValue;
-							if ($fieldNameParts[1] == 'uid') {
-								$subUIDs[$currentUID][$subtableName][] = $fieldValue;
-							}
-						}
-					}
-					else {
-						$fieldName = (isset($fieldNameParts[1])) ? $fieldNameParts[1] : $fieldNameParts[0];
-						$mainRecords[$currentUID][$fieldName] = $fieldValue;
-					}
-				}
-				$subRecordsCounter++;
-			}
-			foreach ($mainRecords as $uid => $theRecord) {
-				if (isset($subRecords[$uid])) {
-					foreach ($subRecords[$uid] as $name => $data) {
-						if (count($data) > 0) {
-							if (!isset($theRecord['sds:subtables'])) {
-								$theRecord['sds:subtables'] = array();
-							}
-							$subtableHeader = array();
-							foreach ($tableAndFieldLabels[$name]['fields'] as $key => $label) {
-								$subtableHeader[$key] = array('label' => $label);
-							}
-							$theRecord['sds:subtables'][] = array('name' => $name, 'count' => count($data), 'uidList' => implode(',', $subUIDs[$uid][$name]), 'header' => $subtableHeader, 'records' => $data);
-						}
-					}
-				}
-				$records['records'][] = $theRecord;
-			}
-		}
-		else {
-			$mainUIDs = array();
-			while ($row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res)) {
-				$records['records'][] = $row;
-				$mainUIDs[] = $row['uid'];
-			}
-		}
-		$records['uidList'] = implode(',', $mainUIDs);
-		$records['count'] = count($records['records']);
-//t3lib_div::debug($records);
-		return $records;
-*/
 //t3lib_div::debug($dataStructure);
 		return $dataStructure;
 	}
