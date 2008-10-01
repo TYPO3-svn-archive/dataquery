@@ -115,6 +115,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 			$limit = (isset($this->filter['limit']['max'])) ? $this->filter['limit']['max'] : 0;
 			if ($limit > 0) {
 				$offset = $limit * ((isset($this->filter['limit']['offset'])) ? $this->filter['limit']['offset'] : 0);
+				if ($offset < 0) $offset = 0;
 			}
 			else {
 				$offset = 0;
