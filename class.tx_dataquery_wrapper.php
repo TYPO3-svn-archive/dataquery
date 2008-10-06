@@ -330,8 +330,8 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 
 // Hook for post-processing the data structure
 
-		if (is_array($GLOBALS['TYPO3_CONF_VARS']['EXT_CONF'][$this->extKey]['postProcessDataStructure'])) {
-			foreach($GLOBALS['TYPO3_CONF_VARS']['EXT_CONF'][$this->extKey]['postProcessDataStructure'] as $className) {
+		if (is_array($GLOBALS['TYPO3_CONF_VARS']['EXTCONF'][$this->extKey]['postProcessDataStructure'])) {
+			foreach($GLOBALS['TYPO3_CONF_VARS']['EXTCONF'][$this->extKey]['postProcessDataStructure'] as $className) {
 				$postProcessor = &t3lib_div::getUserObj($className);
 				$dataStructure = $postProcessor->postProcessDataStructure($dataStructure, $this);
 			}
