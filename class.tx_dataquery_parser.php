@@ -510,6 +510,19 @@ class tx_dataquery_parser {
 						}
 						$condition .= $localCondition;
 					}
+						// If the operator is "like", "start" or "end", the SQL operator is always LIKE, but different wildcards are used
+					elseif ($conditionData['operator'] == 'like' || $conditionData['operator'] == 'start' || $conditionData['operator'] == 'end') {
+						if ($conditionData['operator'] == 'start') {
+							$value = $conditionData['value'].'%';
+						}
+						elseif ($conditionData['operator'] == 'end') {
+							$value = '%'.$conditionData['value'];
+						}
+						else {
+							$value = '%'.$conditionData['value'].'%';
+						}
+						$condition .= $fullFied.' LIKE '.$GLOBALS['TYPO3_DB']->fullQuoteStr($value, $table);
+					}
 						// Other operators are handled simply
 					else {
 						$condition .= $fullFied.' '.$conditionData['operator'].' '.$GLOBALS['TYPO3_DB']->fullQuoteStr($conditionData['value'], $table);
