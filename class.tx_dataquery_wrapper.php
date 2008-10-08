@@ -273,6 +273,8 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 					if (isset($rows[$table][$aRecord['uid']])) {
 						$numSubrecords = count($rows[$table][$aRecord['uid']]);
 						if ($numSubrecords > 0) {
+							$sublimit = $this->sqlParser->getSubTableLimit($table);
+							$subcounter = 0;
 							// Perform overlays only if language is not default and if necessary for table
 							$doOverlays = ($GLOBALS['TSFE']->sys_language_content > 0) & $this->sqlParser->mustHandleLanguageOverlay($table);
 							$subRecords = array();
@@ -299,8 +301,14 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 										continue;
 									}
 								}
-								$subRecords[] = $subRow;
-								$subUidList[] = $subRow['uid'];
+								if ($subcounter < $sublimit) {
+									$subRecords[] = $subRow;
+									$subUidList[] = $subRow['uid'];
+								}
+								else {
+									break;
+								}
+								$subcounter++;
 							}
 							// If there are indeed items, add the subtable to the record
 							$numItems = count($subUidList);

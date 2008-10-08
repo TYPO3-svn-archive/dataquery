@@ -130,12 +130,15 @@ class tx_dataquery_parser {
 				case 'INNER JOIN':
 				case 'LEFT JOIN':
 				case 'RIGHT JOIN':
+						// Extract the JOIN type (INNER, LEFT or RIGHT)
 					$joinType = strtolower(substr($keyword, 0, strpos($keyword,'JOIN') - 1));
-					$parts = explode('ON', $value);
-					$moreParts = explode('AS',$parts[0]);
 					$theJoin = array();
-					$theJoin['table'] = trim($moreParts[0]);
 					$theJoin['type'] = $joinType;
+						// Separate the table from the join condition
+					$parts = explode('ON', $value);
+						// Separate an alias from the table name
+					$moreParts = t3lib_div::trimExplode('AS', $parts[0]);
+					$theJoin['table'] = trim($moreParts[0]);
 					if (count($moreParts) > 1) {
 						$theJoin['alias'] = trim($moreParts[1]);
 					}
@@ -144,8 +147,15 @@ class tx_dataquery_parser {
 					}
 					$this->subtables[] = $theJoin['alias'];
 					$this->aliases[$theJoin['alias']] = $theJoin['table'];
+						// Handle the "ON" part which may contain the non-SQL keyword "MAX"
+						// This keyword is not used in the SQL query, but is an indication to the wrapper that
+						// we want only a single record from this join
 					if (count($parts) > 1) {
-						$theJoin['on'] = trim($parts[1]);
+						$moreParts = t3lib_div::trimExplode('MAX', $parts[1]);
+						$theJoin['on'] = trim($moreParts[0]);
+						if (count($moreParts) > 1) {
+							$theJoin['limit'] = $moreParts[1];
+						}
 					}
 					else {
 						$theJoin['on'] = '';
@@ -719,9 +729,19 @@ class tx_dataquery_parser {
 	 * or the query didn't contain a join
 	 *
 	 * @return	boolean		Has the limit already been applied to the query or not?
-	 */
 	public function isLimitAlreadyApplied() {
 		return $this->limitApplied;
+	}
+	 */
+	/**
+	 * This method can be used to get the limit that was defined for a given subtable
+	 * (i.e. a JOINed table). If no limit exists, 0 is returned
+	 *
+	 * @param	string		$table: name of the table to find the limit for
+	 * @return	integer		Value of the limit, or 0 if not defined
+	 */
+	public function getSubTableLimit($table) {
+		return isset($this->structure['JOIN'][$table]['limit']) ? $this->structure['JOIN'][$table]['limit'] : 0;
 	}
 }
 
