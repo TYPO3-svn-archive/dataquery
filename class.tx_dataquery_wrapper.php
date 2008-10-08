@@ -301,11 +301,11 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 										continue;
 									}
 								}
-								if ($subcounter < $sublimit) {
+								if ($sublimit == 0 || $subcounter < $sublimit) {
 									$subRecords[] = $subRow;
 									$subUidList[] = $subRow['uid'];
 								}
-								else {
+								elseif ($sublimit != 0 || $subcounter >= $sublimit) {
 									break;
 								}
 								$subcounter++;
