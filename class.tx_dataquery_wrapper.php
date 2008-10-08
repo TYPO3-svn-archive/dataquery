@@ -252,10 +252,12 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 		// Prepare the header parts for all tables
 		$headers = array();
 		foreach ($allTables as $table) {
-			$headers[$table] = array();
-			foreach ($tableAndFieldLabels[$table]['fields'] as $key => $label) {
-				$headers[$table][$key] = array('label' => $label);
-	        }
+			if (isset($tableAndFieldLabels[$table]['fields'])) {
+				$headers[$table] = array();
+				foreach ($tableAndFieldLabels[$table]['fields'] as $key => $label) {
+					$headers[$table][$key] = array('label' => $label);
+		        }
+			}
 		}
 
 		// Now loop on the filtered recordset of the main table and join it again to all its subtables
@@ -302,7 +304,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 									}
 								}
 								if ($sublimit == 0 || $subcounter < $sublimit) {
-									$subRecords[] = $subRow;
+									$subRecords[$subRow['uid']] = $subRow;
 									$subUidList[] = $subRow['uid'];
 								}
 								elseif ($sublimit != 0 || $subcounter >= $sublimit) {
@@ -313,6 +315,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 							// If there are indeed items, add the subtable to the record
 							$numItems = count($subUidList);
 							if ($numItems > 0) {
+								$subUidList = array_unique($subUidList);
 								$theFullRecord['sds:subtables'][] = array(
 																		'name' => $table,
 																		'count' => $numItems,
