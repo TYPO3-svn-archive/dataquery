@@ -269,7 +269,7 @@ class tx_dataquery_parser {
 			$completeFields = array();
 			foreach ($fields as $name) {
 				$fullField = $prefix.'.'.$name;
-				if ($table == $this->mainTable) {
+				if ($alias == $this->mainTable) {
 					if (!empty($fieldAlias)) $fullField .= ' AS '.$fieldAlias;
                 }
 				else {
