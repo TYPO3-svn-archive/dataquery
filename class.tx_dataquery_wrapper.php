@@ -64,10 +64,21 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 	protected $configuration; // Extension configuration
 	protected $mainTable; // Store the name of the main table of the query
 	protected $sqlParser; // Local instance of the SQL parser class (tx_dataquery_parser)
-	protected $structure; // Input standardised data structure
 
 	public function __construct() {
+		$this->init();
+	}
+
+	/**
+	 * This method performs various initializations that are shared between the constructor
+	 * and the reset() method inherited from the service interface
+	 *
+	 * @return	void
+	 */
+	protected function init() {
 		$this->configuration = unserialize($GLOBALS['TYPO3_CONF_VARS']['EXT']['extConf'][$this->extKey]);
+		$this->mainTable = '';
+		$this->sqlParser = t3lib_div::makeInstance('tx_dataquery_parser');
 	}
 
 	/**
@@ -90,11 +101,11 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 
 // Assemble filters, if defined
 
-		if (is_array($this->filter)) $this->sqlParser->addFilter($this->filter);
+		if (is_array($this->filter) && count($this->filter) > 0) $this->sqlParser->addFilter($this->filter);
 
 // Use idList from input SDS, if defined
 
-		if (is_array($this->structure)) $this->sqlParser->addIdList($this->structure['uidListWithTable']);
+		if (is_array($this->structure) && isset($this->structure['uidListWithTable'])) $this->sqlParser->addIdList($this->structure['uidListWithTable']);
 
 // Build the complete query
 
@@ -207,12 +218,10 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 		// Apply limit and offset
 		$counter = 0;
 		$totalCounter = 0;
-//		$oldUID = 0;
 		$mainRecords = array();
 		// Perform overlays only if language is not default and if necessary for table
 		$doOverlays = ($GLOBALS['TSFE']->sys_language_content > 0) & $this->sqlParser->mustHandleLanguageOverlay($this->mainTable);
 		foreach ($rows[$this->mainTable][0] as $row) {
-//			$currentUID = $row['uid'];
 			if ($doOverlays) {
 				if (isset($overlays[$this->mainTable][$row['uid']][$row['pid']])) {
 					$row = tx_overlays::overlaySingleRecord($table, $row, $overlays[$this->mainTable][$row['uid']][$row['pid']]);
@@ -229,23 +238,12 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 			if ($counter >= $offset && ($limit == 0 || ($limit > 0 && $counter - $offset < $limit))) {
 				$counter++;
 				$mainRecords[] = $row;
-//t3lib_div::debug(array('counter' => $counter, 'offset' => $offset, 'limit' => $limit, 'check' => ($counter - $offset)));
 			}
 			// If the offset has not been reached yet, just increase the counter
 			elseif ($counter < $offset) {
 				$counter++;
 			}
-				// If there was a limit and it is passed, stop looping on the records
-			if ($limit > 0 && $counter - $offset >= $limit) {
-//				break;
-			}
 			$totalCounter++;
-			// Increment the counter only if the main id has changed
-			// This way we can indeed capture "limit" records of the main table of the query
-//			if ($currentUID != $oldUID) {
-//				$oldUID = $currentUID;
-//				$counter++;
-//			}
 		}
 //t3lib_div::debug($mainRecords);
 
@@ -444,6 +442,21 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 		$this->loadQuery();
 		return $this->sqlParser->getLocalizedLabels($language);
     }
+
+// t3lib_svbase methods
+
+	/**
+	 * This method resets values for a number of properties
+	 * This is necessary because services are managed as singletons
+	 * 
+	 * NOTE: If you make your own implementation of reset in your DataProvider class, don't forget to call parent::reset()
+	 * 
+	 * @return	void
+	 */
+	public function reset() {
+		parent::reset();
+		$this->init();
+	}
 }
 
 
