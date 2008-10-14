@@ -303,19 +303,22 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 										continue;
 									}
 								}
-								if ($sublimit == 0 || $subcounter < $sublimit) {
-									$subRecords[$subRow['uid']] = $subRow;
-									$subUidList[] = $subRow['uid'];
+								// Add the subrecord to the subtable only if it hasn't been included yet
+								// Multiple identical subrecords may happen when joining several tables together
+								if (!in_array($subRow['uid'], $subUidList)) {
+									if ($sublimit == 0 || $subcounter < $sublimit) {
+										$subRecords[] = $subRow;
+										$subUidList[] = $subRow['uid'];
+									}
+									elseif ($sublimit != 0 || $subcounter >= $sublimit) {
+										break;
+									}
+									$subcounter++;
 								}
-								elseif ($sublimit != 0 || $subcounter >= $sublimit) {
-									break;
-								}
-								$subcounter++;
 							}
 							// If there are indeed items, add the subtable to the record
 							$numItems = count($subUidList);
 							if ($numItems > 0) {
-								$subUidList = array_unique($subUidList);
 								$theFullRecord['sds:subtables'][] = array(
 																		'name' => $table,
 																		'count' => $numItems,
