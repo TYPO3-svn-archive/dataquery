@@ -75,7 +75,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 	 *
 	 * @return	void
 	 */
-	protected function init() {
+	public function init() {
 		$this->configuration = unserialize($GLOBALS['TYPO3_CONF_VARS']['EXT']['extConf'][$this->extKey]);
 		$this->mainTable = '';
 		$this->sqlParser = t3lib_div::makeInstance('tx_dataquery_parser');
