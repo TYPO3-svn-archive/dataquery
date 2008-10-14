@@ -66,16 +66,18 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 	protected $sqlParser; // Local instance of the SQL parser class (tx_dataquery_parser)
 
 	public function __construct() {
-		$this->init();
+		$this->initialise();
 	}
 
 	/**
 	 * This method performs various initializations that are shared between the constructor
 	 * and the reset() method inherited from the service interface
 	 *
+	 * NOTE: this method is NOT called init() to avoid conflicts with the init() method of the service interface
+	 *
 	 * @return	void
 	 */
-	public function init() {
+	public function initialise() {
 		$this->configuration = unserialize($GLOBALS['TYPO3_CONF_VARS']['EXT']['extConf'][$this->extKey]);
 		$this->mainTable = '';
 		$this->sqlParser = t3lib_div::makeInstance('tx_dataquery_parser');
@@ -455,7 +457,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 	 */
 	public function reset() {
 		parent::reset();
-		$this->init();
+		$this->initialise();
 	}
 }
 
