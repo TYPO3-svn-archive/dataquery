@@ -434,8 +434,6 @@ class tx_dataquery_parser {
 							}
 						}
 						$this->doOverlays[$alias] = true;
-						// TODO: remove this hack once the overlay with foreign table is handled
-						if ($this->aliases[$alias] == 'pages') $this->doOverlays[$alias] = false;
 							// Add the language condition for the given table
 						$languageCondition = tx_overlays::getLanguageCondition($table);
 						if ($table != $alias) $languageCondition = str_replace($table, $alias, $languageCondition);
