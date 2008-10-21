@@ -428,7 +428,12 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 	 * @return	array		standardised data structure
 	 */
 	public function getDataStructure() {
-		return $this->getData();
+		if ($this->hasEmptyOutputStructure) {
+			return $this->outputStructure;
+		}
+		else {
+			return $this->getData();
+		}
 	}
 
 	/**
