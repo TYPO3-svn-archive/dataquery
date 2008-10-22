@@ -21,9 +21,8 @@ CREATE TABLE tx_dataquery_queries (
 	title varchar(255) DEFAULT '' NOT NULL,
 	description text NOT NULL,
 	sql_query text NOT NULL,
-	use_enable_fields tinyint(4) DEFAULT '0' NOT NULL,
-	language_handling varchar(7) DEFAULT '' NOT NULL,
-	use_versioning tinyint(4) DEFAULT '0' NOT NULL,
+	ignore_enable_fields tinyint(4) DEFAULT '0' NOT NULL,
+	ignore_language_handling tinyint(4) DEFAULT '0' NOT NULL,
 	
 	PRIMARY KEY (uid),
 	KEY parent (pid),

@@ -61,43 +61,34 @@ $TCA['tx_dataquery_queries'] = array(
 				),
 			)
 		),
-		'use_enable_fields' => array(		
+		'ignore_enable_fields' => array(		
 			'exclude' => 1,		
-			'label' => 'LLL:EXT:dataquery/locallang_db.xml:tx_dataquery_queries.use_enable_fields',		
+			'label' => 'LLL:EXT:dataquery/locallang_db.xml:tx_dataquery_queries.ignore_enable_fields',		
 			'config' => array(
 				'type' => 'check',
-				'default' => 1,
+				'default' => 0,
 				'items' => array(
-					array('LLL:EXT:dataquery/locallang_db.xml:tx_dataquery_queries.use_enable_fields.I.0', ''),
+					array('LLL:EXT:dataquery/locallang_db.xml:tx_dataquery_queries.ignore_enable_fields.I.0', ''),
 				),
 			)
 		),
-		'language_handling' => array(		
-			'exclude' => 0,		
-			'label' => 'LLL:EXT:dataquery/locallang_db.xml:tx_dataquery_queries.language_handling',		
-			'config' => array(
-				'type' => 'radio',
-				'items' => array(
-					array('LLL:EXT:dataquery/locallang_db.xml:tx_dataquery_queries.language_handling.I.0', ''),
-					array('LLL:EXT:dataquery/locallang_db.xml:tx_dataquery_queries.language_handling.I.1', 'simple'),
-					array('LLL:EXT:dataquery/locallang_db.xml:tx_dataquery_queries.language_handling.I.2', 'overlay'),
-				),
-			)
-		),
-		'use_versioning' => array(		
+		'ignore_language_handling' => array(		
 			'exclude' => 1,		
-			'label' => 'LLL:EXT:dataquery/locallang_db.xml:tx_dataquery_queries.use_versioning',		
+			'label' => 'LLL:EXT:dataquery/locallang_db.xml:tx_dataquery_queries.ignore_language_handling',		
 			'config' => array(
 				'type' => 'check',
-				'default' => 1,
+				'default' => 0,
 				'items' => array(
-					array('LLL:EXT:dataquery/locallang_db.xml:tx_dataquery_queries.use_versioning.I.0', ''),
+					array('LLL:EXT:dataquery/locallang_db.xml:tx_dataquery_queries.ignore_language_handling.I.0', ''),
 				),
 			)
 		),
 	),
 	'types' => array(
-		'0' => array('showitem' => 'hidden;;;;1-1-1, title;;;;2-2-2, description;;;;3-3-3, sql_query, use_enable_fields;;;;4-4-4, language_handling, use_versioning')
+		'0' => array('showitem' => 'hidden;;;;1-1-1, title;;1;;2-2-2, sql_query;;;;3-3-3,--div--;LLL:EXT:dataquery/locallang_db.xml:tx_dataquery_queries.tab.advanced, ignore_enable_fields;;;;4-4-4, ignore_language_handling')
 	),
+	'palettes' => array(
+		'1' => array('showitem' => 'description'),
+	)
 );
 ?>
