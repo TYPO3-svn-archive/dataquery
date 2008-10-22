@@ -11,6 +11,7 @@
 			<label index="tx_dataquery_queries.title">Title</label>
 			<label index="tx_dataquery_queries.description">Description</label>
 			<label index="tx_dataquery_queries.sql_query">SQL Query</label>
+			<label index="tx_dataquery_queries.cache_duration">Cache duration (in seconds)</label>
 			<label index="tx_dataquery_queries.ignore_enable_fields">Ignore enable fields</label>
 			<label index="tx_dataquery_queries.ignore_enable_fields.I.0">Ignore all fields like deleted, hidden, starttime, endtime and access</label>
 			<label index="tx_dataquery_queries.ignore_language_handling">Language handling</label>
@@ -23,6 +24,7 @@
 			<label index="tx_dataquery_queries.title">Titre</label>
 			<label index="tx_dataquery_queries.description">Description</label>
 			<label index="tx_dataquery_queries.sql_query">Requête SQL</label>
+			<label index="tx_dataquery_queries.cache_duration">Durée du cache (en secondes)</label>
 			<label index="tx_dataquery_queries.ignore_enable_fields">Ignorer les champs d'activation</label>
 			<label index="tx_dataquery_queries.ignore_enable_fields.I.0">Ignorer tous les champs tels que deleted, hidden, starttime, endtime et access</label>
 			<label index="tx_dataquery_queries.ignore_language_handling">Ignorer les langues</label>

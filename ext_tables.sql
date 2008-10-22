@@ -21,10 +21,20 @@ CREATE TABLE tx_dataquery_queries (
 	title varchar(255) DEFAULT '' NOT NULL,
 	description text NOT NULL,
 	sql_query text NOT NULL,
+	cache_duration int(11) DEFAULT '86400' NOT NULL,
 	ignore_enable_fields tinyint(4) DEFAULT '0' NOT NULL,
 	ignore_language_handling tinyint(4) DEFAULT '0' NOT NULL,
 	
 	PRIMARY KEY (uid),
 	KEY parent (pid),
 	KEY t3ver_oid (t3ver_oid,t3ver_wsid)
+);
+
+CREATE TABLE tx_dataquery_cache (
+	query_id int(11) DEFAULT '0' NOT NULL,
+	sys_language_uid int(11) DEFAULT '0' NOT NULL,
+	tstamp int(11) DEFAULT '0' NOT NULL,
+	filter_hash text NOT NULL,
+	structure_cache mediumtext NOT NULL
+	KEY query (query_id,sys_language_uid),
 );

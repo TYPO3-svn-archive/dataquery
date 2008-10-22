@@ -50,6 +50,7 @@
 
 require_once(t3lib_extMgm::extPath('dataquery', 'class.tx_dataquery_parser.php'));
 require_once(t3lib_extMgm::extPath('basecontroller', 'services/class.tx_basecontroller_providerbase.php'));
+require_once(t3lib_extMgm::extPath('basecontroller', 'lib/class.tx_basecontroller_utilities.php'));
 
 /**
  * Wrapper for data query
@@ -89,53 +90,128 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 	 * @return	mixed		array containing the data structure or false if it failed
 	 */
 	public function getData() {
-		$this->loadQuery();
+
+		// If the cache duration is not set to 0, try to find a cached query
+		if (!empty($this->providerData['cache_duration'])) {
+			try {
+				$dataStructure = $this->getCachedStructure();
+//t3lib_div::debug($dataStructure);
+				$hasStructure = true;
+			}
+			// No structure was found, set flag that there's no structure yet
+			catch (Exception $e) {
+				$hasStructure = false;
+			}
+		}
+		// No cache, no structure
+		else {
+			$hasStructure = false;
+		}
+
+		// If there's no structure yet, assemble it
+		if (!$hasStructure) {
+			$this->loadQuery();
+
+			// Add the SQL conditions for the selected TYPO3 mechanisms
+			$this->sqlParser->addTypo3Mechanisms($this->providerData);
+
+			// Assemble filters, if defined
+			if (is_array($this->filter) && count($this->filter) > 0) $this->sqlParser->addFilter($this->filter);
+
+			// Use idList from input SDS, if defined
+			if (is_array($this->structure) && isset($this->structure['uidListWithTable'])) $this->sqlParser->addIdList($this->structure['uidListWithTable']);
+
+			// Build the complete query
+			$query = $this->sqlParser->buildQuery();
+			if ($this->configuration['debug'] || TYPO3_DLOG) t3lib_div::devLog($query, $this->extKey);
+
+			// Execute the query
+			$res = $GLOBALS['TYPO3_DB']->sql_query($query);
+
+			// Prepare the full data structure
+			$dataStructure = $this->prepareFullStructure($res);
+		}
+
+/*** Use structure ***/
+
+
+		// Prepare the limit and offset parameters
+		$limit = (isset($this->filter['limit']['max'])) ? $this->filter['limit']['max'] : 0;
+		if ($limit > 0) {
+			$offset = $limit * ((isset($this->filter['limit']['offset'])) ? $this->filter['limit']['offset'] : 0);
+			if ($offset < 0) $offset = 0;
+		}
+		else {
+			$offset = 0;
+		}
+//t3lib_div::debug(array('offset' => $offset, 'limit' => $limit));
+
+		// Take the structure and apply limit and offset, if defined
+		if ($limit > 0 || $offset > 0) {
+			// Reset offset if beyond total number of records
+			if ($offset > $dataStructure['totalCount']) {
+				$offset = 0;
+			}
+			// Initialise final structure with data that won't change
+			$returnStructure = array(
+									'name' => $dataStructure['name'],
+									'totalCount' => $dataStructure['totalCount'],
+									'header' => $dataStructure['header'],
+									'records' => array()
+									 );
+			$counter = 0;
+			$uidList = array();
+			foreach ($dataStructure['records'] as $record) {
+				// Get only those records that are after the offset and within the limit
+				if ($counter >= $offset && ($limit == 0 || ($limit > 0 && $counter - $offset < $limit))) {
+					$counter++;
+					$returnStructure['records'][] = $record;
+					$uidList[] = $record['uid'];
+				}
+				// If the offset has not been reached yet, just increase the counter
+				elseif ($counter < $offset) {
+					$counter++;
+				}
+				else {
+					break;
+				}
+			}
+			$returnStructure['count'] = count($returnStructure['records']);
+			$returnStructure['uidList'] = implode(',', $uidList);
+		}
+		// If there's no limit take the structure as is
+		else {
+			$returnStructure = $dataStructure;
+		}
+
+// Hook for post-processing the data structure
+
+		if (is_array($GLOBALS['TYPO3_CONF_VARS']['EXTCONF'][$this->extKey]['postProcessDataStructure'])) {
+			foreach($GLOBALS['TYPO3_CONF_VARS']['EXTCONF'][$this->extKey]['postProcessDataStructure'] as $className) {
+				$postProcessor = &t3lib_div::getUserObj($className);
+				$returnStructure = $postProcessor->postProcessDataStructure($returnStructure, $this);
+			}
+		}
+//t3lib_div::debug($returnStructure);
+		return $returnStructure;
+	}
+
+	/**
+	 * This method prepares a full data structure with overlays if needed but without limits and offset
+	 * This is the structure that will be cached (at the end of method) to be called again from the cache when appropriate
+	 *
+	 * @param	pointer		$res: database resource from the executed query
+	 * @return	array		The full data structure
+	 */
+	protected function prepareFullStructure($res) {
+		// Initialise some variables
 		$this->mainTable = $this->sqlParser->getMainTableName();
 		$subtables = $this->sqlParser->getSubtablesNames();
 		$numSubtables = count($subtables);
 		$allTables = $subtables;
 		array_push($allTables, $this->mainTable);
 		$tableAndFieldLabels = $this->sqlParser->getLocalizedLabels($language);
-
-// Add the SQL conditions for the selected TYPO3 mechanisms
-
-		$this->sqlParser->addTypo3Mechanisms($this->providerData);
-
-// Assemble filters, if defined
-
-		if (is_array($this->filter) && count($this->filter) > 0) $this->sqlParser->addFilter($this->filter);
-
-// Use idList from input SDS, if defined
-
-		if (is_array($this->structure) && isset($this->structure['uidListWithTable'])) $this->sqlParser->addIdList($this->structure['uidListWithTable']);
-
-// Build the complete query
-
-		$query = $this->sqlParser->buildQuery();
-		if ($this->configuration['debug'] || TYPO3_DLOG) t3lib_div::devLog($query, $this->extKey);
-
-		// Execute the query
-		$res = $GLOBALS['TYPO3_DB']->sql_query($query);
-		// Make a first loop over all the records
-		// Apply an offset and limit, if any and if not already done in the query itself
-		// If the limit was already applied, set it to 0 so that all records are taken
-//		if ($this->sqlParser->isLimitAlreadyApplied()) {
-//			$limit = 0;
-//			$offset = 0;
-//		}
-		// If the limit was not already applied, get it from the filter
-//		else {
-			$limit = (isset($this->filter['limit']['max'])) ? $this->filter['limit']['max'] : 0;
-			if ($limit > 0) {
-				$offset = $limit * ((isset($this->filter['limit']['offset'])) ? $this->filter['limit']['offset'] : 0);
-				if ($offset < 0) $offset = 0;
-			}
-			else {
-				$offset = 0;
-			}
-//		}
-//t3lib_div::debug(array('offset' => $offset, 'limit' => $limit));
-
+		
 		// Initialise array for storing records and uid's per table
 		$rows = array($this->mainTable => array(0 => array()));
 		$uids = array($this->mainTable => array());
@@ -145,6 +221,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 				$uids[$table] = array();
 			}
 		}
+
 		// Loop on all records to sort them by table. This can be seen as "de-JOINing" the tables.
 		// This is necessary for such operations as overlays. When overlays are done, tables will be joined again
 		// but within the format of Standardised Data Structure
@@ -214,12 +291,19 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 				}
 			}
 		}
-//t3lib_div::debug($overlays['tt_content']);
+
+		// Prepare the header parts for all tables
+		$headers = array();
+		foreach ($allTables as $table) {
+			if (isset($tableAndFieldLabels[$table]['fields'])) {
+				$headers[$table] = array();
+				foreach ($tableAndFieldLabels[$table]['fields'] as $key => $label) {
+					$headers[$table][$key] = array('label' => $label);
+		        }
+			}
+		}
 
 		// Loop on all records of the main table, applying overlays if needed
-		// Apply limit and offset
-		$counter = 0;
-		$totalCounter = 0;
 		$mainRecords = array();
 		// Perform overlays only if language is not default and if necessary for table
 		$doOverlays = ($GLOBALS['TSFE']->sys_language_content > 0) & $this->sqlParser->mustHandleLanguageOverlay($this->mainTable);
@@ -240,31 +324,11 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 					}
 				}
 			}
-			// Get only those records that are after the offset and within the limit
-			if ($counter >= $offset && ($limit == 0 || ($limit > 0 && $counter - $offset < $limit))) {
-				$counter++;
-				$mainRecords[] = $row;
-			}
-			// If the offset has not been reached yet, just increase the counter
-			elseif ($counter < $offset) {
-				$counter++;
-			}
-			$totalCounter++;
+			$mainRecords[] = $row;
 		}
 //t3lib_div::debug($mainRecords);
 
-		// Prepare the header parts for all tables
-		$headers = array();
-		foreach ($allTables as $table) {
-			if (isset($tableAndFieldLabels[$table]['fields'])) {
-				$headers[$table] = array();
-				foreach ($tableAndFieldLabels[$table]['fields'] as $key => $label) {
-					$headers[$table][$key] = array('label' => $label);
-		        }
-			}
-		}
-
-		// Now loop on the filtered recordset of the main table and join it again to all its subtables
+		// Now loop on all the overlaid records of the main table and join them to their subtables
 		// Overlays are applied to subtables as needed
 		$uidList = array();
 		$fullRecords = array();
@@ -313,6 +377,8 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 								}
 								// Add the subrecord to the subtable only if it hasn't been included yet
 								// Multiple identical subrecords may happen when joining several tables together
+								// Take into account any limit that may have been placed on the number of subrecords in the query
+								// (using the non-SQL standard keyword MAX)
 								if (!in_array($subRow['uid'], $subUidList)) {
 									if ($sublimit == 0 || $subcounter < $sublimit) {
 										$subRecords[] = $subRow;
@@ -341,25 +407,64 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 			}
 			$fullRecords[] = $theFullRecord;
 		}
+
+		// Assemble the full structure
+		$numRecords = count($fullRecords);
 		$dataStructure = array(
 							'name' => $this->mainTable,
-							'count' => count($fullRecords),
-							'totalCount' => $totalCounter,
+							'count' => $numRecords,
+							'totalCount' => $numRecords,
 							'uidList' => implode(',', $uidList),
 							'header' => $headers[$this->mainTable],
 							'records' => $fullRecords
 						);
 
-// Hook for post-processing the data structure
-
-		if (is_array($GLOBALS['TYPO3_CONF_VARS']['EXTCONF'][$this->extKey]['postProcessDataStructure'])) {
-			foreach($GLOBALS['TYPO3_CONF_VARS']['EXTCONF'][$this->extKey]['postProcessDataStructure'] as $className) {
+		// Hook for post-processing the data structure before it is stored into cache
+		if (is_array($GLOBALS['TYPO3_CONF_VARS']['EXTCONF'][$this->extKey]['postProcessDataStructureBeforeCache'])) {
+			foreach($GLOBALS['TYPO3_CONF_VARS']['EXTCONF'][$this->extKey]['postProcessDataStructureBeforeCache'] as $className) {
 				$postProcessor = &t3lib_div::getUserObj($className);
-				$dataStructure = $postProcessor->postProcessDataStructure($dataStructure, $this);
+				$dataStructure = $postProcessor->postProcessDataStructureBeforeCache($dataStructure, $this);
 			}
 		}
-//t3lib_div::debug($dataStructure);
+
+		// Store the structure in the cache table
+		// The structure is not cached if the cache duration is set to 0
+		if (!empty($this->providerData['cache_duration'])) {
+			$fields = array(
+							'query_id' => $this->providerData['uid'],
+							'sys_language_uid' => $GLOBALS['TSFE']->sys_language_content,
+							'filter_hash' => tx_basecontroller_utilities::calculateFilterCacheHash($this->filter),
+							'structure_cache' => serialize($dataStructure),
+							'tstamp' => time() + $this->providerData['cache_duration']
+						);
+			$GLOBALS['TYPO3_DB']->exec_INSERTquery('tx_dataquery_cache', $fields);
+		}
+
+		// Finally return the assembled structure
 		return $dataStructure;
+	}
+
+	/**
+	 * This method is used to retrieve a data structure stored in cache provided it fits all parameters
+	 * If no appropriate cache is found, it throws an exception
+	 *
+	 * @return	array	A standard data structure
+	 */
+	protected function getCachedStructure() {
+		// Assemble condition for finding correct cache
+		// This means matching the dataquery's primary key, the current language, the filter's hash (without the limit)
+		// and that it has not expired
+		$where = "query_id = '".$this->providerData['uid']."' AND sys_language_uid = '".$GLOBALS['TSFE']->sys_language_content."'";
+		$where .= " AND filter_hash = '".tx_basecontroller_utilities::calculateFilterCacheHash($this->filter)."'";
+		$where .= " AND tstamp > '".time()."'";
+		$res = $GLOBALS['TYPO3_DB']->exec_SELECTquery('structure_cache', 'tx_dataquery_cache', $where);
+		if ($GLOBALS['TYPO3_DB']->sql_num_rows($res) == 0) {
+			throw new Exception('No cached structure');
+		}
+		else {
+			$row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res);
+			return unserialize($row['structure_cache']);
+		}
 	}
 
 	/**

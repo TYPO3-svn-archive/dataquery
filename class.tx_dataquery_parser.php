@@ -365,7 +365,7 @@ class tx_dataquery_parser {
             }
             	// By default disable language overlays for all tables
             	// Overlays are activated again on a case by case basis in addTypo3Mechanisms()
-			$this->doOverlays[$alias] = false;
+//			$this->doOverlays[$alias] = false;
         }
 		return $this->queryFields;
     }

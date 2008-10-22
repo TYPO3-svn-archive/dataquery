@@ -61,6 +61,16 @@ $TCA['tx_dataquery_queries'] = array(
 				),
 			)
 		),
+		'cache_duration' => array(		
+			'exclude' => 1,		
+			'label' => 'LLL:EXT:dataquery/locallang_db.xml:tx_dataquery_queries.cache_duration',		
+			'config' => array(
+				'type' => 'input',	
+				'size' => 20,
+				'default' => 86400,
+				'eval' => 'required,int',
+			)
+		),
 		'ignore_enable_fields' => array(		
 			'exclude' => 1,		
 			'label' => 'LLL:EXT:dataquery/locallang_db.xml:tx_dataquery_queries.ignore_enable_fields',		
@@ -85,7 +95,7 @@ $TCA['tx_dataquery_queries'] = array(
 		),
 	),
 	'types' => array(
-		'0' => array('showitem' => 'hidden;;;;1-1-1, title;;1;;2-2-2, sql_query;;;;3-3-3,--div--;LLL:EXT:dataquery/locallang_db.xml:tx_dataquery_queries.tab.advanced, ignore_enable_fields;;;;4-4-4, ignore_language_handling')
+		'0' => array('showitem' => 'hidden;;;;1-1-1, title;;1;;2-2-2, sql_query;;;;3-3-3,--div--;LLL:EXT:dataquery/locallang_db.xml:tx_dataquery_queries.tab.advanced, cache_duration;;;;1-1-1, ignore_enable_fields;;;;2-2-2, ignore_language_handling')
 	),
 	'palettes' => array(
 		'1' => array('showitem' => 'description'),
