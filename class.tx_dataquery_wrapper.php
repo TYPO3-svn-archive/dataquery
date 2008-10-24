@@ -430,10 +430,18 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 		// Store the structure in the cache table
 		// The structure is not cached if the cache duration is set to 0
 		if (!empty($this->providerData['cache_duration'])) {
+			// For calculating the filter hash, add the uidList (if it exists) to the filter
+			// This makes it possible to vary the cache as a function of the idList provided by a secondary provider
+			$filterForCache = $this->filter;
+			if (is_array($this->structure) && isset($this->structure['uidListWithTable'])) {
+				$filterForCache['uidListWithTable'] = $this->structure['uidListWithTable'];
+			}
+
 			$fields = array(
 							'query_id' => $this->providerData['uid'],
-							'sys_language_uid' => $GLOBALS['TSFE']->sys_language_content,
-							'filter_hash' => tx_basecontroller_utilities::calculateFilterCacheHash($this->filter),
+							'page_id' => $GLOBALS['TSFE']->id,
+							'cache_hash' => $this->calculateCacheHash(array()),
+							'filter_hash' => tx_basecontroller_utilities::calculateFilterCacheHash($filterForCache),
 							'structure_cache' => serialize($dataStructure),
 							'tstamp' => time() + $this->providerData['cache_duration']
 						);
@@ -451,11 +459,19 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 	 * @return	array	A standard data structure
 	 */
 	protected function getCachedStructure() {
+		// For calculating the filter hash, add the uidList (if it exists) to the filter
+		// This makes it possible to vary the cache as a function of the idList provided by a secondary provider
+		$filterForCache = $this->filter;
+		if (is_array($this->structure) && isset($this->structure['uidListWithTable'])) {
+			$filterForCache['uidListWithTable'] = $this->structure['uidListWithTable'];
+		}
+
 		// Assemble condition for finding correct cache
 		// This means matching the dataquery's primary key, the current language, the filter's hash (without the limit)
 		// and that it has not expired
-		$where = "query_id = '".$this->providerData['uid']."' AND sys_language_uid = '".$GLOBALS['TSFE']->sys_language_content."'";
-		$where .= " AND filter_hash = '".tx_basecontroller_utilities::calculateFilterCacheHash($this->filter)."'";
+		$where = "query_id = '".$this->providerData['uid']."' AND page_id = '".$GLOBALS['TSFE']->id."'";
+		$where .= " AND cache_hash = '".$this->calculateCacheHash(array())."'";
+		$where .= " AND filter_hash = '".tx_basecontroller_utilities::calculateFilterCacheHash($filterForCache)."'";
 		$where .= " AND tstamp > '".time()."'";
 		$res = $GLOBALS['TYPO3_DB']->exec_SELECTquery('structure_cache', 'tx_dataquery_cache', $where);
 		if ($GLOBALS['TYPO3_DB']->sql_num_rows($res) == 0) {
@@ -467,6 +483,21 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 		}
 	}
 
+	/**
+	 * This method assembles a hash parameter depending on a variety of parameters, including
+	 * the current FE language and the groups of the current FE user, if any
+	 *
+	 * @param	array	$parameters: additional parameters to add to the hash calculation
+	 * @return	string	A md5 hash
+	 */
+	protected function calculateCacheHash(array $parameters) {
+		$cacheParameters = $parameters;
+		$cacheParameters['sys_language_uid'] = $GLOBALS['TSFE']->sys_language_content;
+		if (is_array($this->fe_user->user) && count($this->fe_user->groupData['uid']) > 0) {
+			$cacheParameters['fe_groups'] = $this->fe_user->groupData['uid'];
+		}
+		return md5(serialize($cacheParameters));
+	}
 	/**
 	 * This method loads the current query's details from the database and starts the parser
 	 *
