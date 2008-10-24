@@ -21,28 +21,17 @@
 *
 *  This copyright notice MUST APPEAR in all copies of the script!
 *
-* $Id: class.tx_dataquery_parser.php 13276 2008-10-22 19:30:46Z francois $
+* $Id$
 ***************************************************************/
 /**
  * [CLASS/FUNCTION INDEX of SCRIPT]
  *
  *
  *
- *   60: class tx_dataquery_parser
- *   78:     public function parseQuery($query)
- *  291:     public function getLocalizedLabels($language = '')
- *  367:     public function addTypo3Mechanisms($settings)
- *  466:     public function addFilter($filter)
- *  495:     public function addIdList($idList)
- *  535:     public function buildQuery()
- *  578:     public function parseSearch($searchParameters)
- *  626:     public function addWhereClause($clause)
- *  638:     public function getMainTableName()
- *  648:     public function getSubtablesNames()
- *  657:     public function hasMergedResults()
- *  668:     public function mustHandleLanguageOverlay($table)
+ *   46: class tx_dataquery_cache
+ *   55:     public function clearCache($parameters, $pObj)
  *
- * TOTAL FUNCTIONS: 12
+ * TOTAL FUNCTIONS: 1
  * (This index is automatically created/updated by the extension "extdeveval")
  *
  */
@@ -59,8 +48,8 @@ class tx_dataquery_cache {
 	/**
 	 * This method is used to clear the dataquery for selected pages only
 	 *
-	 * @param	array	$parameters: parameters passed by TCEmain, including the pages to clear the cache for
-	 * @param	object	$pObj: reference to the calling TCEmain object
+	 * @param	array		$parameters: parameters passed by TCEmain, including the pages to clear the cache for
+	 * @param	object		$pObj: reference to the calling TCEmain object
 	 * @return	void
 	 */
 	public function clearCache($parameters, $pObj) {

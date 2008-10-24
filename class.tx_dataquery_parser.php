@@ -28,21 +28,23 @@
  *
  *
  *
- *   60: class tx_dataquery_parser
- *   78:     public function parseQuery($query)
- *  291:     public function getLocalizedLabels($language = '')
- *  367:     public function addTypo3Mechanisms($settings)
- *  466:     public function addFilter($filter)
- *  495:     public function addIdList($idList)
- *  535:     public function buildQuery()
- *  578:     public function parseSearch($searchParameters)
- *  626:     public function addWhereClause($clause)
- *  638:     public function getMainTableName()
- *  648:     public function getSubtablesNames()
- *  657:     public function hasMergedResults()
- *  668:     public function mustHandleLanguageOverlay($table)
+ *   62: class tx_dataquery_parser
+ *   80:     public function parseQuery($query)
+ *  309:     public function getLocalizedLabels($language = '')
+ *  387:     public function addTypo3Mechanisms($settings)
+ *  497:     public function addFilter($filter)
+ *  597:     public function addIdList($idList)
+ *  637:     public function buildQuery()
+ *  682:     public function addWhereClause($clause)
+ *  694:     public function getMainTableName()
+ *  704:     public function getSubtablesNames()
+ *  714:     public function getTrueTableName($alias)
+ *  723:     public function hasMergedResults()
+ *  734:     public function mustHandleLanguageOverlay($table)
+ *  744:     public function isLimitAlreadyApplied()
+ *  755:     public function getSubTableLimit($table)
  *
- * TOTAL FUNCTIONS: 12
+ * TOTAL FUNCTIONS: 14
  * (This index is automatically created/updated by the extension "extdeveval")
  *
  */
@@ -377,8 +379,9 @@ class tx_dataquery_parser {
 	 * 	- the language handling
 	 * 	- the versioning system
 	 *
-	 * @param	array		$settings: database record corresponding to the current Data Query
 	 * 						(this may contain flags *disabling* the use of enable fields or language overlays)
+	 *
+	 * @param	array		$settings: database record corresponding to the current Data Query
 	 * @return	void
 	 */
 	public function addTypo3Mechanisms($settings) {
@@ -705,8 +708,8 @@ class tx_dataquery_parser {
 	/**
 	 * This method takes an alias and returns the true table name
 	 *
-	 * @param	string	$alias: alias of a table
-	 * @return	string	True name of the corresponding table
+	 * @param	string		$alias: alias of a table
+	 * @return	string		True name of the corresponding table
 	 */
 	public function getTrueTableName($alias) {
 		return $this->aliases[$alias];
