@@ -68,7 +68,7 @@ $TCA['tx_dataquery_queries'] = array(
 				'type' => 'input',	
 				'size' => 20,
 				'default' => 86400,
-				'eval' => 'required,int',
+				'eval' => 'int',
 			)
 		),
 		'ignore_enable_fields' => array(		
