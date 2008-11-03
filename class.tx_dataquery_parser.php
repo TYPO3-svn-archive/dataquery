@@ -446,15 +446,17 @@ class tx_dataquery_parser {
 								}
 							}
 							$this->doOverlays[$alias] = true;
-								// Add the language condition for the given table
-							$languageCondition = tx_overlays::getLanguageCondition($table);
-							if ($table != $alias) $languageCondition = str_replace($table, $alias, $languageCondition);
-							if ($alias == $this->mainTable) {
-								$this->addWhereClause($languageCondition);
-							}
-							else {
-								if (!empty($this->structure['JOIN'][$alias]['on'])) $this->structure['JOIN'][$alias]['on'] .= ' AND ';
-								$this->structure['JOIN'][$alias]['on'] .= '('.$languageCondition.')';
+								// Add the language condition for the given table (only for tables containing their own translations)
+							if (isset($GLOBALS['TCA'][$table]['ctrl']['transOrigPointerField'])) {
+								$languageCondition = tx_overlays::getLanguageCondition($table);
+								if ($table != $alias) $languageCondition = str_replace($table, $alias, $languageCondition);
+								if ($alias == $this->mainTable) {
+									$this->addWhereClause($languageCondition);
+								}
+								else {
+									if (!empty($this->structure['JOIN'][$alias]['on'])) $this->structure['JOIN'][$alias]['on'] .= ' AND ';
+									$this->structure['JOIN'][$alias]['on'] .= '('.$languageCondition.')';
+								}
 							}
 						}
 						catch (Exception $e) {
