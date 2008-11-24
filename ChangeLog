@@ -1,5 +1,7 @@
-(add new changes on top of this file)
+08-11-19 Francois Suter (Cobweb) <typo3@cobweb.ch>
 
-07-07-06 Francois Suter (Cobweb)  <support@cobweb.ch>
+	* Changed cache expiry field name to "expires"
+
+07-07-06 Francois Suter (Cobweb) <typo3@cobweb.ch>
 
 	* Initial release

@@ -34,7 +34,7 @@ CREATE TABLE tx_dataquery_cache (
 	query_id int(11) DEFAULT '0' NOT NULL,
 	page_id int(11) DEFAULT '0' NOT NULL,
 	cache_hash varchar(32) DEFAULT '' NOT NULL,
-	tstamp int(11) DEFAULT '0' NOT NULL,
+	expires int(11) DEFAULT '0' NOT NULL,
 	structure_cache mediumtext NOT NULL
 	KEY query (query_id,page_id),
 );

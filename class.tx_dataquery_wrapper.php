@@ -435,7 +435,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 							'page_id' => $GLOBALS['TSFE']->id,
 							'cache_hash' => $this->calculateCacheHash(array()),
 							'structure_cache' => serialize($dataStructure),
-							'tstamp' => time() + $this->providerData['cache_duration']
+							'expires' => time() + $this->providerData['cache_duration']
 						);
 			$GLOBALS['TYPO3_DB']->exec_INSERTquery('tx_dataquery_cache', $fields);
 		}
@@ -456,7 +456,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 		// and that it has not expired
 		$where = "query_id = '".$this->providerData['uid']."' AND page_id = '".$GLOBALS['TSFE']->id."'";
 		$where .= " AND cache_hash = '".$this->calculateCacheHash(array())."'";
-		$where .= " AND tstamp > '".time()."'";
+		$where .= " AND expires > '".time()."'";
 		$res = $GLOBALS['TYPO3_DB']->exec_SELECTquery('structure_cache', 'tx_dataquery_cache', $where);
 		if ($GLOBALS['TYPO3_DB']->sql_num_rows($res) == 0) {
 			throw new Exception('No cached structure');
