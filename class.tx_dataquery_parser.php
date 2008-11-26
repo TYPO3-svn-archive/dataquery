@@ -85,17 +85,21 @@ class tx_dataquery_parser {
 		if (strrpos($query, ';') == strlen($query) - 1) {
 			$query = substr($query, 0, strlen($query) - 1);
 		}
-// Get all parts of the query, using the SQL keywords as tokens
-// The returned matches array contains the keywords matched (in position 2) and the string after each keyword (in position 3)
+			// Parse query for subexpressions
+$test = array('before' => $query);
+		$query = tx_basecontroller_parser::evaluateString($query, false);
+$test['after'] = $query;
+t3lib_div::debug($test);
 
+			// Get all parts of the query, using the SQL keywords as tokens
+			// The returned matches array contains the keywords matched (in position 2) and the string after each keyword (in position 3)
 		$regexp = '/('.implode('|', self::$tokens).')/';
 		$matches = preg_split($regexp, $query, -1, PREG_SPLIT_NO_EMPTY | PREG_SPLIT_DELIM_CAPTURE);
 //t3lib_div::debug($regexp);
 //t3lib_div::debug($query);
 //t3lib_div::debug($matches);
 
-// Fill the structure array, as suited for each keyword
-
+			// Fill the structure array, as suited for each keyword
 		$i = 0;
 		$numMatches = count($matches);
 		$this->aliases = array();
