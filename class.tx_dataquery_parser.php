@@ -50,6 +50,7 @@
  */
 
 require_once(t3lib_extMgm::extPath('overlays', 'class.tx_overlays.php'));
+require_once(t3lib_extMgm::extPath('basecontroller', 'lib/class.tx_basecontroller_parser.php'));
 
 /**
  * This class is used to parse a SELECT SQL query into a structured array
