@@ -50,7 +50,6 @@
  */
 
 require_once(t3lib_extMgm::extPath('overlays', 'class.tx_overlays.php'));
-require_once(t3lib_extMgm::extPath('basecontroller', 'lib/class.tx_basecontroller_parser.php'));
 
 /**
  * This class is used to parse a SELECT SQL query into a structured array
@@ -65,6 +64,7 @@ class tx_dataquery_parser {
 	protected $structure = array(); // Contains all components of the parsed query
 	protected $mainTable; // Name (or alias if defined) of the main query table, i.e. the one in the FROM part of the query
 	protected $aliases = array(); // The keys to this array are the aliases of the tables used in the query and they point to the true table names
+	protected $fieldAliases = array(); // List of aliases for all fields that have one, per table
 	protected $isMergedResult = false;
 	protected $subtables = array(); // List of all subtables, i.e. tables in the JOIN statements
 	protected $queryFields = array(); // List of all fields being queried, arranged per table (aliased)
@@ -198,6 +198,7 @@ class tx_dataquery_parser {
 
 		$numSelects = count($this->structure['SELECT']);
 		$tableHasUid = array();
+		$this->fieldAliases = array();
 		for ($i = 0; $i < $numSelects; $i++) {
 			$selector = $this->structure['SELECT'][$i];
 			$alias = '';
@@ -231,6 +232,13 @@ class tx_dataquery_parser {
 					$fields = array($selector);
 					$table = $this->mainTable;
 					$alias = $table;
+				}
+				// If there's an alias for the field, store it in a separate array, for later use
+				if (!empty($fieldAlias)) {
+					if (!isset($this->fieldAliases[$alias])) {
+						$this->fieldAliases[$alias] = array();
+					}
+					$this->fieldAliases[$alias][$fields[0]] = $fieldAlias;
 				}
             }
 
@@ -340,8 +348,10 @@ class tx_dataquery_parser {
 			// Now that we have a properly initialised language object,
 			// loop on all labels and get any existing localised string
 		$hasFullTCA = false;
+		$localizedStructure = array();
 		foreach ($this->queryFields as $alias => $tableData) {
-			$table = $tableData['table'];
+			$table = $tableData['name'];
+			$localizedStructure[$alias] = array('table' => $table, 'fields' => array());
 				// For the pages table, the t3lib_div::loadTCA() method does not work
 				// We have to load the full TCA. Set a flag to signal that it's pointless
 				// to call t3lib_div::loadTCA() after that, since the whole TCA is loaded anyway
@@ -358,20 +368,31 @@ class tx_dataquery_parser {
 				// Get the labels for the tables
 			if (isset($GLOBALS['TCA'][$table]['ctrl']['title'])) {
 				$tableName = $tableName = $lang->sL($GLOBALS['TCA'][$table]['ctrl']['title']);
-				$this->queryFields[$alias]['name'] = $tableName;
+				$localizedStructure[$alias]['name'] = $tableName;
+			}
+			else {
+				$localizedStructure[$alias]['name'] = $table;
 			}
 				// Get the labels for the fields
 			foreach ($tableData['fields'] as $key => $value) {
+					// If the field has an alias, use it instead of the field name
+				if (isset($this->fieldAliases[$alias][$key])) {
+					$field = $this->fieldAliases[$alias][$key];
+				}
+				else {
+					$field = $key;
+				}
+					// Get the localized label, if it exists
 				if (isset($GLOBALS['TCA'][$table]['columns'][$key]['label'])) {
 					$fieldName = $lang->sL($GLOBALS['TCA'][$table]['columns'][$key]['label']);
-					$this->queryFields[$alias]['fields'][$key] = $fieldName;
+					$localizedStructure[$alias]['fields'][$field] = $fieldName;
                 }
+				else {
+					$localizedStructure[$alias]['fields'][$field] = $field;
+				}
             }
-            	// By default disable language overlays for all tables
-            	// Overlays are activated again on a case by case basis in addTypo3Mechanisms()
-//			$this->doOverlays[$alias] = false;
         }
-		return $this->queryFields;
+		return $localizedStructure;
     }
 
 	/**
