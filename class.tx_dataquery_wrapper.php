@@ -155,7 +155,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 			// Initialise final structure with data that won't change
 			$returnStructure = array(
 									'name' => $dataStructure['name'],
-									'trueName' => $this->sqlParser->getTrueTableName($dataStructure['name']),
+									'trueName' => $dataStructure['trueName'],
 									'totalCount' => $dataStructure['totalCount'],
 									'header' => $dataStructure['header'],
 									'records' => array()
@@ -414,6 +414,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 		$numRecords = count($fullRecords);
 		$dataStructure = array(
 							'name' => $this->mainTable,
+							'trueName' => $this->sqlParser->getTrueTableName($this->mainTable),
 							'count' => $numRecords,
 							'totalCount' => $numRecords,
 							'uidList' => implode(',', $uidList),
