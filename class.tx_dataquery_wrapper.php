@@ -155,6 +155,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 			// Initialise final structure with data that won't change
 			$returnStructure = array(
 									'name' => $dataStructure['name'],
+									'trueName' => $this->sqlParser->getTrueTableName($dataStructure['name']),
 									'totalCount' => $dataStructure['totalCount'],
 									'header' => $dataStructure['header'],
 									'records' => array()
@@ -395,6 +396,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 							if ($numItems > 0) {
 								$theFullRecord['sds:subtables'][] = array(
 																		'name' => $table,
+																		'trueName' => $this->sqlParser->getTrueTableName($table),
 																		'count' => $numItems,
 																		'uidList' => implode(',' , $subUidList),
 																		'header' => $headers[$table],
