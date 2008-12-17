@@ -436,9 +436,8 @@ class tx_dataquery_parser {
 	 * 	- the language handling
 	 * 	- the versioning system
 	 *
-	 * 						(this may contain flags *disabling* the use of enable fields or language overlays)
-	 *
 	 * @param	array		$settings: database record corresponding to the current Data Query
+	 * 						(this may contain flags *disabling* the use of enable fields or language overlays)
 	 * @return	void
 	 */
 	public function addTypo3Mechanisms($settings) {
