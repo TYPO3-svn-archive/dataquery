@@ -263,17 +263,26 @@ class tx_dataquery_parser {
 // The full name is:
 //	1) the name of the table or its alias
 //	2) a dot
-//	3) the name of the table
+//	3) the name of the field
 //
-// If it's the main table and there's an alias for the field
+// => If it's the main table and there's an alias for the field
 //
 //	4a) AS and the field alias
 //
-// If it's not the main table, all fields get an alias using either their own name or the given field alias
+//	4a-2)	if the alias contains a dot (.) it means it contains a table name (or alias)
+//			and a field name. So we use this information
+//
+// This means something like foo.bar AS hey.you will get transformed into foo.bar AS hey$you
+//
+// In effect this means that you can "reassign" a value from one table (foo) to another (hey)
+//
+// => If it's not the main table, all fields get an alias using either their own name or the given field alias
 //
 //	4b) AS and $ and the field or its alias
 //
 // So something like foo.bar AS boink will get transformed into foo.bar AS foo$boink
+//
+//	4b-2)	like 4a-2) above, but for subtables
 //
 // The $ sign is used in class tx_dataquery_wrapper for building the data structure
 
@@ -281,8 +290,18 @@ class tx_dataquery_parser {
 			$completeFields = array();
 			foreach ($fields as $name) {
 				$fullField = $prefix.'.'.$name;
+					// Case 4a
 				if ($alias == $this->mainTable) {
-					if (!empty($fieldAlias)) $fullField .= ' AS '.$fieldAlias;
+					if (!empty($fieldAlias)) {
+						$fullField .= ' AS ';
+						if (strpos($fieldAlias, '.') === false) {
+							$fullField .= $fieldAlias;
+						}
+							// Case 4a-2
+						else {
+							$fullField .= str_replace('.', '$', $fieldAlias);
+						}
+					}
                 }
 				else {
 					$fullField .= ' AS ';
@@ -290,7 +309,14 @@ class tx_dataquery_parser {
 						$fullField .= $prefix.'$'.$name;
 					}
 					else {
-						$fullField .= $prefix.'$'.$fieldAlias;
+							// Case 4b
+						if (strpos($fieldAlias, '.') === false) {
+							$fullField .= $prefix.'$'.$fieldAlias;
+						}
+							// Case 4b-2
+						else {
+							$fullField .= str_replace('.', '$', $fieldAlias);
+						}
                     }
                 }
 				$completeFields[] = $fullField;
@@ -385,13 +411,21 @@ class tx_dataquery_parser {
 					// Get the localized label, if it exists
 				if (isset($GLOBALS['TCA'][$table]['columns'][$key]['label'])) {
 					$fieldName = $lang->sL($GLOBALS['TCA'][$table]['columns'][$key]['label']);
-					$localizedStructure[$alias]['fields'][$field] = $fieldName;
                 }
 				else {
-					$localizedStructure[$alias]['fields'][$field] = $field;
+					$fieldName = $field;
 				}
+					// If the field name (alias) contains a dot (.), it means it contains
+					// the alias of a table name
+					// Explode the name on the dot and use the parts as a new table alias and field name
+				if (strpos($field, '.') !== false) {
+					list($alias, $field) = t3lib_div::trimExplode('.', $field);
+				}
+					// Store the localized label
+				$localizedStructure[$alias]['fields'][$field] = $fieldName;
             }
         }
+//		t3lib_div::debug($localizedStructure);
 		return $localizedStructure;
     }
 
