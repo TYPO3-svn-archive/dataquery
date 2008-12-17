@@ -132,19 +132,21 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 			$dataStructure = $this->prepareFullStructure($res);
 		}
 
-/*** Use structure ***/
-
-
 		// Prepare the limit and offset parameters
 		$limit = (isset($this->filter['limit']['max'])) ? $this->filter['limit']['max'] : 0;
 		if ($limit > 0) {
-			$offset = $limit * ((isset($this->filter['limit']['offset'])) ? $this->filter['limit']['offset'] : 0);
-			if ($offset < 0) $offset = 0;
+			// If there's a direct pointer, it takes precedence over the offset
+			if (isset($this->filter['limit']['pointer']) && $this->filter['limit']['pointer'] > 0) {
+				$offset = $this->filter['limit']['pointer'];
+			}
+			else {
+				$offset = $limit * ((isset($this->filter['limit']['offset'])) ? $this->filter['limit']['offset'] : 0);
+				if ($offset < 0) $offset = 0;
+			}
 		}
 		else {
 			$offset = 0;
 		}
-//t3lib_div::debug(array('offset' => $offset, 'limit' => $limit));
 
 		// Take the structure and apply limit and offset, if defined
 		if ($limit > 0 || $offset > 0) {
@@ -279,8 +281,6 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 				}
 			}
 		}
-//t3lib_div::debug($rows);
-//t3lib_div::debug($uids);
 
 		// If localisation is active and the current language is not the default one,
 		// get the overlays for all tables for which localisation by overlays is needed
@@ -327,7 +327,6 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 			}
 			$mainRecords[] = $row;
 		}
-//t3lib_div::debug($mainRecords);
 
 		// Now loop on all the overlaid records of the main table and join them to their subtables
 		// Overlays are applied to subtables as needed
