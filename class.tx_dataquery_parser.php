@@ -554,15 +554,23 @@ class tx_dataquery_parser {
 	 */
 	public function addFilter($filter) {
 			// First handle the "filter" part, which will be turned into part of a SQL WHERE clause
-		$completeFilter = '';
+//		$completeFilter = '';
+		$completeFilters = array();
 		$logicalOperator = (empty($filter['logicalOperator'])) ? 'AND' : $filter['logicalOperator'];
 		if (isset($filter['filters']) && is_array($filter['filters'])) {
+			$conditions = array();
 			foreach ($filter['filters'] as $filterData) {
-				if (!empty($completeFilter)) $completeFilter .= ' '.$logicalOperator.' ';
+//				if (!empty($completeFilter)) $completeFilter .= ' '.$logicalOperator.' ';
 				$table = (empty($filterData['table'])) ? $this->mainTable: $filterData['table'];
 				$field = $filterData['field'];
 				$fullFied = $table.'.'.$field;
 				$condition = '';
+				if (empty($completeFilters[$table])) {
+					$completeFilters[$table] = '';
+				}
+				else {
+					$completeFilters[$table] .= ' '.$logicalOperator.' ';
+				}
 				foreach ($filterData['conditions'] as $conditionData) {
 					if (!empty($condition)) {
 						$condition .= ' AND ';
@@ -608,11 +616,22 @@ class tx_dataquery_parser {
 						$condition .= $fullFied.' '.$conditionData['operator'].' '.$GLOBALS['TYPO3_DB']->fullQuoteStr($conditionData['value'], $table);
 					}
 				}
-				$completeFilter .= '('.$condition.')';
+//				$completeFilter .= '('.$condition.')';
+				$completeFilters[$table] .= '('.$condition.')';
 			}
-			$this->addWhereClause($completeFilter);
+//			$this->addWhereClause($completeFilter);
+			foreach ($completeFilters as $table => $whereClause) {
+				if ($table == $this->mainTable) {
+					$this->addWhereClause($whereClause);
+				}
+				elseif (in_array($table, $this->subtables)) {
+					if (!empty($this->structure['JOIN'][$table]['on'])) $this->structure['JOIN'][$table]['on'] .= ' AND ';
+					$this->structure['JOIN'][$table]['on'] .= $whereClause;
+				}
+			}
 		}
 			// Add the eventual raw SQL in the filter
+			// Raw SQL is always added to the main where clause
 		if (!empty($filter['rawSQL'])) {
 			$this->addWhereClause($filter['rawSQL']);
 		}
@@ -623,25 +642,6 @@ class tx_dataquery_parser {
 				$this->structure['ORDER BY'][] = $orderbyClause;
 			}
 		}
-/*
-			// Handle limit
-			// This is not so easy: it can be applied directly to SQL only if there are not JOINs in the query
-			// othewise this has to be done PHP-side, after the query
-			// NOTE: this will override any value set in the query itself
-		if (isset($filter['limit']) && $filter['limit']['max'] > 0) {
-			if (count($this->structure['JOIN']) == 0) {
-				$this->structure['LIMIT'] = $filter['limit']['max'];
-				$this->structure['OFFSET'] = $filter['limit']['offset'] * $filter['limit']['max'];
-				$this->limitApplied = true;
-			}
-			else {
-				$this->limitApplied = false;
-			}
-		}
-		else {
-			$this->limitApplied = false;
-		}
-*/
 	}
 
 	/**
