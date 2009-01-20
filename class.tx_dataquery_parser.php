@@ -377,7 +377,8 @@ class tx_dataquery_parser {
 		$localizedStructure = array();
 		foreach ($this->queryFields as $alias => $tableData) {
 			$table = $tableData['name'];
-			$localizedStructure[$alias] = array('table' => $table, 'fields' => array());
+				// Initialize structure for table, if not already done
+			if (!isset($localizedStructure[$alias])) $localizedStructure[$alias] = array('table' => $table, 'fields' => array());
 				// For the pages table, the t3lib_div::loadTCA() method does not work
 				// We have to load the full TCA. Set a flag to signal that it's pointless
 				// to call t3lib_div::loadTCA() after that, since the whole TCA is loaded anyway
@@ -401,13 +402,9 @@ class tx_dataquery_parser {
 			}
 				// Get the labels for the fields
 			foreach ($tableData['fields'] as $key => $value) {
-					// If the field has an alias, use it instead of the field name
-				if (isset($this->fieldAliases[$alias][$key])) {
-					$field = $this->fieldAliases[$alias][$key];
-				}
-				else {
-					$field = $key;
-				}
+					// Set default values
+				$tableAlias = $alias;
+				$field = $key;
 					// Get the localized label, if it exists
 				if (isset($GLOBALS['TCA'][$table]['columns'][$key]['label'])) {
 					$fieldName = $lang->sL($GLOBALS['TCA'][$table]['columns'][$key]['label']);
@@ -415,14 +412,19 @@ class tx_dataquery_parser {
 				else {
 					$fieldName = $field;
 				}
-					// If the field name (alias) contains a dot (.), it means it contains
-					// the alias of a table name
-					// Explode the name on the dot and use the parts as a new table alias and field name
-				if (strpos($field, '.') !== false) {
-					list($alias, $field) = t3lib_div::trimExplode('.', $field);
+					// Check if the field has an alias, if yes use it
+				if (isset($this->fieldAliases[$alias][$key])) {
+					$fieldAlias = $this->fieldAliases[$alias][$key];
+						// If the alias contains a dot (.), it means it contains the alias of a table name
+						// Explode the name on the dot and use the parts as a new table alias and field name
+					if (strpos($fieldAlias, '.') !== false) {
+						list($tableAlias, $field) = t3lib_div::trimExplode('.', $fieldAlias);
+							// Initialize structure for table, if not already done
+						if (!isset($localizedStructure[$tableAlias])) $localizedStructure[$tableAlias] = array('table' => $tableAlias, 'fields' => array());
+					}
 				}
 					// Store the localized label
-				$localizedStructure[$alias]['fields'][$field] = $fieldName;
+				$localizedStructure[$tableAlias]['fields'][$field] = $fieldName;
             }
         }
 //		t3lib_div::debug($localizedStructure);
