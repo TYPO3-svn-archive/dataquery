@@ -330,6 +330,7 @@ class tx_dataquery_parser {
 	       			$fullField .= ' AS '.$alias.'$uid';
 				}
 				$this->structure['SELECT'][] = $fullField;
+				$this->queryFields[$alias]['fields']['uid'] = 'uid';
         	}
         }
 //t3lib_div::debug($this->aliases);
