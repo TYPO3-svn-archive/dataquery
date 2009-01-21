@@ -474,18 +474,19 @@ class tx_dataquery_parser {
 // Add the DB fields and the SQL conditions necessary for having everything ready to handle overlays
 // as per the standard TYPO3 mechanism
 
+			// Loop on all tables involved
+			foreach ($this->queryFields as $alias => $tableData) {
+				$table = $tableData['table'];
+
 // First check which handling applies, based on existing TCA structure
 // The table must at least have a language field or point to a foreign table for translation
 
-			if (isset($GLOBALS['TCA'][$table]['ctrl']['languageField']) || isset($GLOBALS['TCA'][$table]['ctrl']['transForeignTable'])) {
+				if (isset($GLOBALS['TCA'][$table]['ctrl']['languageField']) || isset($GLOBALS['TCA'][$table]['ctrl']['transForeignTable'])) {
 
 // The table uses translations in the same table (transOrigPointerField) or in a foreign table (transForeignTable)
 // Prepare for overlays
 
-				if (isset($GLOBALS['TCA'][$table]['ctrl']['transOrigPointerField']) || isset($GLOBALS['TCA'][$table]['ctrl']['transForeignTable'])) {
-					// Loop on all tables involved
-					foreach ($this->queryFields as $alias => $tableData) {
-						$table = $tableData['table'];
+					if (isset($GLOBALS['TCA'][$table]['ctrl']['transOrigPointerField']) || isset($GLOBALS['TCA'][$table]['ctrl']['transForeignTable'])) {
 						$fields = array_keys($tableData['fields']);
 							// For each table, make sure that the fields necessary for handling the language overlay are included in the list of selected fields
 						try {
