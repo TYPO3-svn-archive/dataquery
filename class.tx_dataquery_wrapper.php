@@ -308,7 +308,8 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 		$mainRecords = array();
 		// Perform overlays only if language is not default and if necessary for table
 		$doOverlays = ($GLOBALS['TSFE']->sys_language_content > 0) & $this->sqlParser->mustHandleLanguageOverlay($this->mainTable);
-		$hasForeignOverlays = isset($GLOBALS['TCA'][$this->sqlParser->getTrueTableName($this->mainTable)]['ctrl']['transForeignTable']);
+		$tableCtrl =$GLOBALS['TCA'][$this->sqlParser->getTrueTableName($this->mainTable)]['ctrl'];
+		$hasForeignOverlays = isset($tableCtrl['transForeignTable']);
 		foreach ($rows[$this->mainTable][0] as $row) {
 				// Overlay if necessary and if record is not already in current language
 			if ($doOverlays && $row[$tableCtrl['languageField']] != $GLOBALS['TSFE']->sys_language_content) {
