@@ -304,6 +304,17 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 			}
 		}
 
+		// The overlay mechanism requires additional TCA information, but not the full TCA either
+		// This can be gotten by calling tslib_fe::getCompressedTCarray()
+		// To trigger this call tslib_fe::TCAloaded must be set to false first, otherwise
+		// it's value is true even though the TCA is not loaded (go figure!)
+		// We do this only if we're not handling the default language
+		if ($GLOBALS['TSFE']->sys_language_content > 0) {
+			$GLOBALS['TSFE']->TCAloaded = false;
+			$GLOBALS['TSFE']->getCompressedTCarray();
+			$GLOBALS['TSFE']->TCAloaded = true;
+		}
+
 		// Loop on all records of the main table, applying overlays if needed
 		$mainRecords = array();
 		// Perform overlays only if language is not default and if necessary for table
