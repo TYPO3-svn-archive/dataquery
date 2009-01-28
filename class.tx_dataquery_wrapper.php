@@ -310,7 +310,8 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 		$doOverlays = ($GLOBALS['TSFE']->sys_language_content > 0) & $this->sqlParser->mustHandleLanguageOverlay($this->mainTable);
 		$hasForeignOverlays = isset($GLOBALS['TCA'][$this->sqlParser->getTrueTableName($this->mainTable)]['ctrl']['transForeignTable']);
 		foreach ($rows[$this->mainTable][0] as $row) {
-			if ($doOverlays) {
+				// Overlay if necessary and if record is not already in current language
+			if ($doOverlays && $row[$tableCtrl['languageField']] != $GLOBALS['TSFE']->sys_language_content) {
 				if ($hasForeignOverlays && isset($overlays[$this->mainTable][$row['uid']])) {
 					$row = tx_overlays::overlaySingleRecord($table, $row, $overlays[$this->mainTable][$row['uid']]);
 				}
@@ -339,6 +340,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 			// Check if there are any subtables in the query
 			if ($numSubtables > 0) {
 				foreach ($subtables as $table) {
+					$trueTableName = $this->sqlParser->getTrueTableName($table);
 					// Check if there are any subrecords for this record
 					if (isset($rows[$table][$aRecord['uid']])) {
 						$numSubrecords = count($rows[$table][$aRecord['uid']]);
@@ -347,12 +349,13 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 							$subcounter = 0;
 							// Perform overlays only if language is not default and if necessary for table
 							$doOverlays = ($GLOBALS['TSFE']->sys_language_content > 0) & $this->sqlParser->mustHandleLanguageOverlay($table);
-							$hasForeignOverlays = isset($GLOBALS['TCA'][$this->sqlParser->getTrueTableName($table)]['ctrl']['transForeignTable']);
+							$hasForeignOverlays = isset($GLOBALS['TCA'][$trueTableName]['ctrl']['transForeignTable']);
 							$subRecords = array();
 							$subUidList = array();
 							// Loop on all subrecords and perform overlays if necessary
 							foreach ($rows[$table][$aRecord['uid']] as $subRow) {
-								if ($doOverlays) {
+								// Overlay if necessary and if record is not already in current language
+								if ($doOverlays && $subRow[$GLOBALS['TCA'][$trueTableName]['ctrl']['languageField']] != $GLOBALS['TSFE']->sys_language_content) {
 									if ($hasForeignOverlays && isset($overlays[$table][$subRow['uid']])) {
 										$subRow = tx_overlays::overlaySingleRecord($table, $row, $overlays[$table][$subRow['uid']]);
 									}
@@ -362,7 +365,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 										// No overlay exists
 									else {
 										// Take original record, only if non-translated are not hidden, or if language is [All]
-										if ($GLOBALS['TSFE']->sys_language_contentOL == 'hideNonTranslated' && $subRow[$GLOBALS['TCA'][$table]['ctrl']['languageField']] != -1) {
+										if ($GLOBALS['TSFE']->sys_language_contentOL == 'hideNonTranslated' && $subRow[$GLOBALS['TCA'][$trueTableName]['ctrl']['languageField']] != -1) {
 											continue; // Skip record
 										}
 									}
