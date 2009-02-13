@@ -287,8 +287,11 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 		if ($GLOBALS['TSFE']->sys_language_content > 0) {
 			$overlays = array();
 			foreach ($allTables as $table) {
-				if ($this->sqlParser->mustHandleLanguageOverlay($table)) {
+				if ($this->sqlParser->mustHandleLanguageOverlay($table) && count($uids[$table]) > 0) {
 					$overlays[$table] = tx_overlays::getOverlayRecords($this->sqlParser->getTrueTableName($table), $uids[$table], $GLOBALS['TSFE']->sys_language_content);
+				}
+				else {
+					$overlays[$table] = array();
 				}
 			}
 		}
@@ -320,7 +323,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 		// Perform overlays only if language is not default and if necessary for table
 		$doOverlays = ($GLOBALS['TSFE']->sys_language_content > 0) & $this->sqlParser->mustHandleLanguageOverlay($this->mainTable);
 		$trueTableName = $this->sqlParser->getTrueTableName($this->mainTable);
-		$tableCtrl =$GLOBALS['TCA'][$trueTableName]['ctrl'];
+		$tableCtrl = $GLOBALS['TCA'][$trueTableName]['ctrl'];
 		$hasForeignOverlays = isset($tableCtrl['transForeignTable']);
 		foreach ($rows[$this->mainTable][0] as $row) {
 				// Overlay if necessary and if record is not already in current language
