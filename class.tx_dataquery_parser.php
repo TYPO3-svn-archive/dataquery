@@ -530,18 +530,15 @@ class tx_dataquery_parser {
 // No overlays will be handled at a later time
 
 				else {
-					foreach ($this->queryFields as $alias => $tableData) {
-						$table = $tableData['table'];
-						if (isset($GLOBALS['TCA'][$table]['ctrl']['languageField'])) {
-								// Take language that corresponds to current language or [All]
-							$languageCondition = $alias.'.'.$GLOBALS['TCA'][$table]['ctrl']['languageField'].' IN ('.$GLOBALS['TSFE']->sys_language_content.', -1)';
-							if ($alias == $this->mainTable) {
-								$this->addWhereClause($languageCondition);
-							}
-							else {
-								if (!empty($this->structure['JOIN'][$alias]['on'])) $this->structure['JOIN'][$alias]['on'] .= ' AND ';
-								$this->structure['JOIN'][$alias]['on'] .= '('.$languageCondition.')';
-							}
+					if (isset($GLOBALS['TCA'][$table]['ctrl']['languageField'])) {
+							// Take language that corresponds to current language or [All]
+						$languageCondition = $alias.'.'.$GLOBALS['TCA'][$table]['ctrl']['languageField'].' IN ('.$GLOBALS['TSFE']->sys_language_content.', -1)';
+						if ($alias == $this->mainTable) {
+							$this->addWhereClause($languageCondition);
+						}
+						else {
+							if (!empty($this->structure['JOIN'][$alias]['on'])) $this->structure['JOIN'][$alias]['on'] .= ' AND ';
+							$this->structure['JOIN'][$alias]['on'] .= '('.$languageCondition.')';
 						}
 					}
 				}
