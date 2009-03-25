@@ -614,11 +614,16 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 	 * @see	tx_dataquery_wrapper::prepareFullStructure()
 	 */
 	static public function sortRecordset($a, $b) {
+			// Get the sorting information from static variables
+			// The level is a pointer to the current field being used for sorting
 		$level = self::$sortingLevel;
 		$field = self::$sortingFields[$level]['field'];
 		$order = (empty(self::$sortingFields[$level]['order'])) ? 'asc' : self::$sortingFields[$level]['order'];
 		$result = strcmp($a[$field], $b[$field]);
 		if ($result == 0) {
+				// If results are equal on the current level, check if there's a next level of sorting
+				// for differentiating the records
+				// If yes, call sorting method recursively
 			if (isset(self::$sortingFields[$level + 1])) {
 				self::$sortingLevel++;
 				$result = self::sortRecordset($a, $b);

@@ -70,7 +70,6 @@ class tx_dataquery_parser {
 	protected $subtables = array(); // List of all subtables, i.e. tables in the JOIN statements
 	protected $queryFields = array(); // List of all fields being queried, arranged per table (aliased)
 	protected $doOverlays = array(); // Flag for each table whether to perform overlays or not
-	protected $limitApplied = true; // Flag to indicate whether the LIMIT clause could be applied or not (it is applied only if the query contains no JOIN)
 
 	/**
 	 * This method is used to parse a SELECT SQL query.
@@ -92,7 +91,7 @@ class tx_dataquery_parser {
 
 			// Get all parts of the query, using the SQL keywords as tokens
 			// The returned matches array contains the keywords matched (in position 2) and the string after each keyword (in position 3)
-		$regexp = '/('.implode('|', self::$tokens).')/';
+		$regexp = '/(' . implode('|', self::$tokens) . ')/';
 		$matches = preg_split($regexp, $query, -1, PREG_SPLIT_NO_EMPTY | PREG_SPLIT_DELIM_CAPTURE);
 //t3lib_div::debug($regexp);
 //t3lib_div::debug($query);
@@ -559,7 +558,7 @@ class tx_dataquery_parser {
 						}
 						else {
 							if (!empty($this->structure['JOIN'][$alias]['on'])) $this->structure['JOIN'][$alias]['on'] .= ' AND ';
-							$this->structure['JOIN'][$alias]['on'] .= '('.$languageCondition.')';
+							$this->structure['JOIN'][$alias]['on'] .= '(' . $languageCondition . ')';
 						}
 					}
 				}
@@ -585,13 +584,13 @@ class tx_dataquery_parser {
 //				if (!empty($completeFilter)) $completeFilter .= ' '.$logicalOperator.' ';
 				$table = (empty($filterData['table'])) ? $this->mainTable: $filterData['table'];
 				$field = $filterData['field'];
-				$fullFied = $table.'.'.$field;
+				$fullFied = $table . '.' . $field;
 				$condition = '';
 				if (empty($completeFilters[$table])) {
 					$completeFilters[$table] = '';
 				}
 				else {
-					$completeFilters[$table] .= ' '.$logicalOperator.' ';
+					$completeFilters[$table] .= ' ' . $logicalOperator . ' ';
 				}
 				foreach ($filterData['conditions'] as $conditionData) {
 					if (!empty($condition)) {
@@ -600,7 +599,7 @@ class tx_dataquery_parser {
 						// Some operators require a bit more handling
 						// "in" values just need to be put within brackets
 					if ($conditionData['operator'] == 'in') {
-						$condition .= $fullFied.' IN ('.$conditionData['value'].')';
+						$condition .= $fullFied . ' IN (' . $conditionData['value'] . ')';
 					}
 						// "andgroup" and "orgroup" requires more handling
 						// The associated value is a list of comma-separated values and each of these values must be handled separately
@@ -615,7 +614,7 @@ class tx_dataquery_parser {
 							$localOperator = 'OR';
 						}
 						foreach ($values as $aValue) {
-							if (!empty($localCondition)) $localCondition .= ' '.$localOperator.' ';
+							if (!empty($localCondition)) $localCondition .= ' ' . $localOperator . ' ';
 							$localCondition .= $GLOBALS['TYPO3_DB']->listQuery($fullFied, $aValue, $table);
 						}
 						$condition .= $localCondition;
@@ -623,23 +622,23 @@ class tx_dataquery_parser {
 						// If the operator is "like", "start" or "end", the SQL operator is always LIKE, but different wildcards are used
 					elseif ($conditionData['operator'] == 'like' || $conditionData['operator'] == 'start' || $conditionData['operator'] == 'end') {
 						if ($conditionData['operator'] == 'start') {
-							$value = $conditionData['value'].'%';
+							$value = $conditionData['value'] . '%';
 						}
 						elseif ($conditionData['operator'] == 'end') {
-							$value = '%'.$conditionData['value'];
+							$value = '%' . $conditionData['value'];
 						}
 						else {
-							$value = '%'.$conditionData['value'].'%';
+							$value = '%' . $conditionData['value'] . '%';
 						}
-						$condition .= $fullFied.' LIKE '.$GLOBALS['TYPO3_DB']->fullQuoteStr($value, $table);
+						$condition .= $fullFied . ' LIKE ' . $GLOBALS['TYPO3_DB']->fullQuoteStr($value, $table);
 					}
 						// Other operators are handled simply
 					else {
-						$condition .= $fullFied.' '.$conditionData['operator'].' '.$GLOBALS['TYPO3_DB']->fullQuoteStr($conditionData['value'], $table);
+						$condition .= $fullFied . ' ' . $conditionData['operator'] . ' ' . $GLOBALS['TYPO3_DB']->fullQuoteStr($conditionData['value'], $table);
 					}
 				}
 //				$completeFilter .= '('.$condition.')';
-				$completeFilters[$table] .= '('.$condition.')';
+				$completeFilters[$table] .= '(' . $condition . ')';
 			}
 //			$this->addWhereClause($completeFilter);
 			foreach ($completeFilters as $table => $whereClause) {
@@ -660,7 +659,7 @@ class tx_dataquery_parser {
 			// Handle the order by clauses
 		if (count($filter['orderby']) > 0) {
 			foreach ($filter['orderby'] as $orderData) {
-				$orderbyClause = ((empty($orderData['table'])) ? $this->mainTable : $orderData['table']).'.'.$orderData['field'].' '.$orderData['order'];
+				$orderbyClause = ((empty($orderData['table'])) ? $this->mainTable : $orderData['table']) . '.' . $orderData['field'] . ' ' . $orderData['order'];
 				$this->structure['ORDER BY'][] = $orderbyClause;
 			}
 		}
@@ -827,16 +826,6 @@ class tx_dataquery_parser {
 		return (isset($this->doOverlays[$table])) ? $this->doOverlays[$table] : false;
 	}
 
-	/**
-	 * This method returns the value of the limitApplied flag,
-	 * i.e. it returns true if the LIMIT could be applied, that is there was either no LIMIT in the filter
-	 * or the query didn't contain a join
-	 *
-	 * @return	boolean		Has the limit already been applied to the query or not?
-	public function isLimitAlreadyApplied() {
-		return $this->limitApplied;
-	}
-	 */
 	/**
 	 * This method can be used to get the limit that was defined for a given subtable
 	 * (i.e. a JOINed table). If no limit exists, 0 is returned
