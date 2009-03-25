@@ -221,13 +221,11 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 			$allTablesTrueNames[$alias] = $this->sqlParser->getTrueTableName($alias);
 		}
 		
-		// Initialise array for storing records and uid's per table
+		// Initialise array for storing records
 		$rows = array($this->mainTable => array(0 => array()));
-//		$uids = array($this->mainTable => array());
 		if ($numSubtables > 0) {
 			foreach ($subtables as $table) {
 				$rows[$table] = array();
-//				$uids[$table] = array();
 			}
 		}
 
@@ -387,13 +385,6 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 						$subtableName = $columnsMappings[$fieldName]['aliasTable'];
 						if (isset($fieldValue)) {
 							$recordsPerTable[$subtableName][$columnsMappings[$fieldName]['field']] = $fieldValue;
-/*
-							// If the field is the uid field, store it in the list of uid's for the given subtable
-							if ($columnsMappings[$fieldName]['field'] == 'uid') {
-								$uids[$subtableName][] = $fieldValue;
-							}
- *
- */
 						}
 					}
 						// Else assume the field belongs to the main table
@@ -404,7 +395,6 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 			}
 				// If we're not handling the same main record as before, store the current information for the main table
 			if ($currentUID != $oldUID) {
-//				$uids[$this->mainTable][] = $currentUID;
 				$rows[$this->mainTable][0][] = $recordsPerTable[$this->mainTable];
 				$oldUID = $currentUID;
 			}
@@ -419,23 +409,6 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 		}
 //t3lib_div::debug($rows, 'De-JOINed tables');
 
-/*
-		// If localisation is active and the current language is not the default one,
-		// get the overlays for all tables for which localisation by overlays is needed
-		if ($GLOBALS['TSFE']->sys_language_content > 0) {
-			$overlays = array();
-			foreach ($allTables as $table) {
-				if ($this->sqlParser->mustHandleLanguageOverlay($table) && count($uids[$table]) > 0) {
-					$overlays[$table] = tx_overlays::getOverlayRecords($this->sqlParser->getTrueTableName($table), $uids[$table], $GLOBALS['TSFE']->sys_language_content);
-				}
-				else {
-					$overlays[$table] = array();
-				}
-			}
-		}
- * 
- */
-
 			// Prepare the header parts for all tables
 		$headers = array();
 		foreach ($allTables as $table) {
@@ -447,104 +420,31 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 			}
 		}
 
-/*
-		// The overlay mechanism requires additional TCA information, but not the full TCA either
-		// This can be gotten by calling tslib_fe::getCompressedTCarray()
-		// To trigger this call tslib_fe::TCAloaded must be set to false first, otherwise
-		// it's value is true even though the TCA is not loaded (go figure!)
-		// We do this only if we're not handling the default language
-		if ($GLOBALS['TSFE']->sys_language_content > 0) {
-			$GLOBALS['TSFE']->TCAloaded = false;
-			$GLOBALS['TSFE']->getCompressedTCarray();
-			$GLOBALS['TSFE']->TCAloaded = true;
-		}
-*/
-
-/*
-		// Loop on all records of the main table, applying overlays if needed
-		$mainRecords = array();
-		// Perform overlays only if language is not default and if necessary for table
-		$doOverlays = ($GLOBALS['TSFE']->sys_language_content > 0) & $this->sqlParser->mustHandleLanguageOverlay($this->mainTable);
-		$trueTableName = $this->sqlParser->getTrueTableName($this->mainTable);
-		$tableCtrl = $GLOBALS['TCA'][$trueTableName]['ctrl'];
-		$hasForeignOverlays = isset($tableCtrl['transForeignTable']);
-		foreach ($rows[$this->mainTable][0] as $row) {
-				// Overlay if necessary and if record is not already in current language
-			if ($doOverlays && $row[$tableCtrl['languageField']] != $GLOBALS['TSFE']->sys_language_content) {
-				if ($hasForeignOverlays && isset($overlays[$this->mainTable][$row['uid']])) {
-					$row = tx_overlays::overlaySingleRecord($table, $row, $overlays[$this->mainTable][$row['uid']]);
-				}
-				elseif (isset($overlays[$this->mainTable][$row['uid']][$row['pid']])) {
-					$row = tx_overlays::overlaySingleRecord($table, $row, $overlays[$this->mainTable][$row['uid']][$row['pid']]);
-				}
-					// No overlay exists
-				else {
-						// Take original record, only if non-translated are not hidden, or if language is [All]
-					if ($GLOBALS['TSFE']->sys_language_contentOL == 'hideNonTranslated' && $row[$tableCtrl['languageField']] != -1) {
-						continue; // Skip record
-					}
-				}
-			}
-			$mainRecords[] = $row;
-		}
- */
-
-		// Now loop on all the records of the main table and join them to their subtables
+			// Now loop on all the records of the main table and join them to their subtables
 		$uidList = array();
 		$fullRecords = array();
 		foreach ($rows[$this->mainTable][0] as $aRecord) {
 			$uidList[] = $aRecord['uid'];
 			$theFullRecord = $aRecord;
 			$theFullRecord['sds:subtables'] = array();
-			// Check if there are any subtables in the query
+				// Check if there are any subtables in the query
 			if ($numSubtables > 0) {
 				foreach ($subtables as $table) {
-//					$trueTableName = $this->sqlParser->getTrueTableName($table);
-//					$tableCtrl = $GLOBALS['TCA'][$trueTableName]['ctrl'];
-					// Check if there are any subrecords for this record
+						// Check if there are any subrecords for this record
 					if (isset($rows[$table][$aRecord['uid']])) {
 						$numSubrecords = count($rows[$table][$aRecord['uid']]);
 						if ($numSubrecords > 0) {
 							$sublimit = $this->sqlParser->getSubTableLimit($table);
 							$subcounter = 0;
-							// Perform overlays only if language is not default and if necessary for table
-//							$doOverlays = ($GLOBALS['TSFE']->sys_language_content > 0) & $this->sqlParser->mustHandleLanguageOverlay($table);
-//							$hasForeignOverlays = isset($tableCtrl['transForeignTable']);
+								// Perform overlays only if language is not default and if necessary for table
 							$subRecords = array();
 							$subUidList = array();
-							// Loop on all subrecords and perform overlays if necessary
+								// Loop on all subrecords and perform overlays if necessary
 							foreach ($rows[$table][$aRecord['uid']] as $subRow) {
-/*
-									// Overlay if necessary and if record is not already in current language
-								if ($doOverlays && $subRow[$tableCtrl['languageField']] != $GLOBALS['TSFE']->sys_language_content) {
-									if ($hasForeignOverlays && isset($overlays[$table][$subRow['uid']])) {
-										$subRow = tx_overlays::overlaySingleRecord($table, $row, $overlays[$table][$subRow['uid']]);
-									}
-									elseif (isset($overlays[$table][$subRow['uid']][$subRow['pid']])) {
-										$subRow = tx_overlays::overlaySingleRecord($table, $subRow, $overlays[$table][$subRow['uid']][$subRow['pid']]);
-									}
-										// No overlay exists
-									else {
-										// Take original record, only if non-translated are not hidden, or if language is [All]
-										if ($GLOBALS['TSFE']->sys_language_contentOL == 'hideNonTranslated' && $subRow[$tableCtrl['languageField']] != -1) {
-											continue; // Skip record
-										}
-									}
-								}
-								// No overlays
-								else {
-									// Make sure there's actually something in the JOINed record
-									// (it might be empty in case of LEFT JOIN)
-									if (!isset($subRow['uid'])) {
-										continue;
-									}
-								}
- * 
- */
-								// Add the subrecord to the subtable only if it hasn't been included yet
-								// Multiple identical subrecords may happen when joining several tables together
-								// Take into account any limit that may have been placed on the number of subrecords in the query
-								// (using the non-SQL standard keyword MAX)
+									// Add the subrecord to the subtable only if it hasn't been included yet
+									// Multiple identical subrecords may happen when joining several tables together
+									// Take into account any limit that may have been placed on the number of subrecords in the query
+									// (using the non-SQL standard keyword MAX)
 								if (!in_array($subRow['uid'], $subUidList)) {
 									if ($sublimit == 0 || $subcounter < $sublimit) {
 										$subRecords[] = $subRow;
@@ -556,7 +456,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 									$subcounter++;
 								}
 							}
-							// If there are indeed items, add the subtable to the record
+								// If there are indeed items, add the subtable to the record
 							$numItems = count($subUidList);
 							if ($numItems > 0) {
 								$theFullRecord['sds:subtables'][] = array(
@@ -575,7 +475,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 			$fullRecords[] = $theFullRecord;
 		}
 
-		// Assemble the full structure
+			// Assemble the full structure
 		$numRecords = count($fullRecords);
 		$dataStructure = array(
 							'name' => $this->mainTable,
@@ -588,7 +488,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 						);
 //t3lib_div::debug($dataStructure, 'Finished data structure');
 
-		// Hook for post-processing the data structure before it is stored into cache
+			// Hook for post-processing the data structure before it is stored into cache
 		if (is_array($GLOBALS['TYPO3_CONF_VARS']['EXTCONF'][$this->extKey]['postProcessDataStructureBeforeCache'])) {
 			foreach($GLOBALS['TYPO3_CONF_VARS']['EXTCONF'][$this->extKey]['postProcessDataStructureBeforeCache'] as $className) {
 				$postProcessor = &t3lib_div::getUserObj($className);
@@ -596,8 +496,8 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 			}
 		}
 
-		// Store the structure in the cache table
-		// The structure is not cached if the cache duration is set to 0
+			// Store the structure in the cache table
+			// The structure is not cached if the cache duration is set to 0
 		if (!empty($this->providerData['cache_duration'])) {
 			$fields = array(
 							'query_id' => $this->providerData['uid'],
@@ -609,7 +509,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 			$GLOBALS['TYPO3_DB']->exec_INSERTquery('tx_dataquery_cache', $fields);
 		}
 
-		// Finally return the assembled structure
+			// Finally return the assembled structure
 		return $dataStructure;
 	}
 
@@ -620,9 +520,9 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 	 * @return	array	A standard data structure
 	 */
 	protected function getCachedStructure() {
-		// Assemble condition for finding correct cache
-		// This means matching the dataquery's primary key, the current language, the filter's hash (without the limit)
-		// and that it has not expired
+			// Assemble condition for finding correct cache
+			// This means matching the dataquery's primary key, the current language, the filter's hash (without the limit)
+			// and that it has not expired
 		$where = "query_id = '".$this->providerData['uid']."' AND page_id = '".$GLOBALS['TSFE']->id."'";
 		$where .= " AND cache_hash = '".$this->calculateCacheHash(array())."'";
 		$where .= " AND expires > '".time()."'";
@@ -644,31 +544,32 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 	 * @return	string	A md5 hash
 	 */
 	protected function calculateCacheHash(array $parameters) {
-		// The base of the hash parameters is the current filter
-		// To this we add the uidList (if it exists)
-		// This makes it possible to vary the cache as a function of the idList provided by a secondary provider
+			// The base of the hash parameters is the current filter
+			// To this we add the uidList (if it exists)
+			// This makes it possible to vary the cache as a function of the idList provided by a secondary provider
 		$filterForCache = $this->filter;
 		if (is_array($this->structure) && isset($this->structure['uidListWithTable'])) {
 			$filterForCache['uidListWithTable'] = $this->structure['uidListWithTable'];
 		}
-		// If some parameters were given, add them to the base cache parameters
+			// If some parameters were given, add them to the base cache parameters
 		if (is_array($parameters) && count($parameters) > 0) {
 			$cacheParameters = array_merge($filterForCache, $parameters);
 		}
 		else {
 			$cacheParameters = $filterForCache;
 		}
-		// Finally we add other parameters of unicity:
-		//	- the current FE language
-		//	- the groups of the currently logged in FE user (if any)
+			// Finally we add other parameters of unicity:
+			//	- the current FE language
+			//	- the groups of the currently logged in FE user (if any)
 		$cacheParameters['sys_language_uid'] = $GLOBALS['TSFE']->sys_language_content;
 		if (is_array($this->fe_user->user) && count($this->fe_user->groupData['uid']) > 0) {
 			$cacheParameters['fe_groups'] = $this->fe_user->groupData['uid'];
 		}
-		// Calculate the hash using the method provided by the base controller,
-		// which filters out the "limit" part of the filter
+			// Calculate the hash using the method provided by the base controller,
+			// which filters out the "limit" part of the filter
 		return tx_basecontroller_utilities::calculateFilterCacheHash($cacheParameters);
 	}
+
 	/**
 	 * This method loads the current query's details from the database and starts the parser
 	 *
