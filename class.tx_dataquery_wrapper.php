@@ -618,7 +618,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 			// The level is a pointer to the current field being used for sorting
 		$level = self::$sortingLevel;
 		$field = self::$sortingFields[$level]['field'];
-		$order = (empty(self::$sortingFields[$level]['order'])) ? 'asc' : self::$sortingFields[$level]['order'];
+		$order = (empty(self::$sortingFields[$level]['order'])) ? 'ASC' : strtoupper(self::$sortingFields[$level]['order']);
 		$result = strcmp($a[$field], $b[$field]);
 		if ($result == 0) {
 				// If results are equal on the current level, check if there's a next level of sorting
@@ -631,7 +631,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 			}
 		}
 		else {
-			if ($order == 'desc') {
+			if ($order == 'DESC') {
 				$result = -$result;
 			}
 		}
