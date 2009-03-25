@@ -70,6 +70,7 @@ class tx_dataquery_parser {
 	protected $subtables = array(); // List of all subtables, i.e. tables in the JOIN statements
 	protected $queryFields = array(); // List of all fields being queried, arranged per table (aliased)
 	protected $doOverlays = array(); // Flag for each table whether to perform overlays or not
+	protected $orderFields = array(); // Array with all information of the fields used to order data
 
 	/**
 	 * This method is used to parse a SELECT SQL query.
@@ -174,7 +175,16 @@ class tx_dataquery_parser {
 				case 'GROUP BY':
 					$orderParts = explode(',', $value);
 					foreach ($orderParts as $part) {
-						$this->structure[$keyword][] = trim($part);
+						$thePart = trim($part);
+						$this->structure[$keyword][] = $thePart;
+							// In case of ORDER BY, perform additional operation to get field name and sort order separately
+						if ($keyword == 'ORDER BY') {
+							$finerParts = preg_split('/\s/', $thePart, -1, PREG_SPLIT_NO_EMPTY);
+							$orderField = $finerParts[0];
+							$orderSort = (isset($finerParts[1])) ? $finerParts[1] : 'ASC';
+							$this->orderFields[] = array('field' => $orderField, 'order' => $orderSort);
+						}
+
 					}
 					break;
 				case 'LIMIT':
@@ -389,27 +399,19 @@ class tx_dataquery_parser {
 			$lang->init($languageCode);
 		}
 
+			// Include the full TCA ctrl section
+		if (TYPO3_MODE == 'FE') {
+			$GLOBALS['TSFE']->includeTCA();
+		}
 			// Now that we have a properly initialised language object,
 			// loop on all labels and get any existing localised string
-		$hasFullTCA = false;
 		$localizedStructure = array();
 		foreach ($this->queryFields as $alias => $tableData) {
 			$table = $tableData['name'];
 				// Initialize structure for table, if not already done
 			if (!isset($localizedStructure[$alias])) $localizedStructure[$alias] = array('table' => $table, 'fields' => array());
-				// For the pages table, the t3lib_div::loadTCA() method does not work
-				// We have to load the full TCA. Set a flag to signal that it's pointless
-				// to call t3lib_div::loadTCA() after that, since the whole TCA is loaded anyway
-				// Note: this is necessary only for the FE
-			if ($table == 'pages') {
-				if (TYPO3_MODE == 'FE') {
-					$GLOBALS['TSFE']->includeTCA();
-					$hasFullTCA = true;
-				}
-            }
-			else {
-				if (!$hasFullTCA) t3lib_div::loadTCA($table);
-			}
+				// Load the full TCA for the table
+			t3lib_div::loadTCA($table);
 				// Get the labels for the tables
 			if (isset($GLOBALS['TCA'][$table]['ctrl']['title'])) {
 				$tableName = $tableName = $lang->sL($GLOBALS['TCA'][$table]['ctrl']['title']);
@@ -661,6 +663,7 @@ class tx_dataquery_parser {
 			foreach ($filter['orderby'] as $orderData) {
 				$orderbyClause = ((empty($orderData['table'])) ? $this->mainTable : $orderData['table']) . '.' . $orderData['field'] . ' ' . $orderData['order'];
 				$this->structure['ORDER BY'][] = $orderbyClause;
+				$this->orderFields[] = array('field' => $orderData['field'], 'order' => $orderData['order']);
 			}
 		}
 	}
@@ -714,15 +717,16 @@ class tx_dataquery_parser {
 	 * @return	string		the assembled SQL query
 	 */
 	public function buildQuery() {
-		$query = 'SELECT '.implode(', ',$this->structure['SELECT']).' ';
-		$query .= 'FROM '.$this->structure['FROM']['table'];
-		if (!empty($this->structure['FROM']['alias'])) $query .= ' AS '.$this->structure['FROM']['alias'];
+		$processOrderBy = $this->preprocessOrderByFields();
+		$query = 'SELECT ' . implode(', ', $this->structure['SELECT']) . ' ';
+		$query .= 'FROM ' . $this->structure['FROM']['table'];
+		if (!empty($this->structure['FROM']['alias'])) $query .= ' AS ' . $this->structure['FROM']['alias'];
 		$query .= ' ';
 		if (isset($this->structure['JOIN'])) {
 			foreach ($this->structure['JOIN'] as $theJoin) {
-				$query .= strtoupper($theJoin['type']).' JOIN '.$theJoin['table'];
-				if (!empty($theJoin['alias'])) $query .= ' AS '.$theJoin['alias'];
-				if (!empty($theJoin['on'])) $query .= ' ON '.$theJoin['on'];
+				$query .= strtoupper($theJoin['type']) . ' JOIN ' . $theJoin['table'];
+				if (!empty($theJoin['alias'])) $query .= ' AS ' . $theJoin['alias'];
+				if (!empty($theJoin['on'])) $query .= ' ON ' . $theJoin['on'];
 				$query .= ' ';
 			}
 		}
@@ -732,13 +736,13 @@ class tx_dataquery_parser {
 				if (!empty($whereClause)) $whereClause .= ' AND ';
 				$whereClause .= $clause;
 			}
-			$query .= 'WHERE '.$whereClause.' ';
+			$query .= 'WHERE ' . $whereClause . ' ';
 		}
-		if (count($this->structure['ORDER BY']) > 0) {
-			$query .= 'ORDER BY '.implode(', ',$this->structure['ORDER BY']).' ';
+		if ($processOrderBy && count($this->structure['ORDER BY']) > 0) {
+			$query .= 'ORDER BY ' . implode(', ', $this->structure['ORDER BY']) . ' ';
 		}
 		if (count($this->structure['GROUP BY']) > 0) {
-			$query .= 'GROUP BY '.implode(', ',$this->structure['GROUP BY']).' ';
+			$query .= 'GROUP BY ' . implode(', ', $this->structure['GROUP BY']) . ' ';
 		}
 		if (count($this->structure['LIMIT']) > 0) {
 			$query .= 'LIMIT '.$this->structure['LIMIT'];
@@ -748,6 +752,101 @@ class tx_dataquery_parser {
 		}
 //t3lib_div::debug($query);
 		return $query;
+	}
+
+	/**
+	 * This method performs some operations on the fields used for ordering the query, if any
+	 * If the language is not the default one, order may not be desirable in SQL
+	 * As translations are handled using overlays in TYPO3, it is not possible
+	 * to sort the records alphabetically in the SQL statement, because the SQL
+	 * statement gets only the records in original language
+	 *
+	 * @return	boolean		true if order by must be processed by the SQL query, false otherwise
+	 */
+	protected function preprocessOrderByFields() {
+/*
+t3lib_div::debug($this->queryFields, 'Query fields');
+t3lib_div::debug($this->fieldTrueNames, 'Field true names');
+t3lib_div::debug($this->fieldAliases, 'Field aliases');
+t3lib_div::debug($this->orderFields, 'Order fields');
+ *
+ */
+		if (count($this->orderFields) > 0) {
+			if (TYPO3_MODE == 'FE' && $GLOBALS['TSFE']->sys_language_content > 0) {
+					// Include the complete ctrl TCA
+				$GLOBALS['TSFE']->includeTCA();
+				foreach ($this->orderFields as $orderInfo) {
+						// Define the table and field names
+					$fieldParts = explode('.', $orderInfo['field']);
+					if (count($fieldParts) == 1) {
+						$alias = $this->mainTable;
+						$field = $fieldParts[0];
+					}
+					else {
+						$alias = $fieldParts[0];
+						$field = $fieldParts[1];
+					}
+					$table = $this->getTrueTableName($alias);
+
+						// Check the type of the field in the TCA
+						// If the field is of some text type and that the table uses overlays,
+						// ordering cannot happen in SQL.
+					if (isset($GLOBALS['TCA'][$table])) {
+							// Check if table uses overlays
+						$usesOverlay = isset($GLOBALS['TCA'][$table]['ctrl']['languageField']) || isset($GLOBALS['TCA'][$table]['ctrl']['transForeignTable']);
+							// Check the field type (load full TCA first)
+						t3lib_div::loadTCA($table);
+						if (isset($GLOBALS['TCA'][$table]['columns'][$field])) {
+							$fieldConfig = $GLOBALS['TCA'][$table]['columns'][$field]['config'];
+								// It's text, easy :-)
+							if ($fieldConfig['type'] == 'text') {
+								$isTextField = true;
+							}
+								// It's input, further check the "eval" property
+							elseif ($fieldConfig['type'] == 'input') {
+									// If the field has no eval property, assume it's just text
+								if (empty($fieldConfig['eval'])) {
+ 									$isTextField = true;
+								}
+								else {
+									$evaluations = explode(',', $fieldConfig['eval']);
+										// List of eval types which indicate non-text fields
+									$notTextTypes = array('date', 'datetime', 'time', 'timesec', 'year', 'num', 'md5', 'int', 'double2');
+										// Check if some eval types are common to both array. If yes, it's not a text field.
+									$foundTypes = array_intersect($evaluations, $notTextTypes);
+									$isTextField = (count($foundTypes) > 0) ? false : true;
+								}
+							}
+								// It's another type, it's definitely not text
+							else {
+								$isTextField = false;
+							}
+						}
+							// No TCA for column, assume it's not a text field (impossible to know)
+							// TODO: we could query the database and get the SQL datatype, but is it worth it?
+						else {
+							$isTextField = false;
+						}
+//t3lib_div::debug($alias.'.'.$field.' is a text field? '.(($isTextField) ? 'yes' : 'no'));
+						$useSQLForSorting &= ($usesOverlay && $isTextField);
+					}
+						// Check if the field is already part of the SELECTed fields
+					if (isset($this->queryFields[$table]['fields'][$field])) {
+
+					}
+					else {
+						
+					}
+				}
+			}
+			else {
+				$processOrderBy = true;
+			}
+		}
+		else {
+			$processOrderBy = true;
+		}
+		return $processOrderBy;
 	}
 
 // Setters and getters
