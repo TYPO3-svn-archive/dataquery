@@ -214,24 +214,158 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 		$allTables = $subtables;
 		array_push($allTables, $this->mainTable);
 		$tableAndFieldLabels = $this->sqlParser->getLocalizedLabels($language);
+
+			// Get true table names for all tables
+		$allTablesTrueNames = array();
+		foreach ($allTables as $alias) {
+			$allTablesTrueNames[$alias] = $this->sqlParser->getTrueTableName($alias);
+		}
 		
 		// Initialise array for storing records and uid's per table
 		$rows = array($this->mainTable => array(0 => array()));
-		$uids = array($this->mainTable => array());
+//		$uids = array($this->mainTable => array());
 		if ($numSubtables > 0) {
 			foreach ($subtables as $table) {
 				$rows[$table] = array();
-				$uids[$table] = array();
+//				$uids[$table] = array();
 			}
 		}
 
-		// Loop on all records to sort them by table. This can be seen as "de-JOINing" the tables.
-		// This is necessary for such operations as overlays. When overlays are done, tables will be joined again
-		// but within the format of Standardised Data Structure
-		$oldUID = 0;
+			// Loop on all records to assemble the raw recordset
+		$rawRecordset = array();
 		while ($row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res)) {
+			$rawRecordset[] = $row;
+
+		}
+//t3lib_div::debug($rawRecordset, 'Raw result');
+			// Get overlays for each table, if language is not default
+		if ($GLOBALS['TSFE']->sys_language_content == 0) {
+			$finalRecordset = $rawRecordset;
+		}
+		else {
+			$finalRecordset = array();
+				// First collect all the uid's for each table
+			$allUIDs = array();
+			foreach ($rawRecordset as $row) {
+				foreach ($row as $fieldName => $fieldValue) {
+					$fieldNameParts = t3lib_div::trimExplode('$', $fieldName);
+					if (count($fieldNameParts) == 1) {
+						$table = $allTablesTrueNames[$this->mainTable];
+						$field = $fieldNameParts[0];
+					}
+					else {
+						$table = $allTablesTrueNames[$fieldNameParts[0]];
+						$field = $fieldNameParts[1];
+					}
+					if ($field == 'uid' && isset($fieldValue)) {
+						if (!isset($allUIDs[$table])) {
+							$allUIDs[$table] = array();
+						}
+						$allUIDs[$table][] = $fieldValue;
+					}
+				}
+			}
+				// Get overlays for all tables
+			$overlays = array();
+			$doOverlays = array();
+			foreach ($allUIDs as $table => $uidList) {
+					// Make sure the uid's are unique
+				$allUIDs[$table] = array_unique($uidList);
+				$doOverlays[$table] = $this->sqlParser->mustHandleLanguageOverlay($table);
+					// Get overlays only if needed/possible
+				if ($doOverlays[$table] && count($allUIDs[$table]) > 0) {
+					$overlays[$table] = tx_overlays::getOverlayRecords($table, $allUIDs[$table], $GLOBALS['TSFE']->sys_language_content);
+				}
+			}
+//t3lib_div::debug($allUIDs, 'Unique IDs per table');
+//t3lib_div::debug($overlays, 'Overlays');
+
+				// Analyze the first row of the raw recordset to get which column belongs to which table
+				// and which aliases are used, if any
+			$testRow = $rawRecordset[0];
+			$columnsMappings = array();
+			$reverseColumnsMappings = array();
+			foreach ($testRow as $columnName => $value) {
+				$fieldNameParts = t3lib_div::trimExplode('$', $columnName);
+				$info = $this->sqlParser->getTrueFieldName($columnName);
+				$columnsMappings[$columnName] = $info;
+				$reverseColumnsMappings[$info['aliasTable']][$info['field']] = $columnName;
+			}
+//t3lib_div::debug($columnsMappings, 'Columns mappings');
+//t3lib_div::debug($reverseColumnsMappings, 'Reversed columns mappings');
+
+				// Loop on all recordset rows to overlay them
+			foreach ($rawRecordset as $row) {
+				$subParts = array();
+					// Split record into parts related to a single table
+				foreach ($columnsMappings as $columnName => $columnInfo) {
+					if (!isset($subParts[$columnInfo['aliasTable']])) {
+						$subParts[$columnInfo['aliasTable']] = array();
+					}
+					$subParts[$columnInfo['aliasTable']][$columnInfo['field']] = $row[$columnName];
+				}
+					// Overlay each part
+				foreach ($subParts as $alias => $subRow) {
+					$table = $allTablesTrueNames[$alias];
+					$tableCtrl = $GLOBALS['TCA'][$table]['ctrl'];
+					if ($doOverlays[$alias] && $row[$tableCtrl['languageField']] != $GLOBALS['TSFE']->sys_language_content) {
+						if (isset($tableCtrl['transForeignTable']) && isset($overlays[$table][$subRow['uid']])) {
+							$result = tx_overlays::overlaySingleRecord($table, $subRow, $overlays[$table][$subRow['uid']]);
+						}
+						elseif (isset($overlays[$table][$subRow['uid']][$subRow['pid']])) {
+							$result = tx_overlays::overlaySingleRecord($table, $subRow, $overlays[$table][$subRow['uid']][$subRow['pid']]);
+						}
+							// No overlay exists
+						else {
+								// Take original record, only if non-translated are not hidden, or if language is [All]
+							if ($GLOBALS['TSFE']->sys_language_contentOL == 'hideNonTranslated' && $subRow[$tableCtrl['languageField']] != -1) {
+								unset($result); // Skip record
+							}
+							else {
+								$result = $subRow;
+							}
+						}
+					}
+					else {
+						$result = $subRow;
+					}
+					if (isset($result)) {
+						$subParts[$alias] = $result;
+					}
+					else {
+						unset($subParts[$alias]);
+					}
+				}
+//t3lib_div::debug($subParts, 'Subparts');
+					// Reassemble the full record
+				$overlaidRecord = array();
+				foreach ($subParts as $alias => $subRow) {
+					if (isset($subRow)) {
+						foreach ($subRow as $field => $value) {
+							$overlaidRecord[$reverseColumnsMappings[$alias][$field]] = $value;
+						}
+					}
+					else {
+						if ($alias == $this->mainTable) {
+							unset($overlaidRecord);
+							break;
+						}
+					}
+				}
+				if (isset($overlaidRecord['uid'])) {
+					$finalRecordset[] = $overlaidRecord;
+				}
+			}
+//t3lib_div::debug($finalRecordset, 'Overlaid recordset');
+		} // End of translation handling
+
+			// Loop on all records to sort them by table. This can be seen as "de-JOINing" the tables.
+			// This is necessary for such operations as overlays. When overlays are done, tables will be joined again
+			// but within the format of Standardised Data Structure
+		$oldUID = 0;
+		foreach ($finalRecordset as $row) {
 			$currentUID = $row['uid'];
-			// If we're not handling the same main record as before, perform some initialisations
+				// If we're not handling the same main record as before, perform some initialisations
 			if ($currentUID != $oldUID) {
 				if ($numSubtables > 0) {
 					foreach ($subtables as $table) {
@@ -241,47 +375,51 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 			}
 			$recordsPerTable = array();
 			foreach ($row as $fieldName => $fieldValue) {
-				$fieldNameParts = t3lib_div::trimExplode('$', $fieldName);
 				// The query contains no joined table
 				// All fields belong to the main table
 				if ($numSubtables == 0) {
-					$fieldName = (isset($fieldNameParts[1])) ? $fieldNameParts[1] : $fieldNameParts[0];
-					$recordsPerTable[$this->mainTable][$fieldName] = $fieldValue;
+					$recordsPerTable[$this->mainTable][$columnsMappings[$fieldName]['field']] = $fieldValue;
 				}
-				// There are multiple tables
+					// There are multiple tables
 				else {
-					// Field belongs to a subtable
-					if (in_array($fieldNameParts[0], $subtables)) {
-						$subtableName = $fieldNameParts[0];
+						// Field belongs to a subtable
+					if (in_array($columnsMappings[$fieldName]['aliasTable'], $subtables)) {
+						$subtableName = $columnsMappings[$fieldName]['aliasTable'];
 						if (isset($fieldValue)) {
-							$recordsPerTable[$subtableName][$fieldNameParts[1]] = $fieldValue;
+							$recordsPerTable[$subtableName][$columnsMappings[$fieldName]['field']] = $fieldValue;
+/*
 							// If the field is the uid field, store it in the list of uid's for the given subtable
-							if ($fieldNameParts[1] == 'uid') {
+							if ($columnsMappings[$fieldName]['field'] == 'uid') {
 								$uids[$subtableName][] = $fieldValue;
 							}
+ *
+ */
 						}
 					}
-					// Else assume the field belongs to the main table
+						// Else assume the field belongs to the main table
 					else {
-						$fieldName = (isset($fieldNameParts[1])) ? $fieldNameParts[1] : $fieldNameParts[0];
-						$recordsPerTable[$this->mainTable][$fieldName] = $fieldValue;
+						$recordsPerTable[$this->mainTable][$columnsMappings[$fieldName]['field']] = $fieldValue;
 					}
 				}
 			}
-			// If we're not handling the same main record as before, store the current information for the main table
+				// If we're not handling the same main record as before, store the current information for the main table
 			if ($currentUID != $oldUID) {
-				$uids[$this->mainTable][] = $currentUID;
+//				$uids[$this->mainTable][] = $currentUID;
 				$rows[$this->mainTable][0][] = $recordsPerTable[$this->mainTable];
 				$oldUID = $currentUID;
 			}
-			// Store information for each subtable
+				// Store information for each subtable
 			if ($numSubtables > 0) {
 				foreach ($subtables as $table) {
-					$rows[$table][$currentUID][] = $recordsPerTable[$table];
+					if (isset($recordsPerTable[$table]) && count($recordsPerTable[$table]) > 0) {
+						$rows[$table][$currentUID][] = $recordsPerTable[$table];
+					}
 				}
 			}
 		}
+//t3lib_div::debug($rows, 'De-JOINed tables');
 
+/*
 		// If localisation is active and the current language is not the default one,
 		// get the overlays for all tables for which localisation by overlays is needed
 		if ($GLOBALS['TSFE']->sys_language_content > 0) {
@@ -295,8 +433,10 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 				}
 			}
 		}
+ * 
+ */
 
-		// Prepare the header parts for all tables
+			// Prepare the header parts for all tables
 		$headers = array();
 		foreach ($allTables as $table) {
 			if (isset($tableAndFieldLabels[$table]['fields'])) {
@@ -307,6 +447,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 			}
 		}
 
+/*
 		// The overlay mechanism requires additional TCA information, but not the full TCA either
 		// This can be gotten by calling tslib_fe::getCompressedTCarray()
 		// To trigger this call tslib_fe::TCAloaded must be set to false first, otherwise
@@ -317,7 +458,9 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 			$GLOBALS['TSFE']->getCompressedTCarray();
 			$GLOBALS['TSFE']->TCAloaded = true;
 		}
+*/
 
+/*
 		// Loop on all records of the main table, applying overlays if needed
 		$mainRecords = array();
 		// Perform overlays only if language is not default and if necessary for table
@@ -344,20 +487,20 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 			}
 			$mainRecords[] = $row;
 		}
+ */
 
-		// Now loop on all the overlaid records of the main table and join them to their subtables
-		// Overlays are applied to subtables as needed
+		// Now loop on all the records of the main table and join them to their subtables
 		$uidList = array();
 		$fullRecords = array();
-		foreach ($mainRecords as $aRecord) {
+		foreach ($rows[$this->mainTable][0] as $aRecord) {
 			$uidList[] = $aRecord['uid'];
 			$theFullRecord = $aRecord;
 			$theFullRecord['sds:subtables'] = array();
 			// Check if there are any subtables in the query
 			if ($numSubtables > 0) {
 				foreach ($subtables as $table) {
-					$trueTableName = $this->sqlParser->getTrueTableName($table);
-					$tableCtrl = $GLOBALS['TCA'][$trueTableName]['ctrl'];
+//					$trueTableName = $this->sqlParser->getTrueTableName($table);
+//					$tableCtrl = $GLOBALS['TCA'][$trueTableName]['ctrl'];
 					// Check if there are any subrecords for this record
 					if (isset($rows[$table][$aRecord['uid']])) {
 						$numSubrecords = count($rows[$table][$aRecord['uid']]);
@@ -365,13 +508,14 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 							$sublimit = $this->sqlParser->getSubTableLimit($table);
 							$subcounter = 0;
 							// Perform overlays only if language is not default and if necessary for table
-							$doOverlays = ($GLOBALS['TSFE']->sys_language_content > 0) & $this->sqlParser->mustHandleLanguageOverlay($table);
-							$hasForeignOverlays = isset($tableCtrl['transForeignTable']);
+//							$doOverlays = ($GLOBALS['TSFE']->sys_language_content > 0) & $this->sqlParser->mustHandleLanguageOverlay($table);
+//							$hasForeignOverlays = isset($tableCtrl['transForeignTable']);
 							$subRecords = array();
 							$subUidList = array();
 							// Loop on all subrecords and perform overlays if necessary
 							foreach ($rows[$table][$aRecord['uid']] as $subRow) {
-								// Overlay if necessary and if record is not already in current language
+/*
+									// Overlay if necessary and if record is not already in current language
 								if ($doOverlays && $subRow[$tableCtrl['languageField']] != $GLOBALS['TSFE']->sys_language_content) {
 									if ($hasForeignOverlays && isset($overlays[$table][$subRow['uid']])) {
 										$subRow = tx_overlays::overlaySingleRecord($table, $row, $overlays[$table][$subRow['uid']]);
@@ -395,6 +539,8 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 										continue;
 									}
 								}
+ * 
+ */
 								// Add the subrecord to the subtable only if it hasn't been included yet
 								// Multiple identical subrecords may happen when joining several tables together
 								// Take into account any limit that may have been placed on the number of subrecords in the query
@@ -415,7 +561,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 							if ($numItems > 0) {
 								$theFullRecord['sds:subtables'][] = array(
 																		'name' => $table,
-																		'trueName' => $this->sqlParser->getTrueTableName($table),
+																		'trueName' => $allTablesTrueNames[$table],
 																		'count' => $numItems,
 																		'uidList' => implode(',' , $subUidList),
 																		'header' => $headers[$table],
@@ -433,13 +579,14 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 		$numRecords = count($fullRecords);
 		$dataStructure = array(
 							'name' => $this->mainTable,
-							'trueName' => $this->sqlParser->getTrueTableName($this->mainTable),
+							'trueName' => $allTablesTrueNames[$this->mainTable],
 							'count' => $numRecords,
 							'totalCount' => $numRecords,
 							'uidList' => implode(',', $uidList),
 							'header' => $headers[$this->mainTable],
 							'records' => $fullRecords
 						);
+//t3lib_div::debug($dataStructure, 'Finished data structure');
 
 		// Hook for post-processing the data structure before it is stored into cache
 		if (is_array($GLOBALS['TYPO3_CONF_VARS']['EXTCONF'][$this->extKey]['postProcessDataStructureBeforeCache'])) {

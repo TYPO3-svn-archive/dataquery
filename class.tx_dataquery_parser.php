@@ -65,10 +65,11 @@ class tx_dataquery_parser {
 	protected $mainTable; // Name (or alias if defined) of the main query table, i.e. the one in the FROM part of the query
 	protected $aliases = array(); // The keys to this array are the aliases of the tables used in the query and they point to the true table names
 	protected $fieldAliases = array(); // List of aliases for all fields that have one, per table
+	protected $fieldTrueNames = array(); // True names for all the fields. The key is the actual alias used in the query.
 	protected $isMergedResult = false;
 	protected $subtables = array(); // List of all subtables, i.e. tables in the JOIN statements
 	protected $queryFields = array(); // List of all fields being queried, arranged per table (aliased)
-	protected $doOverlays = array(); // Flag for each table (or its alias) whether to perform overlays or not
+	protected $doOverlays = array(); // Flag for each table whether to perform overlays or not
 	protected $limitApplied = true; // Flag to indicate whether the LIMIT clause could be applied or not (it is applied only if the query contains no JOIN)
 
 	/**
@@ -286,50 +287,67 @@ class tx_dataquery_parser {
 //
 // The $ sign is used in class tx_dataquery_wrapper for building the data structure
 
-			$prefix = (empty($alias) ? $table : $alias);
+//			$prefix = (empty($alias) ? $table : $alias);
 			$completeFields = array();
 			foreach ($fields as $name) {
-				$fullField = $prefix.'.'.$name;
+				$fullField = $alias . '.' . $name;
+				$theField = $name;
 					// Case 4a
 				if ($alias == $this->mainTable) {
-					if (!empty($fieldAlias)) {
+					if (empty($fieldAlias)) {
+						$theAlias = $theField;
+					}
+					else {
 						$fullField .= ' AS ';
 						if (strpos($fieldAlias, '.') === false) {
-							$fullField .= $fieldAlias;
+							$theAlias = $fieldAlias;
 						}
 							// Case 4a-2
 						else {
-							$fullField .= str_replace('.', '$', $fieldAlias);
+							$theAlias = str_replace('.', '$', $fieldAlias);
 						}
+						$fullField .= $theAlias;
 					}
                 }
 				else {
 					$fullField .= ' AS ';
 					if (empty($fieldAlias)) {
-						$fullField .= $prefix.'$'.$name;
+						$theAlias = $alias . '$' . $name;
 					}
 					else {
 							// Case 4b
 						if (strpos($fieldAlias, '.') === false) {
-							$fullField .= $prefix.'$'.$fieldAlias;
+							$theAlias = $alias . '$' . $fieldAlias;
 						}
 							// Case 4b-2
 						else {
-							$fullField .= str_replace('.', '$', $fieldAlias);
+							$theAlias = str_replace('.', '$', $fieldAlias);
 						}
                     }
+					$fullField .= $theAlias;
                 }
+				$this->fieldTrueNames[$theAlias] = array('table' => $table, 'aliasTable' => $alias, 'field' => $theField);
 				$completeFields[] = $fullField;
 			}
 			$this->structure['SELECT'][$i] = implode(', ', $completeFields);
         }
+
+			// Add the uid field to tables that don't have it yet
+			// TODO: check if the table really has a uid field
         foreach ($tableHasUid as $alias => $flag) {
         	if (!$flag) {
-        		$fullField = $alias.'.uid';
+        		$fullField = $alias . '.uid';
+				$theField = $fullField;
 				if ($alias != $this->mainTable) {
-	       			$fullField .= ' AS '.$alias.'$uid';
+					$fieldAlias = $alias . '$uid';
+	       			$fullField .= ' AS ' . $fieldAlias;
 				}
+				else {
+					$fieldAlias = $theField;
+				}
+				$this->fieldTrueNames[$fieldAlias] = array('table' => $this->getTrueTableName($alias), 'aliasTable' => $alias, 'field' => $theField);
 				$this->structure['SELECT'][] = $fullField;
+					// TODO: check if this "uid" property is still used
 				$this->queryFields[$alias]['fields']['uid'] = 'uid';
         	}
         }
@@ -501,11 +519,14 @@ class tx_dataquery_parser {
 							$addedFields = array_diff($fieldsForOverlayArray, $fields);
 							if (count($addedFields) > 0) {
 								foreach ($addedFields as $aField) {
-									$this->structure['SELECT'][] = $alias.'.'.$aField.' AS '.$alias.'$'.$aField;
+									$newFieldName = $alias.'.'.$aField;
+									$newFieldAlias = $alias.'$'.$aField;
+									$this->structure['SELECT'][] = $newFieldName.' AS '.$newFieldAlias;
 									$this->queryFields[$table]['fields'][$aField] = $aField;
+									$this->fieldTrueNames[$newFieldAlias] = array('table' => $table, 'aliasTable' => $alias, 'field' => $aField);
 								}
 							}
-							$this->doOverlays[$alias] = true;
+							$this->doOverlays[$table] = true;
 								// Add the language condition for the given table (only for tables containing their own translations)
 							if (isset($GLOBALS['TCA'][$table]['ctrl']['transOrigPointerField'])) {
 								$languageCondition = '('.tx_overlays::getLanguageCondition($table).')';
@@ -520,7 +541,7 @@ class tx_dataquery_parser {
 							}
 						}
 						catch (Exception $e) {
-							$this->doOverlays[$alias] = false;
+							$this->doOverlays[$table] = false;
 						}
 					}
 				}
@@ -775,6 +796,18 @@ class tx_dataquery_parser {
 	}
 
 	/**
+	 * This method takes the alias and returns it's true name
+	 * The alias is the full alias as used in the query (e.g. table$field)
+	 *
+	 * @param	string		$alias: alias of a field
+	 * @return	array		Array with the true name of the corresponding field
+	 *						and the true name of the table it belongs and the alias of that table
+	 */
+	public function getTrueFieldName($alias) {
+		return $this->fieldTrueNames[$alias];
+	}
+
+	/**
 	 * This method returns the value of the isMergedResult flag
 	 *
 	 * @return	boolean
@@ -786,7 +819,7 @@ class tx_dataquery_parser {
 	/**
 	 * This method indicates whether the language overlay mechanism must/can be handled for a given table
 	 *
-	 * @param	string		$table: name (alias) of the table to handle
+	 * @param	string		$table: true name of the table to handle
 	 * @return	boolean		true if language overlay must and can be performed, false otherwise
 	 * @see tx_dataquery_parser::addTypo3Mechanisms()
 	 */
