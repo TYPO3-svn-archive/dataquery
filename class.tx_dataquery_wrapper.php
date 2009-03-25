@@ -65,6 +65,8 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 	protected $configuration; // Extension configuration
 	protected $mainTable; // Store the name of the main table of the query
 	protected $sqlParser; // Local instance of the SQL parser class (tx_dataquery_parser)
+	static public $sortingFields = array(); // List of fields used for sorting recordset
+	static public $sortingLevel = 0;
 
 	public function __construct() {
 		$this->initialise();
@@ -207,7 +209,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 	 * @return	array		The full data structure
 	 */
 	protected function prepareFullStructure($res) {
-		// Initialise some variables
+			// Initialise some variables
 		$this->mainTable = $this->sqlParser->getMainTableName();
 		$subtables = $this->sqlParser->getSubtablesNames();
 		$numSubtables = count($subtables);
@@ -355,6 +357,17 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 				}
 			}
 //t3lib_div::debug($finalRecordset, 'Overlaid recordset');
+
+/*
+			self::$sortingFields = array();
+			self::$sortingLevel = 0;
+			self::$sortingFields[] = array('field' => 'title', 'order' => 'asc');
+			self::$sortingFields[] = array('field' => 'tt_content$header', 'order' => 'asc');
+ *
+ */
+				// Sort overlaid recordset
+			usort($finalRecordset, array('tx_dataquery_wrapper', 'sortRecordset'));
+//t3lib_div::debug($finalRecordset, 'Sorted, overlaid recordset');
 		} // End of translation handling
 
 			// Loop on all records to sort them by table. This can be seen as "de-JOINing" the tables.
@@ -588,6 +601,36 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 	 */
 	public function getMainTableName() {
 		return $this->mainTable;
+	}
+
+	/**
+	 * This static method is called when performing a special sorting of the recordset
+	 * 
+	 * @param	mixed	$a: first element to sort
+	 * @param	mixed	$b: second element to sort
+	 *
+	 * @return	integer	-1 if first argument is smaller than second argument, 1 if first is greater than second and 0 if both are equal
+	 *
+	 * @see	tx_dataquery_wrapper::prepareFullStructure()
+	 */
+	static public function sortRecordset($a, $b) {
+		$level = self::$sortingLevel;
+		$field = self::$sortingFields[$level]['field'];
+		$order = (empty(self::$sortingFields[$level]['order'])) ? 'asc' : self::$sortingFields[$level]['order'];
+		$result = strcmp($a[$field], $b[$field]);
+		if ($result == 0) {
+			if (isset(self::$sortingFields[$level + 1])) {
+				self::$sortingLevel++;
+				$result = self::sortRecordset($a, $b);
+				self::$sortingLevel--;
+			}
+		}
+		else {
+			if ($order == 'desc') {
+				$result = -$result;
+			}
+		}
+		return $result;
 	}
 
 // Data Provider interface methods
