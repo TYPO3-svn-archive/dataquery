@@ -71,6 +71,7 @@ class tx_dataquery_parser {
 	protected $queryFields = array(); // List of all fields being queried, arranged per table (aliased)
 	protected $doOverlays = array(); // Flag for each table whether to perform overlays or not
 	protected $orderFields = array(); // Array with all information of the fields used to order data
+	protected $processOrderBy = true; // True if order by is processed using SQL, false otherwise (see preprocessOrderByFields())
 	static protected $notTextTypes = array('date', 'datetime', 'time', 'timesec', 'year', 'num', 'md5', 'int', 'double2'); // List of eval types which indicate non-text fields
 
 	/**
@@ -718,7 +719,9 @@ class tx_dataquery_parser {
 	 * @return	string		the assembled SQL query
 	 */
 	public function buildQuery() {
-		$processOrderBy = $this->preprocessOrderByFields();
+			// First check what to do with ORDER BY fields
+		$this->preprocessOrderByFields();
+			// Start assembling the query
 		$query = 'SELECT ' . implode(', ', $this->structure['SELECT']) . ' ';
 		$query .= 'FROM ' . $this->structure['FROM']['table'];
 		if (!empty($this->structure['FROM']['alias'])) $query .= ' AS ' . $this->structure['FROM']['alias'];
@@ -740,7 +743,7 @@ class tx_dataquery_parser {
 			$query .= 'WHERE ' . $whereClause . ' ';
 		}
 			// Add order by clause if defined and if applicable (see preprocessOrderByFields())
-		if ($processOrderBy && count($this->structure['ORDER BY']) > 0) {
+		if ($this->processOrderBy && count($this->structure['ORDER BY']) > 0) {
 			$query .= 'ORDER BY ' . implode(', ', $this->structure['ORDER BY']) . ' ';
 		}
 		if (count($this->structure['GROUP BY']) > 0) {
@@ -866,20 +869,19 @@ t3lib_div::debug($this->structure['SELECT'], 'Updated select structure');
  *
  */
 					}
-					$processOrderBy = false;
+					$this->processOrderBy = false;
 				}
 				else {
-					$processOrderBy = true;
+					$this->processOrderBy = true;
 				}
 			}
 			else {
-				$processOrderBy = true;
+				$this->processOrderBy = true;
 			}
 		}
 		else {
-			$processOrderBy = true;
+			$this->processOrderBy = true;
 		}
-		return $processOrderBy;
 	}
 
 // Setters and getters
@@ -958,6 +960,15 @@ t3lib_div::debug($this->structure['SELECT'], 'Updated select structure');
 		return (isset($this->doOverlays[$table])) ? $this->doOverlays[$table] : false;
 	}
 
+	/**
+	 * This method returns whether the ordering of the records was done in the SQL query
+	 * or not
+	 * 
+	 * @return	boolean	true if SQL was used, false otherwise
+	 */
+	public function isSqlUsedForOrdering() {
+		return $this->processOrderBy;
+	}
 	/**
 	 * This method can be used to get the limit that was defined for a given subtable
 	 * (i.e. a JOINed table). If no limit exists, 0 is returned
