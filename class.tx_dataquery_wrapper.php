@@ -358,16 +358,13 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 			}
 //t3lib_div::debug($finalRecordset, 'Overlaid recordset');
 
-/*
-			self::$sortingFields = array();
-			self::$sortingLevel = 0;
-			self::$sortingFields[] = array('field' => 'title', 'order' => 'asc');
-			self::$sortingFields[] = array('field' => 'tt_content$header', 'order' => 'asc');
- *
- */
-				// Sort overlaid recordset
-			usort($finalRecordset, array('tx_dataquery_wrapper', 'sortRecordset'));
+				// Perform sorting if not handled by SQL
+			if (!$this->sqlParser->isSqlUsedForOrdering()) {
+				self::$sortingFields = $this->sqlParser->getOrderByFields();
+				self::$sortingLevel = 0;
+				usort($finalRecordset, array('tx_dataquery_wrapper', 'sortRecordset'));
 //t3lib_div::debug($finalRecordset, 'Sorted, overlaid recordset');
+			}
 		} // End of translation handling
 
 			// Loop on all records to sort them by table. This can be seen as "de-JOINing" the tables.

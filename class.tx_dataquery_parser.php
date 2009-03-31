@@ -770,14 +770,15 @@ class tx_dataquery_parser {
 	 */
 	protected function preprocessOrderByFields() {
 /*
-t3lib_div::debug($this->queryFields, 'Query fields');
-t3lib_div::debug($this->fieldTrueNames, 'Field true names');
-t3lib_div::debug($this->fieldAliases, 'Field aliases');
 t3lib_div::debug($this->orderFields, 'Order fields');
+t3lib_div::debug($this->fieldAliases, 'Field aliases');
+t3lib_div::debug($this->fieldTrueNames, 'Field true names');
+t3lib_div::debug($this->queryFields, 'Query fields');
 t3lib_div::debug($this->structure['SELECT'], 'Select structure');
  * 
  */
 		if (count($this->orderFields) > 0) {
+				// If in the FE context and not the default language, start checking for possible use of SQL or not
 			if (TYPO3_MODE == 'FE' && $GLOBALS['TSFE']->sys_language_content > 0) {
 					// Include the complete ctrl TCA
 				$GLOBALS['TSFE']->includeTCA();
@@ -787,7 +788,7 @@ t3lib_div::debug($this->structure['SELECT'], 'Select structure');
 				$newQueryFields = array();
 				$newSelectFields = array();
 				$newTrueNames = array();
-				foreach ($this->orderFields as $orderInfo) {
+				foreach ($this->orderFields as $index => $orderInfo) {
 						// Define the table and field names
 					$fieldParts = explode('.', $orderInfo['field']);
 					if (count($fieldParts) == 1) {
@@ -798,8 +799,20 @@ t3lib_div::debug($this->structure['SELECT'], 'Select structure');
 						$alias = $fieldParts[0];
 						$field = $fieldParts[1];
 					}
+						// If the field has an alias, change the order fields list to use it
+					if (isset($this->fieldAliases[$alias][$field])) {
+						$this->orderFields[$index]['field'] = $this->fieldAliases[$alias][$field];
+					}
+						// Get the field's true table and name, if defined, in case an alias is used in the ORDER BY statement
+					if (isset($this->fieldTrueNames[$field])) {
+						$alias = $this->fieldTrueNames[$field]['aliasTable'];
+						$field = $this->fieldTrueNames[$field]['field'];
+					}
+						// Get the true table name and initialise new field array, if necessary
 					$table = $this->getTrueTableName($alias);
-					$newQueryFields[$alias] = array('name' => $alias, 'table' => $table, 'fields' => array());
+					if (!isset($newQueryFields[$alias])) {
+						$newQueryFields[$alias] = array('name' => $alias, 'table' => $table, 'fields' => array());
+					}
 
 						// Check the type of the field in the TCA
 						// If the field is of some text type and that the table uses overlays,
@@ -840,11 +853,11 @@ t3lib_div::debug($this->structure['SELECT'], 'Select structure');
 						}
 						$cannotUseSQLForSorting |= ($usesOverlay && $isTextField);
 					}
-						// Check if the field is already part of the SELECTed fields
+						// Check if the field is already part of the SELECTed fields (under its true name or an alias)
 						// If not, get ready to add it by defining all necessary info in temporary arrays
 						// (it will be added only if necessary, i.e. if at least one field needs to be ordered later)
 					$countNewFields = 0;
-					if (!isset($this->queryFields[$table]['fields'][$field])) {
+					if (!isset($this->queryFields[$table]['fields'][$field]) && !isset($this->fieldAliases[$alias][$field])) {
 						$fieldAlias = $alias.'$'.$field;
 						$newQueryFields[$alias]['fields'][$field] = $field;
 						$newSelectFields[] = $alias . '.' . $field . ' AS ' . $fieldAlias;
@@ -938,6 +951,15 @@ t3lib_div::debug($this->structure['SELECT'], 'Updated select structure');
 	 */
 	public function getTrueFieldName($alias) {
 		return $this->fieldTrueNames[$alias];
+	}
+
+	/**
+	 * This method returns the list of fields defined for ordering the data
+	 * 
+	 * @return	array	Fields for ordering (and sort order)
+	 */
+	public function getOrderByFields() {
+		return $this->orderFields;
 	}
 
 	/**
