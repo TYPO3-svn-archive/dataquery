@@ -71,6 +71,7 @@ class tx_dataquery_parser {
 	protected $queryFields = array(); // List of all fields being queried, arranged per table (aliased)
 	protected $doOverlays = array(); // Flag for each table whether to perform overlays or not
 	protected $orderFields = array(); // Array with all information of the fields used to order data
+	static protected $notTextTypes = array('date', 'datetime', 'time', 'timesec', 'year', 'num', 'md5', 'int', 'double2'); // List of eval types which indicate non-text fields
 
 	/**
 	 * This method is used to parse a SELECT SQL query.
@@ -699,7 +700,7 @@ class tx_dataquery_parser {
 			}
 				// Loop on all tables and add test on list of uid's, if table is indeed in query
 			foreach ($idlistsPerTable as $table => $uidArray) {
-				$condition = $table.'.uid IN ('.implode(',', $uidArray).')';
+				$condition = $table . '.uid IN (' . implode(',', $uidArray) . ')';
 				if ($table == $this->mainTable) {
 					$this->addWhereClause($condition);
 				}
@@ -738,6 +739,7 @@ class tx_dataquery_parser {
 			}
 			$query .= 'WHERE ' . $whereClause . ' ';
 		}
+			// Add order by clause if defined and if applicable (see preprocessOrderByFields())
 		if ($processOrderBy && count($this->structure['ORDER BY']) > 0) {
 			$query .= 'ORDER BY ' . implode(', ', $this->structure['ORDER BY']) . ' ';
 		}
@@ -747,7 +749,7 @@ class tx_dataquery_parser {
 		if (count($this->structure['LIMIT']) > 0) {
 			$query .= 'LIMIT '.$this->structure['LIMIT'];
 			if (count($this->structure['OFFSET']) > 0) {
-				$query .= ' OFFSET '.$this->structure['OFFSET'];
+				$query .= ' OFFSET ' . $this->structure['OFFSET'];
 			}
 		}
 //t3lib_div::debug($query);
@@ -769,12 +771,19 @@ t3lib_div::debug($this->queryFields, 'Query fields');
 t3lib_div::debug($this->fieldTrueNames, 'Field true names');
 t3lib_div::debug($this->fieldAliases, 'Field aliases');
 t3lib_div::debug($this->orderFields, 'Order fields');
- *
+t3lib_div::debug($this->structure['SELECT'], 'Select structure');
+ * 
  */
 		if (count($this->orderFields) > 0) {
 			if (TYPO3_MODE == 'FE' && $GLOBALS['TSFE']->sys_language_content > 0) {
 					// Include the complete ctrl TCA
 				$GLOBALS['TSFE']->includeTCA();
+					// Initialise sorting mode flag
+				$cannotUseSQLForSorting = false;
+					// Initialise various arrays
+				$newQueryFields = array();
+				$newSelectFields = array();
+				$newTrueNames = array();
 				foreach ($this->orderFields as $orderInfo) {
 						// Define the table and field names
 					$fieldParts = explode('.', $orderInfo['field']);
@@ -787,6 +796,7 @@ t3lib_div::debug($this->orderFields, 'Order fields');
 						$field = $fieldParts[1];
 					}
 					$table = $this->getTrueTableName($alias);
+					$newQueryFields[$alias] = array('name' => $alias, 'table' => $table, 'fields' => array());
 
 						// Check the type of the field in the TCA
 						// If the field is of some text type and that the table uses overlays,
@@ -810,10 +820,8 @@ t3lib_div::debug($this->orderFields, 'Order fields');
 								}
 								else {
 									$evaluations = explode(',', $fieldConfig['eval']);
-										// List of eval types which indicate non-text fields
-									$notTextTypes = array('date', 'datetime', 'time', 'timesec', 'year', 'num', 'md5', 'int', 'double2');
 										// Check if some eval types are common to both array. If yes, it's not a text field.
-									$foundTypes = array_intersect($evaluations, $notTextTypes);
+									$foundTypes = array_intersect($evaluations, self::$notTextTypes);
 									$isTextField = (count($foundTypes) > 0) ? false : true;
 								}
 							}
@@ -827,16 +835,41 @@ t3lib_div::debug($this->orderFields, 'Order fields');
 						else {
 							$isTextField = false;
 						}
-//t3lib_div::debug($alias.'.'.$field.' is a text field? '.(($isTextField) ? 'yes' : 'no'));
-						$useSQLForSorting &= ($usesOverlay && $isTextField);
+						$cannotUseSQLForSorting |= ($usesOverlay && $isTextField);
 					}
 						// Check if the field is already part of the SELECTed fields
-					if (isset($this->queryFields[$table]['fields'][$field])) {
-
+						// If not, get ready to add it by defining all necessary info in temporary arrays
+						// (it will be added only if necessary, i.e. if at least one field needs to be ordered later)
+					$countNewFields = 0;
+					if (!isset($this->queryFields[$table]['fields'][$field])) {
+						$fieldAlias = $alias.'$'.$field;
+						$newQueryFields[$alias]['fields'][$field] = $field;
+						$newSelectFields[] = $alias . '.' . $field . ' AS ' . $fieldAlias;
+						$newTrueNames[$fieldAlias] = array('table' => $table, 'aliasTable' => $alias, 'field' => $field);
+						$countNewFields++;
 					}
-					else {
-						
+				}
+					// If sorting cannot be left simply to SQL, prepare to return false
+					// and add the necessary fields to the SELECT statement
+				if ($cannotUseSQLForSorting) {
+					if ($countNewFields > 0) {
+						$this->queryFields = t3lib_div::array_merge_recursive_overrule($this->queryFields, $newQueryFields);
+						$this->structure['SELECT'] = array_merge($this->structure['SELECT'], $newSelectFields);
+						$this->fieldTrueNames = t3lib_div::array_merge_recursive_overrule($this->fieldTrueNames, $newTrueNames);
+/*
+t3lib_div::debug($newQueryFields, 'New query fields');
+t3lib_div::debug($this->queryFields, 'Updated query fields');
+t3lib_div::debug($newTrueNames, 'New field true names');
+t3lib_div::debug($this->fieldTrueNames, 'Updated field true names');
+t3lib_div::debug($newSelectFields, 'New select fields');
+t3lib_div::debug($this->structure['SELECT'], 'Updated select structure');
+ *
+ */
 					}
+					$processOrderBy = false;
+				}
+				else {
+					$processOrderBy = true;
 				}
 			}
 			else {
