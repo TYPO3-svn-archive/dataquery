@@ -222,6 +222,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 		foreach ($allTables as $alias) {
 			$allTablesTrueNames[$alias] = $this->sqlParser->getTrueTableName($alias);
 		}
+//t3lib_div::debug($allTablesTrueNames, 'True table names');
 		
 		// Initialise array for storing records
 		$rows = array($this->mainTable => array(0 => array()));
@@ -238,6 +239,21 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 
 		}
 //t3lib_div::debug($rawRecordset, 'Raw result');
+
+			// Analyze the first row of the raw recordset to get which column belongs to which table
+			// and which aliases are used, if any
+		$testRow = $rawRecordset[0];
+		$columnsMappings = array();
+		$reverseColumnsMappings = array();
+		foreach ($testRow as $columnName => $value) {
+			$fieldNameParts = t3lib_div::trimExplode('$', $columnName);
+			$info = $this->sqlParser->getTrueFieldName($columnName);
+			$columnsMappings[$columnName] = $info;
+			$reverseColumnsMappings[$info['aliasTable']][$info['field']] = $columnName;
+		}
+//t3lib_div::debug($columnsMappings, 'Columns mappings');
+//t3lib_div::debug($reverseColumnsMappings, 'Reversed columns mappings');
+
 			// Get overlays for each table, if language is not default
 		if ($GLOBALS['TSFE']->sys_language_content == 0) {
 			$finalRecordset = $rawRecordset;
@@ -278,21 +294,8 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 				}
 			}
 //t3lib_div::debug($allUIDs, 'Unique IDs per table');
+//t3lib_div::debug($doOverlays, 'Do overlays?');
 //t3lib_div::debug($overlays, 'Overlays');
-
-				// Analyze the first row of the raw recordset to get which column belongs to which table
-				// and which aliases are used, if any
-			$testRow = $rawRecordset[0];
-			$columnsMappings = array();
-			$reverseColumnsMappings = array();
-			foreach ($testRow as $columnName => $value) {
-				$fieldNameParts = t3lib_div::trimExplode('$', $columnName);
-				$info = $this->sqlParser->getTrueFieldName($columnName);
-				$columnsMappings[$columnName] = $info;
-				$reverseColumnsMappings[$info['aliasTable']][$info['field']] = $columnName;
-			}
-//t3lib_div::debug($columnsMappings, 'Columns mappings');
-//t3lib_div::debug($reverseColumnsMappings, 'Reversed columns mappings');
 
 				// Loop on all recordset rows to overlay them
 			foreach ($rawRecordset as $row) {
@@ -304,11 +307,12 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 					}
 					$subParts[$columnInfo['aliasTable']][$columnInfo['field']] = $row[$columnName];
 				}
+//t3lib_div::debug($subParts, 'Raw subparts');
 					// Overlay each part
 				foreach ($subParts as $alias => $subRow) {
 					$table = $allTablesTrueNames[$alias];
 					$tableCtrl = $GLOBALS['TCA'][$table]['ctrl'];
-					if ($doOverlays[$alias] && $row[$tableCtrl['languageField']] != $GLOBALS['TSFE']->sys_language_content) {
+					if ($doOverlays[$table] && $subRow[$tableCtrl['languageField']] != $GLOBALS['TSFE']->sys_language_content) {
 						if (isset($tableCtrl['transForeignTable']) && isset($overlays[$table][$subRow['uid']])) {
 							$result = tx_overlays::overlaySingleRecord($table, $subRow, $overlays[$table][$subRow['uid']]);
 						}
@@ -352,6 +356,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 						}
 					}
 				}
+//t3lib_div::debug($overlaidRecord, 'Overlaid record');
 				if (isset($overlaidRecord['uid'])) {
 					$finalRecordset[] = $overlaidRecord;
 				}
@@ -391,15 +396,15 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 					// There are multiple tables
 				else {
 						// Field belongs to a subtable
-					if (in_array($columnsMappings[$fieldName]['aliasTable'], $subtables)) {
-						$subtableName = $columnsMappings[$fieldName]['aliasTable'];
+					if (in_array($columnsMappings[$fieldName]['mapping']['table'], $subtables)) {
+						$subtableName = $columnsMappings[$fieldName]['mapping']['table'];
 						if (isset($fieldValue)) {
-							$recordsPerTable[$subtableName][$columnsMappings[$fieldName]['field']] = $fieldValue;
+							$recordsPerTable[$subtableName][$columnsMappings[$fieldName]['mapping']['field']] = $fieldValue;
 						}
 					}
 						// Else assume the field belongs to the main table
 					else {
-						$recordsPerTable[$this->mainTable][$columnsMappings[$fieldName]['field']] = $fieldValue;
+						$recordsPerTable[$this->mainTable][$columnsMappings[$fieldName]['mapping']['field']] = $fieldValue;
 					}
 				}
 			}
@@ -449,8 +454,9 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 								// Perform overlays only if language is not default and if necessary for table
 							$subRecords = array();
 							$subUidList = array();
-								// Loop on all subrecords and perform overlays if necessary
+								// Loop on all subrecords and apply limit, if any
 							foreach ($rows[$table][$aRecord['uid']] as $subRow) {
+								if (!isset($subRow['uid'])) continue;
 									// Add the subrecord to the subtable only if it hasn't been included yet
 									// Multiple identical subrecords may happen when joining several tables together
 									// Take into account any limit that may have been placed on the number of subrecords in the query

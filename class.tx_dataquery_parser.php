@@ -301,6 +301,9 @@ class tx_dataquery_parser {
 //			$prefix = (empty($alias) ? $table : $alias);
 			$completeFields = array();
 			foreach ($fields as $name) {
+					// Clean up values from previous iterations
+				unset($mappedField);
+				unset($mappedTable);
 				$fullField = $alias . '.' . $name;
 				$theField = $name;
 					// Case 4a
@@ -315,6 +318,7 @@ class tx_dataquery_parser {
 						}
 							// Case 4a-2
 						else {
+							list($mappedTable, $mappedField) = explode('.', $theAlias);
 							$theAlias = str_replace('.', '$', $fieldAlias);
 						}
 						$fullField .= $theAlias;
@@ -332,12 +336,17 @@ class tx_dataquery_parser {
 						}
 							// Case 4b-2
 						else {
+							list($mappedTable, $mappedField) = explode('.', $fieldAlias);
 							$theAlias = str_replace('.', '$', $fieldAlias);
 						}
                     }
 					$fullField .= $theAlias;
                 }
-				$this->fieldTrueNames[$theAlias] = array('table' => $table, 'aliasTable' => $alias, 'field' => $theField);
+				if (!isset($mappedTable)) {
+					$mappedTable = $alias;
+					$mappedField = $theField;
+				}
+				$this->fieldTrueNames[$theAlias] = array('table' => $table, 'aliasTable' => $alias, 'field' => $theField, 'mapping' => array('table' => $mappedTable, 'field' => $mappedField));
 				$completeFields[] = $fullField;
 			}
 			$this->structure['SELECT'][$i] = implode(', ', $completeFields);
@@ -348,15 +357,15 @@ class tx_dataquery_parser {
         foreach ($tableHasUid as $alias => $flag) {
         	if (!$flag) {
         		$fullField = $alias . '.uid';
-				$theField = $fullField;
+				$theField = 'uid';
 				if ($alias != $this->mainTable) {
 					$fieldAlias = $alias . '$uid';
 	       			$fullField .= ' AS ' . $fieldAlias;
 				}
 				else {
-					$fieldAlias = $theField;
+					$fieldAlias = 'uid';
 				}
-				$this->fieldTrueNames[$fieldAlias] = array('table' => $this->getTrueTableName($alias), 'aliasTable' => $alias, 'field' => $theField);
+				$this->fieldTrueNames[$fieldAlias] = array('table' => $this->getTrueTableName($alias), 'aliasTable' => $alias, 'field' => $theField, 'mapping' => array('table' => $alias, 'field' => $theField));
 				$this->structure['SELECT'][] = $fullField;
 					// TODO: check if this "uid" property is still used
 				$this->queryFields[$alias]['fields']['uid'] = 'uid';
@@ -526,7 +535,7 @@ class tx_dataquery_parser {
 									$newFieldAlias = $alias.'$'.$aField;
 									$this->structure['SELECT'][] = $newFieldName.' AS '.$newFieldAlias;
 									$this->queryFields[$table]['fields'][$aField] = $aField;
-									$this->fieldTrueNames[$newFieldAlias] = array('table' => $table, 'aliasTable' => $alias, 'field' => $aField);
+									$this->fieldTrueNames[$newFieldAlias] = array('table' => $table, 'aliasTable' => $alias, 'field' => $aField, 'mapping' => array('table' => $alias, 'field' => $aField));
 								}
 							}
 							$this->doOverlays[$table] = true;
@@ -846,10 +855,10 @@ t3lib_div::debug($this->structure['SELECT'], 'Select structure');
 								$isTextField = false;
 							}
 						}
-							// No TCA for column, assume it's not a text field (impossible to know)
+							// No TCA for column, assume it's simple text field (impossible to know)
 							// TODO: we could query the database and get the SQL datatype, but is it worth it?
 						else {
-							$isTextField = false;
+							$isTextField = true;
 						}
 						$cannotUseSQLForSorting |= ($usesOverlay && $isTextField);
 					}
@@ -861,7 +870,7 @@ t3lib_div::debug($this->structure['SELECT'], 'Select structure');
 						$fieldAlias = $alias.'$'.$field;
 						$newQueryFields[$alias]['fields'][$field] = $field;
 						$newSelectFields[] = $alias . '.' . $field . ' AS ' . $fieldAlias;
-						$newTrueNames[$fieldAlias] = array('table' => $table, 'aliasTable' => $alias, 'field' => $field);
+						$newTrueNames[$fieldAlias] = array('table' => $table, 'aliasTable' => $alias, 'field' => $field, 'mapping' => array('table' => $alias, 'field' => $field));
 						$countNewFields++;
 					}
 				}
