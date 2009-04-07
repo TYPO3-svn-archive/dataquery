@@ -255,6 +255,8 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 //t3lib_div::debug($reverseColumnsMappings, 'Reversed columns mappings');
 
 			// Get overlays for each table, if language is not default
+			// Set a general flag about having been through this process or not
+		$hasBeenThroughOverlayProcess = false;
 		if ($GLOBALS['TSFE']->sys_language_content == 0) {
 			$finalRecordset = $rawRecordset;
 		}
@@ -291,6 +293,8 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 					// Get overlays only if needed/possible
 				if ($doOverlays[$table] && count($allUIDs[$table]) > 0) {
 					$overlays[$table] = tx_overlays::getOverlayRecords($table, $allUIDs[$table], $GLOBALS['TSFE']->sys_language_content);
+						// Set global overlay process flag to true
+					$hasBeenThroughOverlayProcess |= true;
 				}
 			}
 //t3lib_div::debug($allUIDs, 'Unique IDs per table');
@@ -438,12 +442,14 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 			// Now loop on all the records of the main table and join them to their subtables
 		$uidList = array();
 		$fullRecords = array();
+		$hasInnerJoin = $this->sqlParser->hasInnerJoinOnFirstSubtable();
 		foreach ($rows[$this->mainTable][0] as $aRecord) {
 			$uidList[] = $aRecord['uid'];
 			$theFullRecord = $aRecord;
 			$theFullRecord['sds:subtables'] = array();
 				// Check if there are any subtables in the query
 			if ($numSubtables > 0) {
+				$recordsPerSubtable = array();
 				foreach ($subtables as $table) {
 						// Check if there are any subrecords for this record
 					if (isset($rows[$table][$aRecord['uid']])) {
@@ -474,6 +480,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 							}
 								// If there are indeed items, add the subtable to the record
 							$numItems = count($subUidList);
+							$recordsPerSubtable[$table] = $numItems;
 							if ($numItems > 0) {
 								$theFullRecord['sds:subtables'][] = array(
 																		'name' => $table,
@@ -488,7 +495,20 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 					}
 				}
 			}
-			$fullRecords[] = $theFullRecord;
+				// If the query used INNER JOINs and went through the overlay process,
+				// preform additional checks
+			if ($numSubtables > 0 && !empty($hasInnerJoin) && $hasBeenThroughOverlayProcess) {
+					// If there are no subrecords after the overlay process, but the query
+					// used an INNER JOIN, the record must be removed, so that the end result
+					// will look like what it would have been in the default language
+				if (!empty($recordsPerSubtable[$hasInnerJoin])) {
+					$fullRecords[] = $theFullRecord;
+				}
+			}
+				// Otherwise just take the record as is
+			else {
+				$fullRecords[] = $theFullRecord;
+			}
 		}
 
 			// Assemble the full structure

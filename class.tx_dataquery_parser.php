@@ -1000,6 +1000,33 @@ t3lib_div::debug($this->structure['SELECT'], 'Updated select structure');
 	public function isSqlUsedForOrdering() {
 		return $this->processOrderBy;
 	}
+
+	/**
+	 * This method returns the name of the first significant table to be INNER JOINed
+	 * A "significant table" is a table that has a least one field SELECTed
+	 * If the first significant table is not INNER JOINed or if there are no JOINs
+	 * or no INNER JOINs, an empty string is returned
+	 *
+	 * @return	boolean		alias of the first significant table, if INNER JOINed, empty string otherwise
+	 */
+	public function hasInnerJoinOnFirstSubtable() {
+		if (count($this->structure['JOIN']) == 0) {
+			$returnValue = '';
+		}
+		else {
+			$returnValue = '';
+			foreach ($this->structure['JOIN'] as $alias => $joinInfo) {
+				if (isset($this->queryFields[$alias])) {
+					if ($joinInfo['type'] == 'inner') {
+						$returnValue = $alias;
+					}
+					break;
+				}
+			}
+		}
+		return $returnValue;
+	}
+
 	/**
 	 * This method can be used to get the limit that was defined for a given subtable
 	 * (i.e. a JOINed table). If no limit exists, 0 is returned
