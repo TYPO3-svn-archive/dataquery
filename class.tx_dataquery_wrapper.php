@@ -533,17 +533,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 		}
 
 			// Store the structure in the cache table
-			// The structure is not cached if the cache duration is set to 0
-		if (!empty($this->providerData['cache_duration'])) {
-			$fields = array(
-							'query_id' => $this->providerData['uid'],
-							'page_id' => $GLOBALS['TSFE']->id,
-							'cache_hash' => $this->calculateCacheHash(array()),
-							'structure_cache' => serialize($dataStructure),
-							'expires' => time() + $this->providerData['cache_duration']
-						);
-			$GLOBALS['TYPO3_DB']->exec_INSERTquery('tx_dataquery_cache', $fields);
-		}
+		$this->writeStructureToCache($dataStructure);
 
 			// Finally return the assembled structure
 		return $dataStructure;
@@ -569,6 +559,38 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 		else {
 			$row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res);
 			return unserialize($row['structure_cache']);
+		}
+	}
+
+	/**
+	 * This method write the standard data structure to cache,
+	 * provided some conditions are met
+	 * 
+	 * @param	array	$structure: a standard data structure
+	 */
+	protected function writeStructureToCache($structure) {
+			// Write only if cache is active
+		if (!empty($this->providerData['cache_duration'])) {
+			$cacheHash = $this->calculateCacheHash(array());
+			$serializedStructure = serialize($structure);
+				// Write only if serialized data is not too large
+			if (empty($this->configuration['cacheLimit']) || strlen($serializedStructure) <= $this->configuration['cacheLimit']) {
+				$fields = array(
+								'query_id' => $this->providerData['uid'],
+								'page_id' => $GLOBALS['TSFE']->id,
+								'cache_hash' => $cacheHash,
+								'structure_cache' => $serializedStructure,
+								'expires' => time() + $this->providerData['cache_duration']
+							);
+				$GLOBALS['TYPO3_DB']->exec_INSERTquery('tx_dataquery_cache', $fields);
+			}
+				// If data is too large for caching, make sure no other cache is left over
+			else {
+				$where = "query_id = '" . $this->providerData['uid'] . "'";
+				$where .= " AND page_id = '" . $GLOBALS['TSFE']->id . "'";
+				$where .= " AND cache_hash = '" . $cacheHash . "'";
+				$GLOBALS['TYPO3_DB']->exec_DELETEquery('tx_dataquery_cache', $where);
+			}
 		}
 	}
 
