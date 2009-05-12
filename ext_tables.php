@@ -30,6 +30,9 @@ $TCA['tx_dataquery_queries'] = array (
 	)
 );
 
+// Add context sensitive help (csh) for this table
+t3lib_extMgm::addLLrefForTCAdescr('tx_dataquery_queries', t3lib_extMgm::extPath($_EXTKEY).'locallang_csh_txdataqueryqueries.xml');
+
 // Register dataquery as a Data Provider
 
 t3lib_div::loadTCA('tt_content');
