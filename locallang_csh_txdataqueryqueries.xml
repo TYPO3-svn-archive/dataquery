@@ -10,46 +10,44 @@
 	</meta>
 	<data type="array">
 		<languageKey index="default" type="array">
-			<label index=".alttitle">Data Queries</label>
-			<label index=".description">Data Queries are a SQL-based Data Provider for use with the Tesseract framework</label>
-			<label index=".syntax">
-				Data Queries enable you to write SQL queries without worrying about all the TYPO3-specific mechanisms like enable fields or translation handling.
-				There's a restriction on what SQL elements you can use in the queries and how to write such queries. Please refer to the manual for more information.
-			</label>
-			<label index="hidden.alttitle">Hide</label>
-			<label index="hidden.description">This field is not actively used inside Tesseract.</label>
-			<label index="hidden.details">
-				This field is not considered by the existing components of Tesseract. It could be used to give a visual indication of an obsolete query.
-				May be used actively in the future or remove altogether.
-			</label>
-			<label index="title.alttitle">Title</label>
-			<label index="title.description">Some significant name or label for the query.</label>
-			<label index="description.alttitle">Description</label>
-			<label index="description.description">Purely descriptive field. Can be used for entering any necessary information about the query.</label>
-			<label index="msg.alttitle">Log message</label>
-			<label index="msg.description">The main message of the log entry.</label>
-			<label index="sql_query.alttitle">SQL query</label>
-			<label index="sql_query.description">SQL-based query to the local database.</label>
-			<label index="sql_query.details">
-				SQL queries entered in this field don't need to cater for TYPO3 specifics like enable fields or such. This is all handled automatically unless disabled (see the "Advanced" tab).
-				Not all SQL syntactic elements can be used. Furthermore the query has to be written in a certain way. Please refer to the manual for a complete overview of these conditions.
-			</label>
-			<label index="cache_duration.alttitle">Cache duration</label>
-			<label index="cache_duration.description">Number of seconds during which the result of the query must be stored.</label>
-			<label index="cache_duration.details">
-				The Data Query tool performs some quite complex operations on the data sets retrieved from the database. It is worth storing the result into a cache table to prevent repeating these operations needlessly.
-				This cache can be quite large and may even crash your database when writing to it. Please take care to set the "Cache limit" parameter in the extension configuration to some appropriate value.
-				Setting the cache duration to 0 will effectively disable caching for that query.
-				Refer to the manual for more details about caching.
-			</label>
-			<label index="ignore_enable_fields.alttitle">Ignore enable fields</label>
-			<label index="ignore_enable_fields.description">Checking this box disables the automatic use of all fields defined as "enable fields" in the TCA configuration.</label>
-			<label index="ignore_language_handling.alttitle">Translation handling</label>
-			<label index="ignore_language_handling.description">Checking this box disables the automatic use of all fields related to translation handling, as defined in the TCA.</label>
-			<label index="ignore_language_handling.details">
-				Checking this box generally makes sense only in a site with a single language.
-				It can also be used in special situations when the language selection is written in the SQL query itself, or when querying tables that may not follow the usual TYPO3 language handling pattern.
-			</label>
+                    <label index=".alttitle">Data Queries</label>
+                    <label index=".description">Data Queries are a SQL-based Data Provider for use with the Tesseract framework</label>
+                    <label index=".syntax">
+                        Data Queries enable you to write SQL queries without worrying about all the TYPO3-specific mechanisms like enable fields or translation handling.
+                        There's a restriction on what SQL elements you can use in the queries and how to write such queries. Please refer to the manual for more information.
+                    </label>
+                    <label index="hidden.alttitle">Hide</label>
+                    <label index="hidden.description">This field is not actively used inside Tesseract.</label>
+                    <label index="hidden.details">
+                        This field is not considered by the existing components of Tesseract. It could be used to give a visual indication of an obsolete query.
+                        May be used actively in the future or remove altogether.
+                    </label>
+                    <label index="title.alttitle">Title</label>
+                    <label index="title.description">Some significant name or label for the query.</label>
+                    <label index="description.alttitle">Description</label>
+                    <label index="description.description">Purely descriptive field. Can be used for entering any necessary information about the query.</label>
+                    <label index="sql_query.alttitle">SQL query</label>
+                    <label index="sql_query.description">SQL-based query to the local database.</label>
+                    <label index="sql_query.details">
+                        SQL queries entered in this field don't need to cater for TYPO3 specifics like enable fields or such. This is all handled automatically unless disabled (see the "Advanced" tab).
+                        Not all SQL syntactic elements can be used. Furthermore the query has to be written in a certain way. Please refer to the manual for a complete overview of these conditions.
+                    </label>
+                    <label index="cache_duration.alttitle">Cache duration</label>
+                    <label index="cache_duration.description">Number of seconds during which the result of the query must be stored.</label>
+                    <label index="cache_duration.details">
+                        The Data Query tool performs some quite complex operations on the data sets retrieved from the database. It is worth storing the result into a cache table to prevent repeating these operations needlessly.
+                        This cache can be quite large and may even crash your database when writing to it. Please take care to set the "Cache limit" parameter in the extension configuration to some appropriate value.
+                        Setting the cache duration to 0 will effectively disable caching for that query.
+                        Refer to the manual for more details about caching.
+                    </label>
+                    <label index="ignore_enable_fields.alttitle">Ignore enable fields</label>
+                    <label index="ignore_enable_fields.description">Checking this box disables the automatic use of all fields defined as "enable fields" in the TCA configuration.</label>
+                    <label index="ignore_language_handling.alttitle">Translation handling</label>
+                    <label index="ignore_language_handling.description">Checking this box disables the automatic use of all fields related to translation handling, as defined in the TCA.</label>
+                    <label index="ignore_language_handling.details">
+                        Checking this box generally makes sense only in a site with a single language.
+                        It can also be used in special situations when the language selection is written in the SQL query itself, or when querying tables that may not follow the usual TYPO3 language handling pattern.
+                    </label>
 		</languageKey>
 	</data>
 </T3locallang>
