@@ -367,7 +367,26 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 			}
 //t3lib_div::debug($finalRecordset, 'Overlaid recordset');
 
+				// TODO: if secondary provider has provided a "uidOrder" component in its data structure,
+				// add "manual" order to each record, based on its uid
+				/*
+				 * foreach $finalRecordset as $index => $record
+				 *
+				 * $finalRecordset[$index]['tx_dataquery:fixed_order'] = uid-order[$record['uid']]
+				 */
+
+				// TODO: sort by "manual order" if defined (overrides other sortings)
+			/*
+			 * if ()
+			 * usort($finalRecordset, array('tx_dataquery_wrapper', 'fixedOrderSorting'));
+			 *
+			 * dans fixedOrderSorting($a, $b)
+			 *
+			 * comparaison de $a['tx_dataquery:fixed_order'] et $b['tx_dataquery:fixed_order']
+			 */
+
 				// Perform sorting if not handled by SQL
+				// TODO: change if to elseif
 			if (!$this->sqlParser->isSqlUsedForOrdering()) {
 				self::$sortingFields = $this->sqlParser->getOrderByFields();
 				self::$sortingLevel = 0;
