@@ -250,7 +250,6 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 		$columnsMappings = array();
 		$reverseColumnsMappings = array();
 		foreach ($testRow as $columnName => $value) {
-			$fieldNameParts = t3lib_div::trimExplode('$', $columnName);
 			$info = $this->sqlParser->getTrueFieldName($columnName);
 			$columnsMappings[$columnName] = $info;
 			$reverseColumnsMappings[$info['aliasTable']][$info['field']] = $columnName;

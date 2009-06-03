@@ -315,6 +315,8 @@ class tx_dataquery_parser {
 						$fullField .= ' AS ';
 						if (strpos($fieldAlias, '.') === false) {
 							$theAlias = $fieldAlias;
+							$mappedTable = $alias;
+							$mappedField = $fieldAlias;
 						}
 							// Case 4a-2
 						else {
@@ -371,7 +373,10 @@ class tx_dataquery_parser {
 				$this->queryFields[$alias]['fields']['uid'] = 'uid';
         	}
         }
-//t3lib_div::debug($this->aliases);
+//t3lib_div::debug($this->aliases, 'Table aliases');
+//t3lib_div::debug($this->fieldAliases, 'Field aliases');
+//t3lib_div::debug($this->fieldTrueNames, 'Field true names');
+//t3lib_div::debug($this->queryFields, 'Query fields');
 //t3lib_div::debug($this->structure);
 	}
 
@@ -425,7 +430,7 @@ class tx_dataquery_parser {
 			t3lib_div::loadTCA($table);
 				// Get the labels for the tables
 			if (isset($GLOBALS['TCA'][$table]['ctrl']['title'])) {
-				$tableName = $tableName = $lang->sL($GLOBALS['TCA'][$table]['ctrl']['title']);
+				$tableName = $lang->sL($GLOBALS['TCA'][$table]['ctrl']['title']);
 				$localizedStructure[$alias]['name'] = $tableName;
 			}
 			else {
@@ -454,11 +459,14 @@ class tx_dataquery_parser {
 						if (!isset($localizedStructure[$tableAlias])) $localizedStructure[$tableAlias] = array('table' => $tableAlias, 'fields' => array());
 					}
 				}
+				else {
+					$fieldAlias = $field;
+				}
 					// Store the localized label
-				$localizedStructure[$tableAlias]['fields'][$field] = $fieldName;
+				$localizedStructure[$tableAlias]['fields'][$fieldAlias] = $fieldName;
             }
         }
-//		t3lib_div::debug($localizedStructure);
+//		t3lib_div::debug($localizedStructure, 'Localized structure');
 		return $localizedStructure;
     }
 
