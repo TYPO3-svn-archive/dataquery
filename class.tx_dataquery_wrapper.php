@@ -263,6 +263,10 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 		$hasBeenThroughOverlayProcess = false;
 		if ($GLOBALS['TSFE']->sys_language_content == 0) {
 			$finalRecordset = $rawRecordset;
+				// If no sorting is defined at all, perform fixed order sorting, if defined
+			if (!$this->sqlParser->hasOrdering() && isset($this->structure['uidList'])) {
+				usort($finalRecordset, array('tx_dataquery_wrapper', 'sortUsingFixedOrder'));
+			}
 		}
 		else {
 			$finalRecordset = array();
