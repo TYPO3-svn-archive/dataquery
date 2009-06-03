@@ -1002,6 +1002,16 @@ t3lib_div::debug($this->structure['SELECT'], 'Updated select structure');
 	}
 
 	/**
+	 * This method returns true if any ordering has been defined at all
+	 * False otherwise
+	 *
+	 * @return	boolean	true if there's at least one ordering criterion, false otherwise
+	 */
+	public function hasOrdering() {
+		return count($this->orderFields) > 0;
+	}
+
+	/**
 	 * This method returns the name of the first significant table to be INNER JOINed
 	 * A "significant table" is a table that has a least one field SELECTed
 	 * If the first significant table is not INNER JOINed or if there are no JOINs

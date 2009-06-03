@@ -64,6 +64,10 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 	public $extKey = 'dataquery';
 	protected $configuration; // Extension configuration
 	protected $mainTable; // Store the name of the main table of the query
+	/**
+	 *
+	 * @var tx_dataquery_parse	$sqlParser
+	 */
 	protected $sqlParser; // Local instance of the SQL parser class (tx_dataquery_parser)
 	static public $sortingFields = array(); // List of fields used for sorting recordset
 	static public $sortingLevel = 0;
@@ -367,31 +371,26 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 			}
 //t3lib_div::debug($finalRecordset, 'Overlaid recordset');
 
-				// TODO: if secondary provider has provided a "uidOrder" component in its data structure,
-				// add "manual" order to each record, based on its uid
-				/*
-				 * foreach $finalRecordset as $index => $record
-				 *
-				 * $finalRecordset[$index]['tx_dataquery:fixed_order'] = uid-order[$record['uid']]
-				 */
-
-				// TODO: sort by "manual order" if defined (overrides other sortings)
-			/*
-			 * if ()
-			 * usort($finalRecordset, array('tx_dataquery_wrapper', 'fixedOrderSorting'));
-			 *
-			 * dans fixedOrderSorting($a, $b)
-			 *
-			 * comparaison de $a['tx_dataquery:fixed_order'] et $b['tx_dataquery:fixed_order']
-			 */
+				// If the dataquery was provided with a structure,
+				// use the list of uid's to define a fixed order of records
+			if (isset($this->structure['uidList'])) {
+				$uidList = t3lib_div::trimExplode(',', $this->structure['uidList']);
+				$fixedOrder = array_flip($uidList);
+				foreach ($finalRecordset as $index => $record) {
+					$finalRecordset[$index]['tx_dataquery:fixed_order'] = $fixedOrder[$record['uid']];
+				}
+			}
 
 				// Perform sorting if not handled by SQL
-				// TODO: change if to elseif
 			if (!$this->sqlParser->isSqlUsedForOrdering()) {
 				self::$sortingFields = $this->sqlParser->getOrderByFields();
 				self::$sortingLevel = 0;
 				usort($finalRecordset, array('tx_dataquery_wrapper', 'sortRecordset'));
 //t3lib_div::debug($finalRecordset, 'Sorted, overlaid recordset');
+			}
+				// If no sorting is defined at all, perform fixed order sorting, if defined
+			elseif (!$this->sqlParser->hasOrdering() && isset($this->structure['uidList'])) {
+				usort($finalRecordset, array('tx_dataquery_wrapper', 'sortUsingFixedOrder'));
 			}
 		} // End of translation handling
 
@@ -698,6 +697,29 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 			if ($order == 'DESC') {
 				$result = -$result;
 			}
+		}
+		return $result;
+	}
+
+	/**
+	 * This static method is called when sorting record using a special fixed order value
+	 * 
+	 * @param	mixed	$a: first element to sort
+	 * @param	mixed	$b: second element to sort
+	 *
+	 * @return	integer	-1 if first argument is smaller than second argument, 1 if first is greater than second and 0 if both are equal
+	 *
+	 * @see	tx_dataquery_wrapper::prepareFullStructure()
+	 */
+	static public function sortUsingFixedOrder($a, $b) {
+		if ($a['tx_dataquery:fixed_order'] == $b['tx_dataquery:fixed_order']) {
+			$result = 0;
+		}
+		elseif ($a['tx_dataquery:fixed_order'] < $b['tx_dataquery:fixed_order']) {
+			$result = -1;
+		}
+		else {
+			$result = 1;
 		}
 		return $result;
 	}
