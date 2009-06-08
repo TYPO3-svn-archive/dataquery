@@ -264,6 +264,13 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 			$finalRecordset = $rawRecordset;
 				// If no sorting is defined at all, perform fixed order sorting, if defined
 			if (!$this->sqlParser->hasOrdering() && isset($this->structure['uidList'])) {
+					// Add fixed order to recordset
+				$uidList = t3lib_div::trimExplode(',', $this->structure['uidList']);
+				$fixedOrder = array_flip($uidList);
+				foreach ($finalRecordset as $index => $record) {
+					$finalRecordset[$index]['tx_dataquery:fixed_order'] = $fixedOrder[$record['uid']];
+				}
+					// Sort recordset according to fixed order
 				usort($finalRecordset, array('tx_dataquery_wrapper', 'sortUsingFixedOrder'));
 			}
 		}
