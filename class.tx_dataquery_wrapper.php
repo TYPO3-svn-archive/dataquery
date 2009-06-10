@@ -423,7 +423,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 				// The query contains no joined table
 				// All fields belong to the main table
 				if ($numSubtables == 0) {
-					$recordsPerTable[$this->mainTable][$columnsMappings[$fieldName]['field']] = $fieldValue;
+					$recordsPerTable[$this->mainTable][$columnsMappings[$fieldName]['mapping']['field']] = $fieldValue;
 				}
 					// There are multiple tables
 				else {
