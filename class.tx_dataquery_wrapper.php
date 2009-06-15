@@ -125,7 +125,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 			if (is_array($this->filter) && count($this->filter) > 0) $this->sqlParser->addFilter($this->filter);
 
 			// Use idList from input SDS, if defined
-			if (is_array($this->structure) && isset($this->structure['uidListWithTable'])) $this->sqlParser->addIdList($this->structure['uidListWithTable']);
+			if (is_array($this->structure) && !empty($this->structure['count'])) $this->sqlParser->addIdList($this->structure['uidListWithTable']);
 
 			// Build the complete query
 			$query = $this->sqlParser->buildQuery();
@@ -263,13 +263,15 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 		if ($GLOBALS['TSFE']->sys_language_content == 0) {
 			$finalRecordset = $rawRecordset;
 				// If no sorting is defined at all, perform fixed order sorting, if defined
-			if (!$this->sqlParser->hasOrdering() && isset($this->structure['uidList'])) {
+				// Note this will work only if the secondary provider refers to a single table
+			if (!$this->sqlParser->hasOrdering() && !empty($this->structure['count'])) {
 					// Add fixed order to recordset
 				$uidList = t3lib_div::trimExplode(',', $this->structure['uidList']);
 				$fixedOrder = array_flip($uidList);
 				foreach ($finalRecordset as $index => $record) {
 					$finalRecordset[$index]['tx_dataquery:fixed_order'] = $fixedOrder[$record['uid']];
 				}
+//t3lib_div::debug($finalRecordset, 'Recordset with fixed order');
 					// Sort recordset according to fixed order
 				usort($finalRecordset, array('tx_dataquery_wrapper', 'sortUsingFixedOrder'));
 			}
