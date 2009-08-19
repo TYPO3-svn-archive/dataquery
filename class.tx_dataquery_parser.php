@@ -90,7 +90,7 @@ class tx_dataquery_parser {
 			$query = substr($query, 0, strlen($query) - 1);
 		}
 			// Parse query for subexpressions
-		$query = tx_basecontroller_parser::evaluateString($query, false);
+		$query = tx_expressions_parser::evaluateString($query, false);
 
 			// Get all parts of the query, using the SQL keywords as tokens
 			// The returned matches array contains the keywords matched (in position 2) and the string after each keyword (in position 3)
