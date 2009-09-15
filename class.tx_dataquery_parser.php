@@ -454,7 +454,7 @@ class tx_dataquery_parser {
 						// If the alias contains a dot (.), it means it contains the alias of a table name
 						// Explode the name on the dot and use the parts as a new table alias and field name
 					if (strpos($fieldAlias, '.') !== false) {
-						list($tableAlias, $field) = t3lib_div::trimExplode('.', $fieldAlias);
+						list($tableAlias, $fieldAlias) = t3lib_div::trimExplode('.', $fieldAlias);
 							// Initialize structure for table, if not already done
 						if (!isset($localizedStructure[$tableAlias])) $localizedStructure[$tableAlias] = array('table' => $tableAlias, 'fields' => array());
 					}
