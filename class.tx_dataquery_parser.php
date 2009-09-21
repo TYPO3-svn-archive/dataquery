@@ -320,7 +320,7 @@ class tx_dataquery_parser {
 						}
 							// Case 4a-2
 						else {
-							list($mappedTable, $mappedField) = explode('.', $theAlias);
+							list($mappedTable, $mappedField) = explode('.', $fieldAlias);
 							$theAlias = str_replace('.', '$', $fieldAlias);
 						}
 						$fullField .= $theAlias;
