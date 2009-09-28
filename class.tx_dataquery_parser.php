@@ -680,9 +680,10 @@ class tx_dataquery_parser {
 			// Handle the order by clauses
 		if (count($filter['orderby']) > 0) {
 			foreach ($filter['orderby'] as $orderData) {
-				$orderbyClause = ((empty($orderData['table'])) ? $this->mainTable : $orderData['table']) . '.' . $orderData['field'] . ' ' . $orderData['order'];
+				$completeField = ((empty($orderData['table'])) ? $this->mainTable : $orderData['table']) . '.' . $orderData['field'];
+				$orderbyClause = $completeField . ' ' . $orderData['order'];
 				$this->structure['ORDER BY'][] = $orderbyClause;
-				$this->orderFields[] = array('field' => $orderData['field'], 'order' => $orderData['order']);
+				$this->orderFields[] = array('field' => $completeField, 'order' => $orderData['order']);
 			}
 		}
 	}
@@ -792,7 +793,7 @@ t3lib_div::debug($this->fieldAliases, 'Field aliases');
 t3lib_div::debug($this->fieldTrueNames, 'Field true names');
 t3lib_div::debug($this->queryFields, 'Query fields');
 t3lib_div::debug($this->structure['SELECT'], 'Select structure');
- * 
+ *
  */
 		if (count($this->orderFields) > 0) {
 				// If in the FE context and not the default language, start checking for possible use of SQL or not
@@ -818,6 +819,7 @@ t3lib_div::debug($this->structure['SELECT'], 'Select structure');
 					}
 						// If the field has an alias, change the order fields list to use it
 					if (isset($this->fieldAliases[$alias][$field])) {
+						$this->orderFields[$index]['alias'] = $this->orderFields[$index]['field'];
 						$this->orderFields[$index]['field'] = $this->fieldAliases[$alias][$field];
 					}
 						// Get the field's true table and name, if defined, in case an alias is used in the ORDER BY statement
@@ -874,8 +876,8 @@ t3lib_div::debug($this->structure['SELECT'], 'Select structure');
 						// If not, get ready to add it by defining all necessary info in temporary arrays
 						// (it will be added only if necessary, i.e. if at least one field needs to be ordered later)
 					$countNewFields = 0;
-					if (!isset($this->queryFields[$table]['fields'][$field]) && !isset($this->fieldAliases[$alias][$field])) {
-						$fieldAlias = $alias.'$'.$field;
+					if (!isset($this->queryFields[$alias]['fields'][$field]) && !isset($this->fieldAliases[$alias][$field])) {
+						$fieldAlias = $alias . '$' . $field;
 						$newQueryFields[$alias]['fields'][$field] = $field;
 						$newSelectFields[] = $alias . '.' . $field . ' AS ' . $fieldAlias;
 						$newTrueNames[$fieldAlias] = array('table' => $table, 'aliasTable' => $alias, 'field' => $field, 'mapping' => array('table' => $alias, 'field' => $field));

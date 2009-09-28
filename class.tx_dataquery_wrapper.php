@@ -269,8 +269,8 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 				$columnsMappings[$columnName] = $info;
 				$reverseColumnsMappings[$info['aliasTable']][$info['field']] = $columnName;
 			}
-	//t3lib_div::debug($columnsMappings, 'Columns mappings');
-	//t3lib_div::debug($reverseColumnsMappings, 'Reversed columns mappings');
+//t3lib_div::debug($columnsMappings, 'Columns mappings');
+//t3lib_div::debug($reverseColumnsMappings, 'Reversed columns mappings');
 
 				// Get overlays for each table, if language is not default
 				// Set a general flag about having been through this process or not
@@ -328,9 +328,9 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 						$hasBeenThroughOverlayProcess |= true;
 					}
 				}
-	//t3lib_div::debug($allUIDs, 'Unique IDs per table');
-	//t3lib_div::debug($doOverlays, 'Do overlays?');
-	//t3lib_div::debug($overlays, 'Overlays');
+//t3lib_div::debug($allUIDs, 'Unique IDs per table');
+//t3lib_div::debug($doOverlays, 'Do overlays?');
+//t3lib_div::debug($overlays, 'Overlays');
 
 					// Loop on all recordset rows to overlay them
 				foreach ($rawRecordset as $row) {
@@ -342,7 +342,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 						}
 						$subParts[$columnInfo['aliasTable']][$columnInfo['field']] = $row[$columnName];
 					}
-	//t3lib_div::debug($subParts, 'Raw subparts');
+//t3lib_div::debug($subParts, 'Raw subparts');
 						// Overlay each part
 					foreach ($subParts as $alias => $subRow) {
 						$table = $allTablesTrueNames[$alias];
@@ -375,7 +375,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 							unset($subParts[$alias]);
 						}
 					}
-	//t3lib_div::debug($subParts, 'Subparts');
+//t3lib_div::debug($subParts, 'Subparts');
 						// Reassemble the full record
 					$overlaidRecord = array();
 					foreach ($subParts as $alias => $subRow) {
@@ -391,12 +391,12 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 							}
 						}
 					}
-	//t3lib_div::debug($overlaidRecord, 'Overlaid record');
+//t3lib_div::debug($overlaidRecord, 'Overlaid record');
 					if (isset($overlaidRecord['uid'])) {
 						$finalRecordset[] = $overlaidRecord;
 					}
 				}
-	//t3lib_div::debug($finalRecordset, 'Overlaid recordset');
+//t3lib_div::debug($finalRecordset, 'Overlaid recordset');
 
 					// If the dataquery was provided with a structure,
 					// use the list of uid's to define a fixed order of records
@@ -407,13 +407,39 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 						$finalRecordset[$index]['tx_dataquery:fixed_order'] = $fixedOrder[$record['uid']];
 					}
 				}
+//t3lib_div::debug($finalRecordset, 'Final recordset before sorting');
 
 					// Perform sorting if not handled by SQL
 				if (!$this->sqlParser->isSqlUsedForOrdering()) {
 					self::$sortingFields = $this->sqlParser->getOrderByFields();
+						// The names of the fields as stored in the sorting fields configuration
+						// match the names used in the SQL query, but not the aliases
+						// So they will not match the column names in the full recordset
+						// Use the reverse mapping information (if available) to get the aliases
+						// (if defined, otherwise stick to field name)
+					foreach (self::$sortingFields as $index => $orderInfo) {
+						$alias = $this->mainTable;
+						$field = '';
+							// Field may have a special alias which is also not the colum name
+							// found in the recordset, but should be used to find that name
+						$fieldName = (isset($orderInfo['alias'])) ? $orderInfo['alias'] : $orderInfo['field'];
+						$fieldParts = explode('.', $fieldName);
+						if (count($fieldParts) == 1) {
+							$field = $fieldParts[0];
+						} else {
+							$alias = $fieldParts[0];
+							$field = $fieldParts[1];
+						}
+						if (isset($reverseColumnsMappings[$alias][$field])) {
+							self::$sortingFields[$index]['field'] = $reverseColumnsMappings[$alias][$field];
+						} else {
+							self::$sortingFields[$index]['field'] = $field;
+						}
+					}
+//t3lib_div::debug(self::$sortingFields, 'Sorting fields');
 					self::$sortingLevel = 0;
 					usort($finalRecordset, array('tx_dataquery_wrapper', 'sortRecordset'));
-	//t3lib_div::debug($finalRecordset, 'Sorted, overlaid recordset');
+//t3lib_div::debug($finalRecordset, 'Sorted, overlaid recordset');
 				}
 					// If no sorting is defined at all, perform fixed order sorting, if defined
 				elseif (!$this->sqlParser->hasOrdering() && isset($this->structure['uidList'])) {
@@ -471,7 +497,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 					}
 				}
 			}
-	//t3lib_div::debug($rows, 'De-JOINed tables');
+//t3lib_div::debug($rows, 'De-JOINed tables');
 
 				// Now loop on all the records of the main table and join them to their subtables
 			$hasInnerJoin = $this->sqlParser->hasInnerJoinOnFirstSubtable();
