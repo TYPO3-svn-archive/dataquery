@@ -257,7 +257,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 				$rawRecordset[] = $row;
 
 			}
-	//t3lib_div::debug($rawRecordset, 'Raw result');
+//t3lib_div::debug($rawRecordset, 'Raw result');
 
 				// Analyze the first row of the raw recordset to get which column belongs to which table
 				// and which aliases are used, if any
@@ -266,6 +266,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 			$reverseColumnsMappings = array();
 			foreach ($testRow as $columnName => $value) {
 				$info = $this->sqlParser->getTrueFieldName($columnName);
+//t3lib_div::debug($info, 'Field info');
 				$columnsMappings[$columnName] = $info;
 				$reverseColumnsMappings[$info['aliasTable']][$info['field']] = $columnName;
 			}
@@ -286,10 +287,11 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 					foreach ($finalRecordset as $index => $record) {
 						$finalRecordset[$index]['tx_dataquery:fixed_order'] = $fixedOrder[$record['uid']];
 					}
-	//t3lib_div::debug($finalRecordset, 'Recordset with fixed order');
+//t3lib_div::debug($finalRecordset, 'Recordset with fixed order');
 						// Sort recordset according to fixed order
 					usort($finalRecordset, array('tx_dataquery_wrapper', 'sortUsingFixedOrder'));
 				}
+//t3lib_div::debug($finalRecordset, 'Recordset after sorting (no overlays)');
 			}
 			else {
 				$finalRecordset = array();
@@ -463,23 +465,29 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 				}
 				$recordsPerTable = array();
 				foreach ($row as $fieldName => $fieldValue) {
-					// The query contains no joined table
-					// All fields belong to the main table
+						// The query contains no joined table
+						// All fields belong to the main table
 					if ($numSubtables == 0) {
 						$recordsPerTable[$this->mainTable][$columnsMappings[$fieldName]['mapping']['field']] = $fieldValue;
 					}
 						// There are multiple tables
 					else {
+							// Get the field's true name
+						$finalFieldName = $columnsMappings[$fieldName]['mapping']['field'];
+							// However, if the field had an explicit alias, use that alias
+						if (isset($columnsMappings[$fieldName]['mapping']['alias'])) {
+							$finalFieldName = $columnsMappings[$fieldName]['mapping']['alias'];
+						}
 							// Field belongs to a subtable
 						if (in_array($columnsMappings[$fieldName]['mapping']['table'], $subtables)) {
 							$subtableName = $columnsMappings[$fieldName]['mapping']['table'];
 							if (isset($fieldValue)) {
-								$recordsPerTable[$subtableName][$columnsMappings[$fieldName]['mapping']['field']] = $fieldValue;
+								$recordsPerTable[$subtableName][$finalFieldName] = $fieldValue;
 							}
 						}
 							// Else assume the field belongs to the main table
 						else {
-							$recordsPerTable[$this->mainTable][$columnsMappings[$fieldName]['mapping']['field']] = $fieldValue;
+							$recordsPerTable[$this->mainTable][$finalFieldName] = $fieldValue;
 						}
 					}
 				}

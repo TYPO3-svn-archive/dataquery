@@ -206,10 +206,11 @@ class tx_dataquery_parser {
 			}
 		}
 
-// Loop again on all SELECT items
-
+			// Loop again on all SELECT items
 		$numSelects = count($this->structure['SELECT']);
 		$tableHasUid = array();
+			// This is an array of all "explicit aliases"
+			// This means all fields for which an alias was given in the SQL query using the AS keyword
 		$this->fieldAliases = array();
 		for ($i = 0; $i < $numSelects; $i++) {
 			$selector = $this->structure['SELECT'][$i];
@@ -245,7 +246,7 @@ class tx_dataquery_parser {
 					$table = $this->mainTable;
 					$alias = $table;
 				}
-				// If there's an alias for the field, store it in a separate array, for later use
+					// If there's an alias for the field, store it in a separate array, for later use
 				if (!empty($fieldAlias)) {
 					if (!isset($this->fieldAliases[$alias])) {
 						$this->fieldAliases[$alias] = array();
@@ -254,9 +255,8 @@ class tx_dataquery_parser {
 				}
             }
 
-// Assemble list of fields per table
-// The name of the field is used both as key and value, but the value will be replaced by the fields' labels in getLocalizedLabels()
-
+				// Assemble list of fields per table
+				// The name of the field is used both as key and value, but the value will be replaced by the fields' labels in getLocalizedLabels()
 			if (!isset($this->queryFields[$alias])) {
 				$this->queryFields[$alias] = array('name' => $table, 'table' => (empty($this->aliases[$alias])) ? $table : $this->aliases[$alias], 'fields' => array());
 			}
@@ -969,7 +969,19 @@ t3lib_div::debug($this->structure['SELECT'], 'Updated select structure');
 	 *						and the true name of the table it belongs and the alias of that table
 	 */
 	public function getTrueFieldName($alias) {
-		return $this->fieldTrueNames[$alias];
+		$trueNameInformation = $this->fieldTrueNames[$alias];
+			// If the field has an explicit alias, we must also pass back that information
+		if (isset($this->fieldAliases[$trueNameInformation['aliasTable']][$trueNameInformation['field']])) {
+			$alias = $this->fieldAliases[$trueNameInformation['aliasTable']][$trueNameInformation['field']];
+				// Check if the alias contains a table name
+				// If yes, strip it, as this information is already handled
+			if (strpos($alias, '.') !== false) {
+				list($table, $field) = explode('.', $alias);
+				$alias = $field;
+			}
+			$trueNameInformation['mapping']['alias'] = $alias;
+		}
+		return $trueNameInformation;
 	}
 
 	/**
