@@ -600,7 +600,7 @@ class tx_dataquery_parser {
 			foreach ($filter['filters'] as $filterData) {
 				$table = (empty($filterData['table'])) ? $this->mainTable: $filterData['table'];
 				$field = $filterData['field'];
-				$fullFied = $table . '.' . $field;
+				$fullField = $table . '.' . $field;
 				$condition = '';
 				if (empty($completeFilters[$table])) {
 					$completeFilters[$table] = '';
@@ -615,7 +615,7 @@ class tx_dataquery_parser {
 						// Some operators require a bit more handling
 						// "in" values just need to be put within brackets
 					if ($conditionData['operator'] == 'in') {
-						$condition .= $fullFied . ' IN (' . $conditionData['value'] . ')';
+						$condition .= $fullField . ' IN (' . $conditionData['value'] . ')';
 					}
 						// "andgroup" and "orgroup" requires more handling
 						// The associated value is a list of comma-separated values and each of these values must be handled separately
@@ -629,7 +629,7 @@ class tx_dataquery_parser {
 						}
 						foreach ($values as $aValue) {
 							if (!empty($localCondition)) $localCondition .= ' ' . $localOperator . ' ';
-							$localCondition .= $GLOBALS['TYPO3_DB']->listQuery($fullFied, $aValue, $table);
+							$localCondition .= $GLOBALS['TYPO3_DB']->listQuery($fullField, $aValue, $table);
 						}
 						$condition .= $localCondition;
 					}
@@ -645,11 +645,11 @@ class tx_dataquery_parser {
 						else {
 							$value = '%' . $conditionData['value'] . '%';
 						}
-						$condition .= $fullFied . ' LIKE ' . $GLOBALS['TYPO3_DB']->fullQuoteStr($value, $table);
+						$condition .= $fullField . ' LIKE ' . $GLOBALS['TYPO3_DB']->fullQuoteStr($value, $table);
 					}
 						// Other operators are handled simply
 					else {
-						$condition .= $fullFied . ' ' . $conditionData['operator'] . ' ' . $GLOBALS['TYPO3_DB']->fullQuoteStr($conditionData['value'], $table);
+						$condition .= $fullField . ' ' . $conditionData['operator'] . ' ' . $GLOBALS['TYPO3_DB']->fullQuoteStr($conditionData['value'], $table);
 					}
 				}
 				$completeFilters[$table] .= '(' . $condition . ')';
