@@ -323,9 +323,10 @@ class tx_dataquery_parser {
 				// The $ sign is used in class tx_dataquery_wrapper for building the data structure
 			$completeFields = array();
 			foreach ($fields as $index => $name) {
-					// Clean up values from previous iterations
-				unset($mappedField);
-				unset($mappedTable);
+					// Initialize values
+				$theAlias = '';
+				$mappedField = '';
+				$mappedTable = '';
 				$fullField = $alias . '.' . $name;
 				if (!empty($functions[$index])) {
 					$fullField = $functions[$index] . '(' . $fullField . ')';
@@ -367,7 +368,7 @@ class tx_dataquery_parser {
                     }
 					$fullField .= $theAlias;
                 }
-				if (!isset($mappedTable)) {
+				if (empty($mappedTable)) {
 					$mappedTable = $alias;
 					$mappedField = $theField;
 				}
@@ -389,12 +390,10 @@ class tx_dataquery_parser {
         	if (!$flag) {
         		$fullField = $alias . '.uid';
 				$theField = 'uid';
+				$fieldAlias = 'uid';
 				if ($alias != $this->mainTable) {
 					$fieldAlias = $alias . '$uid';
 	       			$fullField .= ' AS ' . $fieldAlias;
-				}
-				else {
-					$fieldAlias = 'uid';
 				}
 				$this->fieldTrueNames[$fieldAlias] = array(
 														'table' => $this->getTrueTableName($alias),
@@ -885,14 +884,16 @@ t3lib_div::debug($this->structure['SELECT'], 'Select structure');
 				$newQueryFields = array();
 				$newSelectFields = array();
 				$newTrueNames = array();
+				$countNewFields = 0;
 				foreach ($this->orderFields as $index => $orderInfo) {
+					$alias = '';
+					$field = '';
 						// Define the table and field names
 					$fieldParts = explode('.', $orderInfo['field']);
 					if (count($fieldParts) == 1) {
 						$alias = $this->mainTable;
 						$field = $fieldParts[0];
-					}
-					else {
+					} else {
 						$alias = $fieldParts[0];
 						$field = $fieldParts[1];
 					}
@@ -954,7 +955,6 @@ t3lib_div::debug($this->structure['SELECT'], 'Select structure');
 						// Check if the field is already part of the SELECTed fields (under its true name or an alias)
 						// If not, get ready to add it by defining all necessary info in temporary arrays
 						// (it will be added only if necessary, i.e. if at least one field needs to be ordered later)
-					$countNewFields = 0;
 					if (!$this->isAQueryField($alias, $field) && !isset($this->fieldAliases[$alias][$field])) {
 						$fieldAlias = $alias . '$' . $field;
 						$newQueryFields[$alias]['fields'][] = array('name' => $field, 'function' => '');
