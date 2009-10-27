@@ -250,6 +250,11 @@ class tx_dataquery_parser {
 						$table = $functionInformation['table'];
 						$alias = $functionInformation['table'];
 					}
+						// Function calls need aliases
+						// If none was given, define one
+					if (empty($fieldAlias)) {
+						$fieldAlias = $field . '_' . $function;
+					}
 				}
 				$fields = array($field);
 				$functions = array($function);
@@ -258,13 +263,14 @@ class tx_dataquery_parser {
 					if (!isset($this->fieldAliases[$alias])) {
 						$this->fieldAliases[$alias] = array();
 					}
-					$this->fieldAliases[$alias][$fields[0]] = $fieldAlias;
 						// If the field is used with a function, add an extra alias
 						// to disambiguate the field if needed
 						// (this is be necessary if the same field is called twice,
 						// with different functions)
 					if (!empty($functions[0])) {
 						$this->fieldAliases[$alias][$fields[0] . '_' . $functions[0]] = $fieldAlias;
+					} else {
+						$this->fieldAliases[$alias][$fields[0]] = $fieldAlias;
 					}
 				}
             }
