@@ -23,31 +23,6 @@
 *
 * $Id$
 ***************************************************************/
-/**
- * [CLASS/FUNCTION INDEX of SCRIPT]
- *
- *
- *
- *   62: class tx_dataquery_parser
- *   81:     public function parseQuery($query)
- *  319:     public function getLocalizedLabels($language = '')
- *  410:     public function addTypo3Mechanisms($settings)
- *  522:     public function addFilter($filter)
- *  622:     public function addIdList($idList)
- *  662:     public function buildQuery()
- *  707:     public function addWhereClause($clause)
- *  719:     public function getMainTableName()
- *  729:     public function getSubtablesNames()
- *  739:     public function getTrueTableName($alias)
- *  748:     public function hasMergedResults()
- *  759:     public function mustHandleLanguageOverlay($table)
- *  769:     public function isLimitAlreadyApplied()
- *  780:     public function getSubTableLimit($table)
- *
- * TOTAL FUNCTIONS: 14
- * (This index is automatically created/updated by the extension "extdeveval")
- *
- */
 
 require_once(t3lib_extMgm::extPath('overlays', 'class.tx_overlays.php'));
 
@@ -55,12 +30,12 @@ require_once(t3lib_extMgm::extPath('overlays', 'class.tx_overlays.php'));
  * This class is used to parse a SELECT SQL query into a structured array
  * It can automatically handle a number of TYPO3 constructs, like enable fields and language overlays
  *
- * @author	Francois Suter (Cobweb) <typo3@cobweb.ch>
- * @package	TYPO3
+ * @author		Francois Suter (Cobweb) <typo3@cobweb.ch>
+ * @package		TYPO3
  * @subpackage	tx_dataquery
  */
 class tx_dataquery_parser {
-	protected static $tokens = array('SELECT', 'FROM', 'INNER JOIN', 'LEFT JOIN', 'RIGHT JOIN', 'WHERE', 'GROUP BY', 'ORDER BY', 'LIMIT', 'OFFSET', 'MERGED');
+	static protected $tokens = array('SELECT', 'FROM', 'INNER JOIN', 'LEFT JOIN', 'RIGHT JOIN', 'WHERE', 'GROUP BY', 'ORDER BY', 'LIMIT', 'OFFSET', 'MERGED');
 	protected $structure = array(); // Contains all components of the parsed query
 	protected $mainTable; // Name (or alias if defined) of the main query table, i.e. the one in the FROM part of the query
 	protected $aliases = array(); // The keys to this array are the aliases of the tables used in the query and they point to the true table names
@@ -215,33 +190,43 @@ class tx_dataquery_parser {
 		for ($i = 0; $i < $numSelects; $i++) {
 			$selector = $this->structure['SELECT'][$i];
 			$alias = '';
+			$table = '';
 			$fieldAlias = '';
-			if (stristr($selector, '*')) { // If the string is just * (or possibly table.*), get all the fields for the table
-				if ($selector == '*') { // It's only *, get list of fields for the main table
+			$fields = array();
+				// If the string is just * (or possibly table.*), get all the fields for the table
+			if (stristr($selector, '*')) {
+					// It's only *, get list of fields for the main table
+				if ($selector == '*') {
 					$table = $this->mainTable;
 					$alias = $table;
-                }
-				else { // It's table.*, get list of fields for the given table
+
+					// It's table.*, get list of fields for the given table
+                } else {
 					$selectorParts = t3lib_div::trimExplode('.', $selector, 1);
 					$table = (isset($this->aliases[$selectorParts[0]]) ? $this->aliases[$selectorParts[0]] : $selectorParts[0]);
 					$alias = $selectorParts[0];
                 }
 				$fieldInfo = $GLOBALS['TYPO3_DB']->admin_get_fields($table);
 				$fields = array_keys($fieldInfo);
-            }
-			else { // Else, the field is some string, analyse it
-				if (stristr($selector, 'AS')) { // If there's an alias, extract it and continue parsing
+
+				// Else, the field is some string, analyse it
+            } else {
+
+					// If there's an alias, extract it and continue parsing
+				if (stristr($selector, 'AS')) {
 					$selectorParts = t3lib_div::trimExplode('AS', $selector, 1);
 					$selector = $selectorParts[0];
 					$fieldAlias = $selectorParts[1];
                 }
-				if (stristr($selector, '.')) { // If there's a dot, get table name
+					// If there's a dot, get table name
+				if (stristr($selector, '.')) {
 					$selectorParts = t3lib_div::trimExplode('.', $selector, 1);
 					$table = (isset($this->aliases[$selectorParts[0]]) ? $this->aliases[$selectorParts[0]] : $selectorParts[0]);
 					$alias = $selectorParts[0];
 					$fields = array($selectorParts[1]);
-                }
-				else { // No dot, the table is the main one
+
+					// No dot, the table is the main one
+				} else {
 					$fields = array($selector);
 					$table = $this->mainTable;
 					$alias = $table;
@@ -268,8 +253,12 @@ class tx_dataquery_parser {
 // exists for every table. If not, it will be added later
 // (there must be a primary key, if it is not called "uid", an alias called "uid" must be used in the query)
 
-            if (!isset($tableHasUid[$alias])) $tableHasUid[$alias] = false; // Initialise to false
-			if (in_array('uid', $fields) || (isset($fieldAlias) && $fieldAlias == 'uid')) $tableHasUid[$alias] |= true;
+            if (!isset($tableHasUid[$alias])) {
+				$tableHasUid[$alias] = false; // Initialise to false
+			}
+			if (in_array('uid', $fields) || (isset($fieldAlias) && $fieldAlias == 'uid')) {
+				$tableHasUid[$alias] |= true;
+			}
 
 // Assemble full names for each field
 // The full name is:
