@@ -392,9 +392,9 @@ class tx_dataquery_parser {
 		else {
 			require_once(PATH_typo3.'sysext/lang/lang.php');
 			$lang = t3lib_div::makeInstance('language');
+			$languageCode = '';
 				// Find out which language to use
 			if (empty($language)) {
-				$languageCode = '';
 					// If in the BE, it's taken from the user's preferences
 				if (TYPO3_MODE == 'BE') {
 					global $BE_USER;
@@ -402,7 +402,9 @@ class tx_dataquery_parser {
                 }
 					// In the FE, we use the config.language TS property
 				else {
-					if (isset($GLOBALS['TSFE']->tmpl->setup['config.']['language'])) $languageCode = $GLOBALS['TSFE']->tmpl->setup['config.']['language'];
+					if (isset($GLOBALS['TSFE']->tmpl->setup['config.']['language'])) {
+						$languageCode = $GLOBALS['TSFE']->tmpl->setup['config.']['language'];
+					}
                 }
             }
 			else {
@@ -592,13 +594,10 @@ class tx_dataquery_parser {
 	 */
 	public function addFilter($filter) {
 			// First handle the "filter" part, which will be turned into part of a SQL WHERE clause
-//		$completeFilter = '';
 		$completeFilters = array();
 		$logicalOperator = (empty($filter['logicalOperator'])) ? 'AND' : $filter['logicalOperator'];
 		if (isset($filter['filters']) && is_array($filter['filters'])) {
-			$conditions = array();
 			foreach ($filter['filters'] as $filterData) {
-//				if (!empty($completeFilter)) $completeFilter .= ' '.$logicalOperator.' ';
 				$table = (empty($filterData['table'])) ? $this->mainTable: $filterData['table'];
 				$field = $filterData['field'];
 				$fullFied = $table . '.' . $field;
@@ -624,11 +623,9 @@ class tx_dataquery_parser {
 					elseif ($conditionData['operator'] == 'andgroup' || $conditionData['operator'] == 'orgroup') {
 						$values = explode(',', $conditionData['value']);
 						$localCondition = '';
+						$localOperator = 'OR';
 						if ($conditionData['operator'] == 'andgroup') {
 							$localOperator = 'AND';
-						}
-						else {
-							$localOperator = 'OR';
 						}
 						foreach ($values as $aValue) {
 							if (!empty($localCondition)) $localCondition .= ' ' . $localOperator . ' ';
@@ -638,6 +635,7 @@ class tx_dataquery_parser {
 					}
 						// If the operator is "like", "start" or "end", the SQL operator is always LIKE, but different wildcards are used
 					elseif ($conditionData['operator'] == 'like' || $conditionData['operator'] == 'start' || $conditionData['operator'] == 'end') {
+						$value = '';
 						if ($conditionData['operator'] == 'start') {
 							$value = $conditionData['value'] . '%';
 						}
@@ -654,10 +652,8 @@ class tx_dataquery_parser {
 						$condition .= $fullFied . ' ' . $conditionData['operator'] . ' ' . $GLOBALS['TYPO3_DB']->fullQuoteStr($conditionData['value'], $table);
 					}
 				}
-//				$completeFilter .= '('.$condition.')';
 				$completeFilters[$table] .= '(' . $condition . ')';
 			}
-//			$this->addWhereClause($completeFilter);
 			foreach ($completeFilters as $table => $whereClause) {
 				if ($table == $this->mainTable) {
 					$this->addWhereClause($whereClause);
