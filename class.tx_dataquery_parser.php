@@ -79,6 +79,7 @@ class tx_dataquery_parser {
 		$i = 0;
 		$numMatches = count($matches);
 		$this->aliases = array();
+		$this->structure['DISTINCT'] = FALSE;
 		while ($i < $numMatches) {
 			$keyword = $matches[$i];
 			$i++;
@@ -87,11 +88,17 @@ class tx_dataquery_parser {
 			if (!isset($this->structure[$keyword])) $this->structure[$keyword] = array();
 			switch ($keyword) {
 				case 'SELECT':
-
-// Explode the select string in its constituent parts and store it as is
-// More processing takes place later on
-
 					$selectString = trim($value);
+						// Check if the select string starts with "DISTINCT"
+						// If yes, remove that and set the distinct flag to true
+					if (strpos($selectString, 'DISTINCT') === 0) {
+						$this->structure['DISTINCT'] = TRUE;
+						$croppedString = substr($selectString, 8);
+						$selectString = trim($croppedString);
+					}
+
+						// Explode the select string in its constituent parts and store it as is
+						// More processing takes place later on
 					$selectArray = t3lib_div::trimExplode(',', $selectString, 1);
 					foreach ($selectArray as $value) {
 						$this->structure[$keyword][] = $value;
@@ -729,22 +736,34 @@ class tx_dataquery_parser {
 			// First check what to do with ORDER BY fields
 		$this->preprocessOrderByFields();
 			// Start assembling the query
-		$query = 'SELECT ' . implode(', ', $this->structure['SELECT']) . ' ';
+		$query  = 'SELECT ';
+		if ($this->structure['DISTINCT']) {
+			$query .= 'DISTINCT ';
+		}
+		$query .= implode(', ', $this->structure['SELECT']) . ' ';
 		$query .= 'FROM ' . $this->structure['FROM']['table'];
-		if (!empty($this->structure['FROM']['alias'])) $query .= ' AS ' . $this->structure['FROM']['alias'];
+		if (!empty($this->structure['FROM']['alias'])) {
+			$query .= ' AS ' . $this->structure['FROM']['alias'];
+		}
 		$query .= ' ';
 		if (isset($this->structure['JOIN'])) {
 			foreach ($this->structure['JOIN'] as $theJoin) {
 				$query .= strtoupper($theJoin['type']) . ' JOIN ' . $theJoin['table'];
-				if (!empty($theJoin['alias'])) $query .= ' AS ' . $theJoin['alias'];
-				if (!empty($theJoin['on'])) $query .= ' ON ' . $theJoin['on'];
+				if (!empty($theJoin['alias'])) {
+					$query .= ' AS ' . $theJoin['alias'];
+				}
+				if (!empty($theJoin['on'])) {
+					$query .= ' ON ' . $theJoin['on'];
+				}
 				$query .= ' ';
 			}
 		}
 		if (isset($this->structure['WHERE'])) {
 			$whereClause = '';
 			foreach ($this->structure['WHERE'] as $clause) {
-				if (!empty($whereClause)) $whereClause .= ' AND ';
+				if (!empty($whereClause)) {
+					$whereClause .= ' AND ';
+				}
 				$whereClause .= $clause;
 			}
 			$query .= 'WHERE ' . $whereClause . ' ';
