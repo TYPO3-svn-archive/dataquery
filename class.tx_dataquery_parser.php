@@ -259,6 +259,10 @@ class tx_dataquery_parser {
 						$this->fieldAliases[$alias] = array();
 					}
 					$this->fieldAliases[$alias][$fields[0]] = $fieldAlias;
+						// If the field is used with a function, add an extra alias
+						// to disambiguate the field if needed
+						// (this is be necessary if the same field is called twice,
+						// with different functions)
 					if (!empty($functions[0])) {
 						$this->fieldAliases[$alias][$fields[0] . '_' . $functions[0]] = $fieldAlias;
 					}
@@ -361,7 +365,13 @@ class tx_dataquery_parser {
 					$mappedTable = $alias;
 					$mappedField = $theField;
 				}
-				$this->fieldTrueNames[$theAlias] = array('table' => $table, 'aliasTable' => $alias, 'field' => $theField, 'mapping' => array('table' => $mappedTable, 'field' => $mappedField));
+				$this->fieldTrueNames[$theAlias] = array(
+														'table' => $table,
+														'aliasTable' => $alias,
+														'field' => $theField,
+														'function' => (isset($functions[$index])) ? $functions[$index] : '',
+														'mapping' => array('table' => $mappedTable, 'field' => $mappedField)
+													);
 				$completeFields[] = $fullField;
 			}
 			$this->structure['SELECT'][$i] = implode(', ', $completeFields);
@@ -380,7 +390,13 @@ class tx_dataquery_parser {
 				else {
 					$fieldAlias = 'uid';
 				}
-				$this->fieldTrueNames[$fieldAlias] = array('table' => $this->getTrueTableName($alias), 'aliasTable' => $alias, 'field' => $theField, 'mapping' => array('table' => $alias, 'field' => $theField));
+				$this->fieldTrueNames[$fieldAlias] = array(
+														'table' => $this->getTrueTableName($alias),
+														'aliasTable' => $alias,
+														'field' => $theField,
+														'function' => '',
+														'mapping' => array('table' => $alias, 'field' => $theField)
+													);
 				$this->structure['SELECT'][] = $fullField;
 				$this->queryFields[$alias]['fields'][] = array('name' => 'uid', 'function' => '');
         	}
@@ -487,6 +503,7 @@ class tx_dataquery_parser {
 				}
 					// Check if the field has an alias, if yes use it
 				$fieldKey = $field;
+					// If the field is called with a function, use the disambiguation key
 				if (!empty($fieldData['function'])) {
 					$fieldKey .= '_' . $fieldData['function'];
 				}
@@ -586,7 +603,13 @@ class tx_dataquery_parser {
 									$newFieldAlias = $alias . '$' . $aField;
 									$this->structure['SELECT'][] = $newFieldName . ' AS ' . $newFieldAlias;
 									$this->queryFields[$table]['fields'][] = array('name' => $aField, 'function' => '');
-									$this->fieldTrueNames[$newFieldAlias] = array('table' => $table, 'aliasTable' => $alias, 'field' => $aField, 'mapping' => array('table' => $alias, 'field' => $aField));
+									$this->fieldTrueNames[$newFieldAlias] = array(
+																				'table' => $table,
+																				'aliasTable' => $alias,
+																				'field' => $aField,
+																				'function' => '',
+																				'mapping' => array('table' => $alias, 'field' => $aField)
+																			);
 								}
 							}
 							$this->doOverlays[$table] = true;
@@ -930,7 +953,13 @@ t3lib_div::debug($this->structure['SELECT'], 'Select structure');
 						$fieldAlias = $alias . '$' . $field;
 						$newQueryFields[$alias]['fields'][] = array('name' => $field, 'function' => '');
 						$newSelectFields[] = $alias . '.' . $field . ' AS ' . $fieldAlias;
-						$newTrueNames[$fieldAlias] = array('table' => $table, 'aliasTable' => $alias, 'field' => $field, 'mapping' => array('table' => $alias, 'field' => $field));
+						$newTrueNames[$fieldAlias] = array(
+														'table' => $table,
+														'aliasTable' => $alias,
+														'field' => $field,
+														'function' => '',
+														'mapping' => array('table' => $alias, 'field' => $field)
+													);
 						$countNewFields++;
 					}
 				}
@@ -1040,11 +1069,18 @@ t3lib_div::debug($this->structure['SELECT'], 'Updated select structure');
 	 */
 	public function getTrueFieldName($alias) {
 		$trueNameInformation = $this->fieldTrueNames[$alias];
+			// Assemble field key (possibly disambiguated with function name)
+		$fieldKey = $trueNameInformation['field'];
+		if (!empty($trueNameInformation['function'])) {
+			$fieldKey .= '_' . $trueNameInformation['function'];
+		}
 			// If the field has an explicit alias, we must also pass back that information
-		if (isset($this->fieldAliases[$trueNameInformation['aliasTable']][$trueNameInformation['field']])) {
-			$alias = $this->fieldAliases[$trueNameInformation['aliasTable']][$trueNameInformation['field']];
+		if (isset($this->fieldAliases[$trueNameInformation['aliasTable']][$fieldKey])) {
+			$alias = $this->fieldAliases[$trueNameInformation['aliasTable']][$fieldKey];
 				// Check if the alias contains a table name
 				// If yes, strip it, as this information is already handled
+			$table = '';
+			$field = '';
 			if (strpos($alias, '.') !== false) {
 				list($table, $field) = explode('.', $alias);
 				$alias = $field;
