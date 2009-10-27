@@ -694,6 +694,7 @@ class tx_dataquery_parser {
 			$idlistsPerTable = array();
 				// First assemble a list of all uid's for each table
 			foreach ($idArray as $item) {
+				$table = '';
 					// Code inspired from t3lib_loadDBGroup
 					// String is reversed before exploding, to get uid first
 				list($uid, $table) = explode('_', strrev($item), 2);
@@ -1046,11 +1047,8 @@ t3lib_div::debug($this->structure['SELECT'], 'Updated select structure');
 	 * @return	boolean		alias of the first significant table, if INNER JOINed, empty string otherwise
 	 */
 	public function hasInnerJoinOnFirstSubtable() {
-		if (count($this->structure['JOIN']) == 0) {
-			$returnValue = '';
-		}
-		else {
-			$returnValue = '';
+		$returnValue = '';
+		if (count($this->structure['JOIN']) > 0) {
 			foreach ($this->structure['JOIN'] as $alias => $joinInfo) {
 				if (isset($this->queryFields[$alias])) {
 					if ($joinInfo['type'] == 'inner') {
