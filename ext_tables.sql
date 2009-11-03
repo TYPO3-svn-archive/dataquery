@@ -38,3 +38,8 @@ CREATE TABLE tx_dataquery_cache (
 	structure_cache mediumtext NOT NULL
 	KEY query (query_id,page_id),
 ) ENGINE = InnoDB;
+
+# Add a field for SQL conditions to the datafilter
+CREATE TABLE tx_datafilter_filters (
+	tx_dataquery_sql text
+);
