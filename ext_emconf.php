@@ -32,7 +32,8 @@ $EM_CONF[$_EXTKEY] = array(
 	'version' => '0.10.0',
 	'constraints' => array(
 		'depends' => array(
-			'basecontroller' => '0.5.0-0.0.0',
+			'basecontroller' => '0.6.0-0.0.0',
+			'datafilter' => '0.8.0-0.0.0',
 			'overlays' => '0.2.0-0.0.0',
 		),
 		'conflicts' => array(
