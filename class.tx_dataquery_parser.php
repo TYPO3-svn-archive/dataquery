@@ -838,12 +838,12 @@ class tx_dataquery_parser {
 			}
 			$query .= 'WHERE ' . $whereClause . ' ';
 		}
+		if (count($this->structure['GROUP BY']) > 0) {
+			$query .= 'GROUP BY ' . implode(', ', $this->structure['GROUP BY']) . ' ';
+		}
 			// Add order by clause if defined and if applicable (see preprocessOrderByFields())
 		if ($this->processOrderBy && count($this->structure['ORDER BY']) > 0) {
 			$query .= 'ORDER BY ' . implode(', ', $this->structure['ORDER BY']) . ' ';
-		}
-		if (count($this->structure['GROUP BY']) > 0) {
-			$query .= 'GROUP BY ' . implode(', ', $this->structure['GROUP BY']) . ' ';
 		}
 		if (count($this->structure['LIMIT']) > 0) {
 			$query .= 'LIMIT '.$this->structure['LIMIT'];
