@@ -544,15 +544,13 @@ class tx_dataquery_parser {
 	 */
 	public function addTypo3Mechanisms($settings) {
 
-// Add the enable fields, first to the main table
-
+			// Add the enable fields, first to the main table
 		if (empty($settings['ignore_enable_fields'])) {
 			$enableClause = tx_overlays::getEnableFieldsCondition($this->aliases[$this->mainTable]);
 			if ($this->mainTable != $this->aliases[$this->mainTable]) $enableClause = str_replace($this->aliases[$this->mainTable], $this->mainTable, $enableClause);
 			$this->addWhereClause($enableClause);
 
-// Add enable fields to JOINed tables
-
+				// Add enable fields to JOINed tables
 			if (isset($this->structure['JOIN']) && is_array($this->structure['JOIN'])) {
 				foreach ($this->structure['JOIN'] as $tableIndex => $joinData) {
 					$table = $joinData['table'];
@@ -566,25 +564,21 @@ class tx_dataquery_parser {
 			}
 		}
 
-// Add the language condition, if necessary
-
+			// Add the language condition, if necessary
 		if (empty($settings['ignore_language_handling'])) {
 
-// Add the DB fields and the SQL conditions necessary for having everything ready to handle overlays
-// as per the standard TYPO3 mechanism
-
-			// Loop on all tables involved
+				// Add the DB fields and the SQL conditions necessary for having everything ready to handle overlays
+				// as per the standard TYPO3 mechanism
+				// Loop on all tables involved
 			foreach ($this->queryFields as $alias => $tableData) {
 				$table = $tableData['table'];
 
-// First check which handling applies, based on existing TCA structure
-// The table must at least have a language field or point to a foreign table for translation
-
+					// First check which handling applies, based on existing TCA structure
+					// The table must at least have a language field or point to a foreign table for translation
 				if (isset($GLOBALS['TCA'][$table]['ctrl']['languageField']) || isset($GLOBALS['TCA'][$table]['ctrl']['transForeignTable'])) {
 
-// The table uses translations in the same table (transOrigPointerField) or in a foreign table (transForeignTable)
-// Prepare for overlays
-
+						// The table uses translations in the same table (transOrigPointerField) or in a foreign table (transForeignTable)
+						// Prepare for overlays
 					if (isset($GLOBALS['TCA'][$table]['ctrl']['transOrigPointerField']) || isset($GLOBALS['TCA'][$table]['ctrl']['transForeignTable'])) {
 							// Assemble a list of all fields for the table
 						$fields = array();
@@ -637,10 +631,9 @@ class tx_dataquery_parser {
 					}
 				}
 
-// The table simply contains a language flag.
-// This is just about adding the proper condition on the language field and nothing more
-// No overlays will be handled at a later time
-
+					// The table simply contains a language flag.
+					// This is just about adding the proper condition on the language field and nothing more
+					// No overlays will be handled at a later time
 				else {
 					if (isset($GLOBALS['TCA'][$table]['ctrl']['languageField'])) {
 							// Take language that corresponds to current language or [All]
