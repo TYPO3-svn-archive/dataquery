@@ -48,17 +48,7 @@ $TCA['tx_dataquery_queries'] = array(
 			'config' => array(
 				'type' => 'text',
 				'cols' => '30',	
-				'rows' => '8',	
-				'wizards' => array(
-					'_PADDING' => 2,
-					'example' => array(
-						'title' => 'Example Wizard:',
-						'type' => 'script',
-						'notNewRecords' => 1,
-						'icon' => t3lib_extMgm::extRelPath('dataquery').'tx_dataquery_queries_sql_query/wizard_icon.gif',
-						'script' => t3lib_extMgm::extRelPath('dataquery').'tx_dataquery_queries_sql_query/index.php',
-					),
-				),
+				'rows' => '8',
 			)
 		),
 		'cache_duration' => array(		
