@@ -649,6 +649,21 @@ class tx_dataquery_parser {
 				}
 			}
 		}
+			// Add workspace condition (always)
+			// Make sure to take only records from live workspace
+		foreach ($this->queryFields as $alias => $tableData) {
+			$table = $tableData['table'];
+			if (!empty($GLOBALS['TCA'][$table]['ctrl']['versioningWS'])) {
+				$workspaceCondition = $alias . ".t3ver_oid = '0'";
+				if ($alias == $this->mainTable) {
+					$this->addWhereClause($workspaceCondition);
+				}
+				else {
+					if (!empty($this->structure['JOIN'][$alias]['on'])) $this->structure['JOIN'][$alias]['on'] .= ' AND ';
+					$this->structure['JOIN'][$alias]['on'] .= '(' . $workspaceCondition . ')';
+				}
+			}
+		}
 //t3lib_div::debug($this->doOverlays);
 	}
 
