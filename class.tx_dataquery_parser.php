@@ -854,7 +854,7 @@ class tx_dataquery_parser {
 			$query .= 'ORDER BY ' . implode(', ', $this->structure['ORDER BY']) . ' ';
 		}
 		if (count($this->structure['LIMIT']) > 0) {
-			$query .= 'LIMIT '.$this->structure['LIMIT'];
+			$query .= 'LIMIT ' . $this->structure['LIMIT'];
 			if (count($this->structure['OFFSET']) > 0) {
 				$query .= ' OFFSET ' . $this->structure['OFFSET'];
 			}
