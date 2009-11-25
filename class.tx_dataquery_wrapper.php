@@ -20,33 +20,7 @@
 *  GNU General Public License for more details.
 *
 *  This copyright notice MUST APPEAR in all copies of the script!
-*
-* $Id$
 ***************************************************************/
-/**
- * [CLASS/FUNCTION INDEX of SCRIPT]
- *
- *
- *
- *   62: class tx_dataquery_wrapper extends tx_basecontroller_providerbase
- *   72:     public function __construct()
- *   81:     public function getData()
- *  183:     protected function loadQuery()
- *  209:     public function getMainTableName()
- *  220:     public function getProvidedDataStructure()
- *  230:     public function providesDataStructure($type)
- *  239:     public function getAcceptedDataStructure()
- *  249:     public function acceptsDataStructure($type)
- *  260:     public function loadData($data)
- *  270:     public function getDataStructure()
- *  280:     public function setDataStructure($structure)
- *  290:     public function setDataFilter($filter)
- *  301:     public function getTablesAndFields($language = '')
- *
- * TOTAL FUNCTIONS: 13
- * (This index is automatically created/updated by the extension "extdeveval")
- *
- */
 
 require_once(t3lib_extMgm::extPath('dataquery', 'class.tx_dataquery_parser.php'));
 require_once(t3lib_extMgm::extPath('basecontroller', 'services/class.tx_basecontroller_providerbase.php'));
@@ -56,19 +30,22 @@ require_once(t3lib_extMgm::extPath('basecontroller', 'lib/class.tx_basecontrolle
  * Wrapper for data query
  * This class is used to get the results of a specific data query
  *
- * @author	Francois Suter (Cobweb) <typo3@cobweb.ch>
- * @package	TYPO3
+ * @author		Francois Suter (Cobweb) <typo3@cobweb.ch>
+ * @package		TYPO3
  * @subpackage	tx_dataquery
+ *
+ * $Id$
  */
 class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 	public $extKey = 'dataquery';
 	protected $configuration; // Extension configuration
 	protected $mainTable; // Store the name of the main table of the query
 	/**
+	 * Local instance of the SQL parser class
 	 *
-	 * @var tx_dataquery_parse	$sqlParser
+	 * @var tx_dataquery_parser	$sqlParser
 	 */
-	protected $sqlParser; // Local instance of the SQL parser class (tx_dataquery_parser)
+	protected $sqlParser;
 	static public $sortingFields = array(); // List of fields used for sorting recordset
 	static public $sortingLevel = 0;
 
@@ -96,71 +73,75 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 	 * @return	mixed		array containing the data structure or false if it failed
 	 */
 	public function getData() {
+		$dataStructure = array();
+		$returnStructure = array();
 
-		// If the cache duration is not set to 0, try to find a cached query
+			// If the cache duration is not set to 0, try to find a cached query
+		$hasStructure = FALSE;
 		if (!empty($this->providerData['cache_duration'])) {
 			try {
 				$dataStructure = $this->getCachedStructure();
 //t3lib_div::debug($dataStructure);
-				$hasStructure = true;
+				$hasStructure = TRUE;
 			}
-			// No structure was found, set flag that there's no structure yet
+				// No structure was found, set flag that there's no structure yet
 			catch (Exception $e) {
-				$hasStructure = false;
+				$hasStructure = FALSE;
 			}
-		}
-		// No cache, no structure
-		else {
-			$hasStructure = false;
 		}
 
-		// If there's no structure yet, assemble it
+			// If there's no structure yet, assemble it
 		if (!$hasStructure) {
 			$this->loadQuery();
 
-			// Add the SQL conditions for the selected TYPO3 mechanisms
+				// Add the SQL conditions for the selected TYPO3 mechanisms
 			$this->sqlParser->addTypo3Mechanisms($this->providerData);
 
-			// Assemble filters, if defined
-			if (is_array($this->filter) && count($this->filter) > 0) $this->sqlParser->addFilter($this->filter);
+				// Assemble filters, if defined
+			if (is_array($this->filter) && count($this->filter) > 0) {
+				$this->sqlParser->addFilter($this->filter);
+			}
 
-			// Use idList from input SDS, if defined
-			if (is_array($this->structure) && !empty($this->structure['count'])) $this->sqlParser->addIdList($this->structure['uidListWithTable']);
+				// Use idList from input SDS, if defined
+			if (is_array($this->structure) && !empty($this->structure['count'])) {
+				$this->sqlParser->addIdList($this->structure['uidListWithTable']);
+			}
 
-			// Build the complete query
+				// Build the complete query
 			$query = $this->sqlParser->buildQuery();
-			if ($this->configuration['debug'] || TYPO3_DLOG) t3lib_div::devLog($query, $this->extKey);
+			if ($this->configuration['debug'] || TYPO3_DLOG) {
+				t3lib_div::devLog($query, $this->extKey);
+			}
 
-			// Execute the query
+				// Execute the query
 			$res = $GLOBALS['TYPO3_DB']->sql_query($query);
 
-			// Prepare the full data structure
+				// Prepare the full data structure
 			$dataStructure = $this->prepareFullStructure($res);
 		}
 
-		// Prepare the limit and offset parameters
+			// Prepare the limit and offset parameters
 		$limit = (isset($this->filter['limit']['max'])) ? $this->filter['limit']['max'] : 0;
+		$offset = 0;
 		if ($limit > 0) {
-			// If there's a direct pointer, it takes precedence over the offset
+				// If there's a direct pointer, it takes precedence over the offset
 			if (isset($this->filter['limit']['pointer']) && $this->filter['limit']['pointer'] > 0) {
 				$offset = $this->filter['limit']['pointer'];
-			}
-			else {
+			} else {
 				$offset = $limit * ((isset($this->filter['limit']['offset'])) ? $this->filter['limit']['offset'] : 0);
-				if ($offset < 0) $offset = 0;
+				if ($offset < 0) {
+					$offset = 0;
+				}
 			}
-		}
-		else {
-			$offset = 0;
 		}
 
-		// Take the structure and apply limit and offset, if defined
+			// Take the structure and apply limit and offset, if defined
 		if ($limit > 0 || $offset > 0) {
-			// Reset offset if beyond total number of records
+				// Reset offset if beyond total number of records
 			if ($offset > $dataStructure['totalCount']) {
 				$offset = 0;
 			}
-			// Initialise final structure with data that won't change
+				// Initialise final structure with data that won't change
 			$returnStructure = array(
 									'name' => $dataStructure['name'],
 									'trueName' => $dataStructure['trueName'],
@@ -171,13 +152,13 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 			$counter = 0;
 			$uidList = array();
 			foreach ($dataStructure['records'] as $record) {
-				// Get only those records that are after the offset and within the limit
+					// Get only those records that are after the offset and within the limit
 				if ($counter >= $offset && ($limit == 0 || ($limit > 0 && $counter - $offset < $limit))) {
 					$counter++;
 					$returnStructure['records'][] = $record;
 					$uidList[] = $record['uid'];
 				}
-				// If the offset has not been reached yet, just increase the counter
+					// If the offset has not been reached yet, just increase the counter
 				elseif ($counter < $offset) {
 					$counter++;
 				}
@@ -188,13 +169,13 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 			$returnStructure['count'] = count($returnStructure['records']);
 			$returnStructure['uidList'] = implode(',', $uidList);
 		}
-		// If there's no limit take the structure as is
+			// If there's no limit take the structure as is
 		else {
 			$returnStructure = $dataStructure;
 		}
+		unset($dataStructure);
 
-// Hook for post-processing the data structure
-
+			// Hook for post-processing the data structure
 		if (is_array($GLOBALS['TYPO3_CONF_VARS']['EXTCONF'][$this->extKey]['postProcessDataStructure'])) {
 			foreach($GLOBALS['TYPO3_CONF_VARS']['EXTCONF'][$this->extKey]['postProcessDataStructure'] as $className) {
 				$postProcessor = &t3lib_div::getUserObj($className);
@@ -625,6 +606,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 		}
 		else {
 			$row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res);
+			$GLOBALS['TYPO3_DB']->sql_free_result($res);
 			return unserialize($row['structure_cache']);
 		}
 	}
@@ -634,6 +616,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 	 * provided some conditions are met
 	 * 
 	 * @param	array	$structure: a standard data structure
+	 * @return	void
 	 */
 	protected function writeStructureToCache($structure) {
 			// Write only if cache is active
@@ -677,11 +660,9 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 			$filterForCache['uidListWithTable'] = $this->structure['uidListWithTable'];
 		}
 			// If some parameters were given, add them to the base cache parameters
+		$cacheParameters = $filterForCache;
 		if (is_array($parameters) && count($parameters) > 0) {
-			$cacheParameters = array_merge($filterForCache, $parameters);
-		}
-		else {
-			$cacheParameters = $filterForCache;
+			$cacheParameters = array_merge($cacheParameters, $parameters);
 		}
 			// Finally we add other parameters of unicity:
 			//	- the current FE language
@@ -751,7 +732,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 	}
 
 	/**
-	 * This static method is called when sorting record using a special fixed order value
+	 * This static method is called when sorting records using a special fixed order value
 	 * 
 	 * @param	mixed	$a: first element to sort
 	 * @param	mixed	$b: second element to sort
@@ -761,14 +742,11 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 	 * @see	tx_dataquery_wrapper::prepareFullStructure()
 	 */
 	static public function sortUsingFixedOrder($a, $b) {
+		$result = 1;
 		if ($a['tx_dataquery:fixed_order'] == $b['tx_dataquery:fixed_order']) {
 			$result = 0;
-		}
-		elseif ($a['tx_dataquery:fixed_order'] < $b['tx_dataquery:fixed_order']) {
+		} elseif ($a['tx_dataquery:fixed_order'] < $b['tx_dataquery:fixed_order']) {
 			$result = -1;
-		}
-		else {
-			$result = 1;
 		}
 		return $result;
 	}
@@ -821,8 +799,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 	public function getDataStructure() {
 		if ($this->hasEmptyOutputStructure) {
 			return $this->outputStructure;
-		}
-		else {
+		} else {
 			return $this->getData();
 		}
 	}
@@ -834,7 +811,9 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 	 * @return	void
 	 */
 	public function setDataStructure($structure) {
-		if (is_array($structure)) $this->structure = $structure;
+		if (is_array($structure)) {
+			$this->structure = $structure;
+		}
 	}
 
 	/**
