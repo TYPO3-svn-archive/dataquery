@@ -256,7 +256,8 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 
 				// Get overlays for each table, if language is not default
 				// Set a general flag about having been through this process or not
-			$hasBeenThroughOverlayProcess = false;
+			$hasBeenThroughOverlayProcess = FALSE;
+			$finalRecordset = array();
 			if ($GLOBALS['TSFE']->sys_language_content == 0) {
 				$finalRecordset = $rawRecordset;
 					// If no sorting is defined at all, perform fixed order sorting, if defined
@@ -268,6 +269,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 					foreach ($finalRecordset as $index => $record) {
 						$finalRecordset[$index]['tx_dataquery:fixed_order'] = $fixedOrder[$record['uid']];
 					}
+					unset($fixedOrder);
 //t3lib_div::debug($finalRecordset, 'Recordset with fixed order');
 						// Sort recordset according to fixed order
 					usort($finalRecordset, array('tx_dataquery_wrapper', 'sortUsingFixedOrder'));
@@ -275,17 +277,17 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 //t3lib_div::debug($finalRecordset, 'Recordset after sorting (no overlays)');
 			}
 			else {
-				$finalRecordset = array();
 					// First collect all the uid's for each table
 				$allUIDs = array();
 				foreach ($rawRecordset as $row) {
 					foreach ($row as $fieldName => $fieldValue) {
 						$fieldNameParts = t3lib_div::trimExplode('$', $fieldName);
+						$table = '';
+						$field = '';
 						if (count($fieldNameParts) == 1) {
 							$table = $allTablesTrueNames[$this->mainTable];
 							$field = $fieldNameParts[0];
-						}
-						else {
+						} else {
 							$table = $allTablesTrueNames[$fieldNameParts[0]];
 							$field = $fieldNameParts[1];
 						}
@@ -330,31 +332,30 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 					foreach ($subParts as $alias => $subRow) {
 						$table = $allTablesTrueNames[$alias];
 						$tableCtrl = $GLOBALS['TCA'][$table]['ctrl'];
+						$result = $subRow;
 						if ($doOverlays[$table] && $subRow[$tableCtrl['languageField']] != $GLOBALS['TSFE']->sys_language_content) {
+								// Overlay with record from foreign table
 							if (isset($tableCtrl['transForeignTable']) && isset($overlays[$table][$subRow['uid']])) {
 								$result = tx_overlays::overlaySingleRecord($table, $subRow, $overlays[$table][$subRow['uid']]);
-							}
-							elseif (isset($overlays[$table][$subRow['uid']][$subRow['pid']])) {
+
+								// Overlay with record from same table
+							} elseif (isset($overlays[$table][$subRow['uid']][$subRow['pid']])) {
 								$result = tx_overlays::overlaySingleRecord($table, $subRow, $overlays[$table][$subRow['uid']][$subRow['pid']]);
-							}
+
 								// No overlay exists
-							else {
+							} else {
 									// Take original record, only if non-translated are not hidden, or if language is [All]
 								if ($GLOBALS['TSFE']->sys_language_contentOL == 'hideNonTranslated' && $subRow[$tableCtrl['languageField']] != -1) {
 									unset($result); // Skip record
-								}
-								else {
+								} else {
 									$result = $subRow;
 								}
 							}
 						}
-						else {
-							$result = $subRow;
-						}
+							// Include result only if it was not unset during overlaying
 						if (isset($result)) {
 							$subParts[$alias] = $result;
-						}
-						else {
+						} else {
 							unset($subParts[$alias]);
 						}
 					}
@@ -379,6 +380,10 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 						$finalRecordset[] = $overlaidRecord;
 					}
 				}
+					// Clean up (potentially large) arrays that are not used anymore
+				unset($rawRecordset);
+				unset($overlays);
+				unset($subParts);
 //t3lib_div::debug($finalRecordset, 'Overlaid recordset');
 
 					// If the dataquery was provided with a structure,
@@ -389,6 +394,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 					foreach ($finalRecordset as $index => $record) {
 						$finalRecordset[$index]['tx_dataquery:fixed_order'] = $fixedOrder[$record['uid']];
 					}
+					unset($fixedOrder);
 				}
 //t3lib_div::debug($finalRecordset, 'Final recordset before sorting');
 
@@ -423,9 +429,9 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 					self::$sortingLevel = 0;
 					usort($finalRecordset, array('tx_dataquery_wrapper', 'sortRecordset'));
 //t3lib_div::debug($finalRecordset, 'Sorted, overlaid recordset');
-				}
+
 					// If no sorting is defined at all, perform fixed order sorting, if defined
-				elseif (!$this->sqlParser->hasOrdering() && isset($this->structure['uidList'])) {
+				} elseif (!$this->sqlParser->hasOrdering() && isset($this->structure['uidList'])) {
 					usort($finalRecordset, array('tx_dataquery_wrapper', 'sortUsingFixedOrder'));
 				}
 			} // End of translation handling
@@ -450,9 +456,9 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 						// All fields belong to the main table
 					if ($numSubtables == 0) {
 						$recordsPerTable[$this->mainTable][$columnsMappings[$fieldName]['mapping']['field']] = $fieldValue;
-					}
+
 						// There are multiple tables
-					else {
+					} else {
 							// Get the field's true name
 						$finalFieldName = $columnsMappings[$fieldName]['mapping']['field'];
 							// However, if the field had an explicit alias, use that alias
@@ -465,9 +471,9 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 							if (isset($fieldValue)) {
 								$recordsPerTable[$subtableName][$finalFieldName] = $fieldValue;
 							}
-						}
+
 							// Else assume the field belongs to the main table
-						else {
+						} else {
 							$recordsPerTable[$this->mainTable][$finalFieldName] = $fieldValue;
 						}
 					}
@@ -486,6 +492,8 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 					}
 				}
 			}
+				// Clean up a potentially large array that is not used anymore
+			unset($finalRecordset);
 //t3lib_div::debug($rows, 'De-JOINed tables');
 
 				// Now loop on all the records of the main table and join them to their subtables
@@ -495,8 +503,8 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 				$theFullRecord = $aRecord;
 				$theFullRecord['sds:subtables'] = array();
 					// Check if there are any subtables in the query
+				$recordsPerSubtable = array();
 				if ($numSubtables > 0) {
-					$recordsPerSubtable = array();
 					foreach ($subtables as $table) {
 							// Check if there are any subrecords for this record
 						if (isset($rows[$table][$aRecord['uid']])) {
@@ -518,8 +526,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 										if ($sublimit == 0 || $subcounter < $sublimit) {
 											$subRecords[] = $subRow;
 											$subUidList[] = $subRow['uid'];
-										}
-										elseif ($sublimit != 0 || $subcounter >= $sublimit) {
+										} elseif ($sublimit != 0 || $subcounter >= $sublimit) {
 											break;
 										}
 										$subcounter++;
@@ -551,13 +558,16 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 					if (!empty($recordsPerSubtable[$hasInnerJoin])) {
 						$fullRecords[] = $theFullRecord;
 					}
-				}
+
 					// Otherwise just take the record as is
-				else {
+				} else {
 					$fullRecords[] = $theFullRecord;
 				}
 			}
+				// Clean up a potentially large array that is not used anymore
+			unset($rows);
 		}
+		$GLOBALS['TYPO3_DB']->sql_free_result($res);
 
 			// Assemble the full structure
 		$numRecords = count($fullRecords);
@@ -570,6 +580,8 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 							'header' => $headers[$this->mainTable],
 							'records' => $fullRecords
 						);
+			// Clean up a potentially large array that is not used anymore
+		unset($fullRecords);
 //t3lib_div::debug($dataStructure, 'Finished data structure');
 
 			// Hook for post-processing the data structure before it is stored into cache
