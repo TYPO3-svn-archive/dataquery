@@ -20,8 +20,6 @@
 *  GNU General Public License for more details.
 *
 *  This copyright notice MUST APPEAR in all copies of the script!
-*
-* $Id$
 ***************************************************************/
 
 require_once(t3lib_extMgm::extPath('overlays', 'class.tx_overlays.php'));
@@ -33,6 +31,8 @@ require_once(t3lib_extMgm::extPath('overlays', 'class.tx_overlays.php'));
  * @author		Francois Suter (Cobweb) <typo3@cobweb.ch>
  * @package		TYPO3
  * @subpackage	tx_dataquery
+ *
+ * $Id$
  */
 class tx_dataquery_parser {
 	static protected $tokens = array('SELECT', 'FROM', 'INNER JOIN', 'LEFT JOIN', 'RIGHT JOIN', 'WHERE', 'GROUP BY', 'ORDER BY', 'LIMIT', 'OFFSET', 'MERGED');
@@ -187,6 +187,8 @@ class tx_dataquery_parser {
 					break;
 			}
 		}
+			// Free some memory
+		unset($matches);
 
 			// Loop again on all SELECT items
 		$numSelects = count($this->structure['SELECT']);
@@ -382,6 +384,8 @@ class tx_dataquery_parser {
 				$completeFields[] = $fullField;
 			}
 			$this->structure['SELECT'][$i] = implode(', ', $completeFields);
+				// Free some memory
+			unset($completeFields);
         }
 
 			// Add the uid field to tables that don't have it yet
@@ -447,27 +451,25 @@ class tx_dataquery_parser {
 			// Use the global one, if it exists
 		if (isset($GLOBALS['lang'])) {
 			$lang = $GLOBALS['lang'];
-        }
+
 			// If no language object is available, create one
-		else {
-			require_once(PATH_typo3.'sysext/lang/lang.php');
+        } else {
+			require_once(PATH_typo3 . 'sysext/lang/lang.php');
 			$lang = t3lib_div::makeInstance('language');
 			$languageCode = '';
 				// Find out which language to use
 			if (empty($language)) {
 					// If in the BE, it's taken from the user's preferences
 				if (TYPO3_MODE == 'BE') {
-					global $BE_USER;
-					$languageCode = $BE_USER->uc['lang'];
-                }
+					$languageCode = $GLOBALS['BE_USER']->uc['lang'];
+
 					// In the FE, we use the config.language TS property
-				else {
+                } else {
 					if (isset($GLOBALS['TSFE']->tmpl->setup['config.']['language'])) {
 						$languageCode = $GLOBALS['TSFE']->tmpl->setup['config.']['language'];
 					}
                 }
-            }
-			else {
+            } else {
 				$languageCode = $language;
             }
 			$lang->init($languageCode);
@@ -547,7 +549,9 @@ class tx_dataquery_parser {
 			// Add the enable fields, first to the main table
 		if (empty($settings['ignore_enable_fields'])) {
 			$enableClause = tx_overlays::getEnableFieldsCondition($this->aliases[$this->mainTable]);
-			if ($this->mainTable != $this->aliases[$this->mainTable]) $enableClause = str_replace($this->aliases[$this->mainTable], $this->mainTable, $enableClause);
+			if ($this->mainTable != $this->aliases[$this->mainTable]) {
+				$enableClause = str_replace($this->aliases[$this->mainTable], $this->mainTable, $enableClause);
+			}
 			$this->addWhereClause($enableClause);
 
 				// Add enable fields to JOINed tables
@@ -556,8 +560,12 @@ class tx_dataquery_parser {
 					$table = $joinData['table'];
 					$enableClause = tx_overlays::getEnableFieldsCondition($table);
 					if (!empty($enableClause)) {
-						if ($table != $joinData['alias']) $enableClause = str_replace($table, $joinData['alias'], $enableClause);
-						if (!empty($this->structure['JOIN'][$tableIndex]['on'])) $this->structure['JOIN'][$tableIndex]['on'] .= ' AND ';
+						if ($table != $joinData['alias']) {
+							$enableClause = str_replace($table, $joinData['alias'], $enableClause);
+						}
+						if (!empty($this->structure['JOIN'][$tableIndex]['on'])) {
+							$this->structure['JOIN'][$tableIndex]['on'] .= ' AND ';
+						}
 						$this->structure['JOIN'][$tableIndex]['on'] .= '('.$enableClause.')';
 					}
 				}
@@ -615,12 +623,15 @@ class tx_dataquery_parser {
 								// Add the language condition for the given table (only for tables containing their own translations)
 							if (isset($GLOBALS['TCA'][$table]['ctrl']['transOrigPointerField'])) {
 								$languageCondition = '(' . tx_overlays::getLanguageCondition($table) . ')';
-								if ($table != $alias) $languageCondition = str_replace($table, $alias, $languageCondition);
+								if ($table != $alias) {
+									$languageCondition = str_replace($table, $alias, $languageCondition);
+								}
 								if ($alias == $this->mainTable) {
 									$this->addWhereClause($languageCondition);
-								}
-								else {
-									if (!empty($this->structure['JOIN'][$alias]['on'])) $this->structure['JOIN'][$alias]['on'] .= ' AND ';
+								} else {
+									if (!empty($this->structure['JOIN'][$alias]['on'])) {
+										$this->structure['JOIN'][$alias]['on'] .= ' AND ';
+									}
 									$this->structure['JOIN'][$alias]['on'] .= $languageCondition;
 								}
 							}
@@ -629,20 +640,20 @@ class tx_dataquery_parser {
 							$this->doOverlays[$table] = false;
 						}
 					}
-				}
 
 					// The table simply contains a language flag.
 					// This is just about adding the proper condition on the language field and nothing more
 					// No overlays will be handled at a later time
-				else {
+				} else {
 					if (isset($GLOBALS['TCA'][$table]['ctrl']['languageField'])) {
 							// Take language that corresponds to current language or [All]
 						$languageCondition = $alias.'.'.$GLOBALS['TCA'][$table]['ctrl']['languageField'].' IN ('.$GLOBALS['TSFE']->sys_language_content.', -1)';
 						if ($alias == $this->mainTable) {
 							$this->addWhereClause($languageCondition);
-						}
-						else {
-							if (!empty($this->structure['JOIN'][$alias]['on'])) $this->structure['JOIN'][$alias]['on'] .= ' AND ';
+						} else {
+							if (!empty($this->structure['JOIN'][$alias]['on'])) {
+								$this->structure['JOIN'][$alias]['on'] .= ' AND ';
+							}
 							$this->structure['JOIN'][$alias]['on'] .= '(' . $languageCondition . ')';
 						}
 					}
@@ -651,15 +662,17 @@ class tx_dataquery_parser {
 		}
 			// Add workspace condition (always)
 			// Make sure to take only records from live workspace
+			// NOTE: Other workspaces are not handled, preview will not work
 		foreach ($this->queryFields as $alias => $tableData) {
 			$table = $tableData['table'];
 			if (!empty($GLOBALS['TCA'][$table]['ctrl']['versioningWS'])) {
 				$workspaceCondition = $alias . ".t3ver_oid = '0'";
 				if ($alias == $this->mainTable) {
 					$this->addWhereClause($workspaceCondition);
-				}
-				else {
-					if (!empty($this->structure['JOIN'][$alias]['on'])) $this->structure['JOIN'][$alias]['on'] .= ' AND ';
+				} else {
+					if (!empty($this->structure['JOIN'][$alias]['on'])) {
+						$this->structure['JOIN'][$alias]['on'] .= ' AND ';
+					}
 					$this->structure['JOIN'][$alias]['on'] .= '(' . $workspaceCondition . ')';
 				}
 			}
@@ -697,11 +710,11 @@ class tx_dataquery_parser {
 						// "in" values just need to be put within brackets
 					if ($conditionData['operator'] == 'in') {
 						$condition .= $fullField . ' IN (' . $conditionData['value'] . ')';
-					}
+
 						// "andgroup" and "orgroup" requires more handling
 						// The associated value is a list of comma-separated values and each of these values must be handled separately
 						// Furthermore each value will be tested against a comma-separated list of values too, so the test is not so simple
-					elseif ($conditionData['operator'] == 'andgroup' || $conditionData['operator'] == 'orgroup') {
+					} elseif ($conditionData['operator'] == 'andgroup' || $conditionData['operator'] == 'orgroup') {
 						$values = explode(',', $conditionData['value']);
 						$localCondition = '';
 						$localOperator = 'OR';
@@ -709,27 +722,27 @@ class tx_dataquery_parser {
 							$localOperator = 'AND';
 						}
 						foreach ($values as $aValue) {
-							if (!empty($localCondition)) $localCondition .= ' ' . $localOperator . ' ';
+							if (!empty($localCondition)) {
+								$localCondition .= ' ' . $localOperator . ' ';
+							}
 							$localCondition .= $GLOBALS['TYPO3_DB']->listQuery($fullField, $aValue, $table);
 						}
 						$condition .= $localCondition;
-					}
+
 						// If the operator is "like", "start" or "end", the SQL operator is always LIKE, but different wildcards are used
-					elseif ($conditionData['operator'] == 'like' || $conditionData['operator'] == 'start' || $conditionData['operator'] == 'end') {
+					} elseif ($conditionData['operator'] == 'like' || $conditionData['operator'] == 'start' || $conditionData['operator'] == 'end') {
 						$value = '';
 						if ($conditionData['operator'] == 'start') {
 							$value = $conditionData['value'] . '%';
-						}
-						elseif ($conditionData['operator'] == 'end') {
+						} elseif ($conditionData['operator'] == 'end') {
 							$value = '%' . $conditionData['value'];
-						}
-						else {
+						} else {
 							$value = '%' . $conditionData['value'] . '%';
 						}
 						$condition .= $fullField . ' LIKE ' . $GLOBALS['TYPO3_DB']->fullQuoteStr($value, $table);
-					}
+
 						// Other operators are handled simply
-					else {
+					} else {
 						$condition .= $fullField . ' ' . $conditionData['operator'] . ' ' . $GLOBALS['TYPO3_DB']->fullQuoteStr($conditionData['value'], $table);
 					}
 				}
@@ -738,12 +751,15 @@ class tx_dataquery_parser {
 			foreach ($completeFilters as $table => $whereClause) {
 				if ($table == $this->mainTable) {
 					$this->addWhereClause($whereClause);
-				}
-				elseif (in_array($table, $this->subtables)) {
-					if (!empty($this->structure['JOIN'][$table]['on'])) $this->structure['JOIN'][$table]['on'] .= ' AND ';
+				} elseif (in_array($table, $this->subtables)) {
+					if (!empty($this->structure['JOIN'][$table]['on'])) {
+						$this->structure['JOIN'][$table]['on'] .= ' AND ';
+					}
 					$this->structure['JOIN'][$table]['on'] .= $whereClause;
 				}
 			}
+				// Free some mempory
+			unset($completeFilters);
 		}
 			// Add the eventual raw SQL in the filter
 			// Raw SQL is always added to the main where clause
@@ -784,11 +800,12 @@ class tx_dataquery_parser {
 					// If table is not defined, assume it's the main table
 				if (empty($table)) {
 					$table = $this->mainTable;
-				}
-				else {
+				} else {
 					$table = strrev($table);
 				}
-				if (!isset($idlistsPerTable[$table])) $idlistsPerTable[$table] = array();
+				if (!isset($idlistsPerTable[$table])) {
+					$idlistsPerTable[$table] = array();
+				}
 				$idlistsPerTable[$table][] = $uid;
 			}
 				// Loop on all tables and add test on list of uid's, if table is indeed in query
@@ -796,12 +813,15 @@ class tx_dataquery_parser {
 				$condition = $table . '.uid IN (' . implode(',', $uidArray) . ')';
 				if ($table == $this->mainTable) {
 					$this->addWhereClause($condition);
-				}
-				elseif (in_array($table, $this->subtables)) {
-					if (!empty($this->structure['JOIN'][$table]['on'])) $this->structure['JOIN'][$table]['on'] .= ' AND ';
+				} elseif (in_array($table, $this->subtables)) {
+					if (!empty($this->structure['JOIN'][$table]['on'])) {
+						$this->structure['JOIN'][$table]['on'] .= ' AND ';
+					}
 					$this->structure['JOIN'][$table]['on'] .= $condition;
 				}
 			}
+				// Free some memory
+			unset($idlistsPerTable);
 		}
 	}
 
@@ -928,35 +948,32 @@ t3lib_div::debug($this->structure['SELECT'], 'Select structure');
 							// Check if table uses overlays
 						$usesOverlay = isset($GLOBALS['TCA'][$table]['ctrl']['languageField']) || isset($GLOBALS['TCA'][$table]['ctrl']['transForeignTable']);
 							// Check the field type (load full TCA first)
+							// NOTE: if there's no TCA available, we'll assume it's a text field
+							// We could query the database and get the SQL datatype, but is it worth it?
 						t3lib_div::loadTCA($table);
+						$isTextField = TRUE;
 						if (isset($GLOBALS['TCA'][$table]['columns'][$field])) {
 							$fieldConfig = $GLOBALS['TCA'][$table]['columns'][$field]['config'];
 								// It's text, easy :-)
 							if ($fieldConfig['type'] == 'text') {
-								$isTextField = true;
-							}
+								$isTextField = TRUE;
+
 								// It's input, further check the "eval" property
-							elseif ($fieldConfig['type'] == 'input') {
+							} elseif ($fieldConfig['type'] == 'input') {
 									// If the field has no eval property, assume it's just text
 								if (empty($fieldConfig['eval'])) {
- 									$isTextField = true;
-								}
-								else {
+ 									$isTextField = TRUE;
+								} else {
 									$evaluations = explode(',', $fieldConfig['eval']);
 										// Check if some eval types are common to both array. If yes, it's not a text field.
 									$foundTypes = array_intersect($evaluations, self::$notTextTypes);
-									$isTextField = (count($foundTypes) > 0) ? false : true;
+									$isTextField = (count($foundTypes) > 0) ? FALSE : TRUE;
 								}
-							}
+
 								// It's another type, it's definitely not text
-							else {
-								$isTextField = false;
+							} else {
+								$isTextField = FALSE;
 							}
-						}
-							// No TCA for column, assume it's simple text field (impossible to know)
-							// TODO: we could query the database and get the SQL datatype, but is it worth it?
-						else {
-							$isTextField = true;
 						}
 						$cannotUseSQLForSorting |= ($usesOverlay && $isTextField);
 					}
@@ -993,19 +1010,20 @@ t3lib_div::debug($newSelectFields, 'New select fields');
 t3lib_div::debug($this->structure['SELECT'], 'Updated select structure');
  *
  */
+							// Free some memory
+						unset($newQueryFields);
+						unset($newSelectFields);
+						unset($newTrueNames);
 					}
-					$this->processOrderBy = false;
+					$this->processOrderBy = FALSE;
+				} else {
+					$this->processOrderBy = TRUE;
 				}
-				else {
-					$this->processOrderBy = true;
-				}
+			} else {
+				$this->processOrderBy = TRUE;
 			}
-			else {
-				$this->processOrderBy = true;
-			}
-		}
-		else {
-			$this->processOrderBy = true;
+		} else {
+			$this->processOrderBy = TRUE;
 		}
 	}
 
@@ -1095,7 +1113,7 @@ t3lib_div::debug($this->structure['SELECT'], 'Updated select structure');
 				// If yes, strip it, as this information is already handled
 			$table = '';
 			$field = '';
-			if (strpos($alias, '.') !== false) {
+			if (strpos($alias, '.') !== FALSE) {
 				list($table, $field) = explode('.', $alias);
 				$alias = $field;
 			}
@@ -1130,7 +1148,7 @@ t3lib_div::debug($this->structure['SELECT'], 'Updated select structure');
 	 * @see tx_dataquery_parser::addTypo3Mechanisms()
 	 */
 	public function mustHandleLanguageOverlay($table) {
-		return (isset($this->doOverlays[$table])) ? $this->doOverlays[$table] : false;
+		return (isset($this->doOverlays[$table])) ? $this->doOverlays[$table] : FALSE;
 	}
 
 	/**
