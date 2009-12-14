@@ -275,8 +275,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 					usort($finalRecordset, array('tx_dataquery_wrapper', 'sortUsingFixedOrder'));
 				}
 //t3lib_div::debug($finalRecordset, 'Recordset after sorting (no overlays)');
-			}
-			else {
+			} else {
 					// First collect all the uid's for each table
 				$allUIDs = array();
 				foreach ($rawRecordset as $row) {
@@ -498,6 +497,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 
 				// Now loop on all the records of the main table and join them to their subtables
 			$hasInnerJoin = $this->sqlParser->hasInnerJoinOnFirstSubtable();
+			$uidList = array();
 			foreach ($rows[$this->mainTable][0] as $aRecord) {
 				$uidList[] = $aRecord['uid'];
 				$theFullRecord = $aRecord;
