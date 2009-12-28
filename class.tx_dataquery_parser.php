@@ -698,8 +698,7 @@ class tx_dataquery_parser {
 				$condition = '';
 				if (empty($completeFilters[$table])) {
 					$completeFilters[$table] = '';
-				}
-				else {
+				} else {
 					$completeFilters[$table] .= ' ' . $logicalOperator . ' ';
 				}
 				foreach ($filterData['conditions'] as $conditionData) {
@@ -742,8 +741,23 @@ class tx_dataquery_parser {
 						$condition .= $fullField . ' LIKE ' . $GLOBALS['TYPO3_DB']->fullQuoteStr($value, $table);
 
 						// Other operators are handled simply
+						// We just need to take care of special values "empty" and "null"
 					} else {
-						$condition .= $fullField . ' ' . $conditionData['operator'] . ' ' . $GLOBALS['TYPO3_DB']->fullQuoteStr($conditionData['value'], $table);
+						$operator = $conditionData['operator'];
+						$quotedValue = '';
+						if ($conditionData['value'] == 'empty') {
+							$quotedValue = "''";
+						} elseif ($conditionData['value'] == 'null') {
+							if ($operator == '=') {
+								$operator = 'IS';
+							} else {
+								$operator = 'IS NOT';
+							}
+							$quotedValue = 'NULL';
+						} else {
+							$quotedValue = $GLOBALS['TYPO3_DB']->fullQuoteStr($conditionData['value'], $table);
+						}
+						$condition .= $fullField . ' ' . $operator . ' ' . $quotedValue;
 					}
 				}
 				$completeFilters[$table] .= '(' . $condition . ')';
