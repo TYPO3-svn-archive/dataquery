@@ -609,9 +609,9 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 			// Assemble condition for finding correct cache
 			// This means matching the dataquery's primary key, the current language, the filter's hash (without the limit)
 			// and that it has not expired
-		$where = "query_id = '".$this->providerData['uid']."' AND page_id = '".$GLOBALS['TSFE']->id."'";
-		$where .= " AND cache_hash = '".$this->calculateCacheHash(array())."'";
-		$where .= " AND expires > '".time()."'";
+		$where = "query_id = '" . $this->providerData['uid'] . "' AND page_id = '" . $GLOBALS['TSFE']->id . "'";
+		$where .= " AND cache_hash = '" . $this->calculateCacheHash(array()) . "'";
+		$where .= " AND expires > '" . time() . "'";
 		$res = $GLOBALS['TYPO3_DB']->exec_SELECTquery('structure_cache', 'tx_dataquery_cache', $where);
 		if ($GLOBALS['TYPO3_DB']->sql_num_rows($res) == 0) {
 			throw new Exception('No cached structure');
