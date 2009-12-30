@@ -20,21 +20,7 @@
 *  GNU General Public License for more details.
 *
 *  This copyright notice MUST APPEAR in all copies of the script!
-*
-* $Id$
 ***************************************************************/
-/**
- * [CLASS/FUNCTION INDEX of SCRIPT]
- *
- *
- *
- *   46: class tx_dataquery_cache
- *   55:     public function clearCache($parameters, $pObj)
- *
- * TOTAL FUNCTIONS: 1
- * (This index is automatically created/updated by the extension "extdeveval")
- *
- */
 
 /**
  * Cache management class for extension "dataquery"
@@ -42,6 +28,8 @@
  * @author	Francois Suter (Cobweb) <typo3@cobweb.ch>
  * @package	TYPO3
  * @subpackage	tx_dataquery
+ *
+ * $Id$
  */
 class tx_dataquery_cache {
 
