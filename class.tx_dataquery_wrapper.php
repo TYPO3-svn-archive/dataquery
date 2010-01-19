@@ -478,7 +478,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 					}
 				}
 					// If we're not handling the same main record as before, store the current information for the main table
-				if ($currentUID != $oldUID) {
+				if ($currentUID !== $oldUID) {
 					$rows[$this->mainTable][0][] = $recordsPerTable[$this->mainTable];
 					$oldUID = $currentUID;
 				}
