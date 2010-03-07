@@ -573,7 +573,7 @@ class tx_dataquery_parser {
 		}
 
 			// Add the language condition, if necessary
-		if (empty($settings['ignore_language_handling'])) {
+		if (empty($settings['ignore_language_handling']) && !$this->structure['DISTINCT']) {
 
 				// Add the DB fields and the SQL conditions necessary for having everything ready to handle overlays
 				// as per the standard TYPO3 mechanism
