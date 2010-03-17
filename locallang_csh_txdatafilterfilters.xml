@@ -16,7 +16,7 @@
 			<label index="tx_dataquery_sql.details">
 				This field works in relation with the dataquery extension.
 				Any SQL entered here will be added to the WHERE clause of the SQL query assembled by dataquery. Do not add the keyword "WHERE" yourself.
-				Expressions can be used inside these statements, but beware that this may not be safe against SQL injection!
+				Expressions can be used inside these statements, but don't forget to use the fullQuoteStr function to guard against SQL injection!
 			</label>
 		</languageKey>
 	</data>
