@@ -615,8 +615,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 		$res = $GLOBALS['TYPO3_DB']->exec_SELECTquery('structure_cache', 'tx_dataquery_cache', $where);
 		if ($GLOBALS['TYPO3_DB']->sql_num_rows($res) == 0) {
 			throw new Exception('No cached structure');
-		}
-		else {
+		} else {
 			$row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res);
 			$GLOBALS['TYPO3_DB']->sql_free_result($res);
 			return unserialize($row['structure_cache']);
