@@ -57,10 +57,13 @@ class tx_dataquery_parser {
 	 * @return	mixed		array containing the query parts or false if the query was empty or invalid
 	 */
 	public function parseQuery($query) {
-			// Put the query into a single line
-		$query = str_replace(array("\r", "\n", "\f"), ' ', $query);
+			// Put the query through the field parser to filter out commented lines
+		$queryLines = tx_tesseract_utilities::parseConfigurationField($query);
+			// Put the query into a single string
+		$query = implode(' ', $queryLines);
 			// Strip backquotes
 		$query = str_replace('`', '', $query);
+			// Strip trailing semi-colon if any
 		if (strrpos($query, ';') == strlen($query) - 1) {
 			$query = substr($query, 0, strlen($query) - 1);
 		}
