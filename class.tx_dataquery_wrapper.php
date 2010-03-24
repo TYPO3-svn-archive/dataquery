@@ -2,7 +2,7 @@
 /***************************************************************
 *  Copyright notice
 *
-*  (c) 2007 Francois Suter (Cobweb) <typo3@cobweb.ch>
+*  (c) 2007-2010 Francois Suter (Cobweb) <typo3@cobweb.ch>
 *  All rights reserved
 *
 *  This script is part of the TYPO3 project. The TYPO3 project is
@@ -23,8 +23,8 @@
 ***************************************************************/
 
 require_once(t3lib_extMgm::extPath('dataquery', 'class.tx_dataquery_parser.php'));
-require_once(t3lib_extMgm::extPath('basecontroller', 'services/class.tx_basecontroller_providerbase.php'));
-require_once(t3lib_extMgm::extPath('basecontroller', 'lib/class.tx_basecontroller_utilities.php'));
+require_once(t3lib_extMgm::extPath('tesseract', 'services/class.tx_tesseract_providerbase.php'));
+require_once(t3lib_extMgm::extPath('tesseract', 'lib/class.tx_tesseract_utilities.php'));
 
 /**
  * Wrapper for data query
@@ -36,7 +36,7 @@ require_once(t3lib_extMgm::extPath('basecontroller', 'lib/class.tx_basecontrolle
  *
  * $Id$
  */
-class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
+class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 	public $extKey = 'dataquery';
 	protected $configuration; // Extension configuration
 	protected $mainTable; // Store the name of the main table of the query
@@ -684,7 +684,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 		}
 			// Calculate the hash using the method provided by the base controller,
 			// which filters out the "limit" part of the filter
-		return tx_basecontroller_utilities::calculateFilterCacheHash($cacheParameters);
+		return tx_tesseract_utilities::calculateFilterCacheHash($cacheParameters);
 	}
 
 	/**
@@ -770,7 +770,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 	 * @return	string		type of the provided data structure
 	 */
 	public function getProvidedDataStructure() {
-		return tx_basecontroller::$recordsetStructureType;
+		return tx_tesseract::RECORDSET_STRUCTURE_TYPE;
 	}
 
 	/**
@@ -780,7 +780,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 	 * @return	boolean		true if it can handle the requested type, false otherwise
 	 */
 	public function providesDataStructure($type) {
-		return $type == tx_basecontroller::$recordsetStructureType;
+		return $type == tx_tesseract::RECORDSET_STRUCTURE_TYPE;
 	}
 
 	/**
@@ -789,7 +789,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 	 * @return	string		type of used data structures
 	 */
 	public function getAcceptedDataStructure() {
-		return tx_basecontroller::$idlistStructureType;
+		return tx_tesseract::IDLIST_STRUCTURE_TYPE;
 	}
 
 	/**
@@ -799,7 +799,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 	 * @return	boolean		true if it can use the requested type, false otherwise
 	 */
 	public function acceptsDataStructure($type) {
-		return $type == tx_basecontroller::$idlistStructureType;
+		return $type == tx_tesseract::IDLIST_STRUCTURE_TYPE;
 	}
 
 	/**
