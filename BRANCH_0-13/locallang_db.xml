@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<T3locallang>
+	<meta type="array">
+		<type>database</type>
+		<description>Language labels for database tables/fields belonging to extension 'dataquery'</description>
+	</meta>
+	<data type="array">
+		<languageKey index="default" type="array">
+			<label index="tx_dataquery_queries">Data Queries</label>
+			<label index="tx_dataquery_queries.tab.advanced">Advanced</label>
+			<label index="tx_dataquery_queries.title">Title</label>
+			<label index="tx_dataquery_queries.description">Description</label>
+			<label index="tx_dataquery_queries.sql_query">SQL Query</label>
+			<label index="tx_dataquery_queries.cache_duration">Cache duration (in seconds)</label>
+			<label index="tx_dataquery_queries.ignore_enable_fields">Ignore enable fields</label>
+			<label index="tx_dataquery_queries.ignore_enable_fields.I.0">Ignore all fields like deleted, hidden, starttime, endtime and access</label>
+			<label index="tx_dataquery_queries.ignore_language_handling">Language handling</label>
+			<label index="tx_dataquery_queries.ignore_language_handling.I.0">Ignore language handling (show records from all languages)</label>
+			<label index="wizards.add_dataquery">Add a new Data Query</label>
+			<label index="tx_datafilter_filters.tx_dataquery_sql">Additional SQL WHERE clause</label>
+			<label index="sql">SQL</label>
+		</languageKey>
+		<languageKey index="fr" type="array">
+			<label index="tx_dataquery_queries">Requêtes</label>
+			<label index="tx_dataquery_queries.tab.advanced">Avancé</label>
+			<label index="tx_dataquery_queries.title">Titre</label>
+			<label index="tx_dataquery_queries.description">Description</label>
+			<label index="tx_dataquery_queries.sql_query">Requête SQL</label>
+			<label index="tx_dataquery_queries.cache_duration">Durée du cache (en secondes)</label>
+			<label index="tx_dataquery_queries.ignore_enable_fields">Ignorer les champs d'activation</label>
+			<label index="tx_dataquery_queries.ignore_enable_fields.I.0">Ignorer tous les champs tels que deleted, hidden, starttime, endtime et access</label>
+			<label index="tx_dataquery_queries.ignore_language_handling">Ignorer les langues</label>
+			<label index="tx_dataquery_queries.ignore_language_handling.I.0">Ne pas considérer les critères de langue (afficher les enregistrements de toutes les langues)</label>
+			<label index="wizards.add_dataquery">Ajouter une nouvelle requête</label>
+			<label index="tx_datafilter_filters.tx_dataquery_sql">Clause SQL WHERE additionnelle</label>
+			<label index="sql">SQL</label>
+		</languageKey>
+	</data>
+</T3locallang>
