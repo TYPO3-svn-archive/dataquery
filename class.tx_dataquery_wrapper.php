@@ -200,7 +200,7 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 		$numSubtables = count($subtables);
 		$allTables = $subtables;
 		array_push($allTables, $this->mainTable);
-		$tableAndFieldLabels = $this->sqlParser->getLocalizedLabels($language);
+		$tableAndFieldLabels = $this->sqlParser->getLocalizedLabels();
 		$uidList = array();
 		$fullRecords = array();
 
@@ -309,7 +309,7 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 					if ($doOverlays[$table] && count($allUIDs[$table]) > 0) {
 						$overlays[$table] = tx_overlays::getOverlayRecords($table, $allUIDs[$table], $GLOBALS['TSFE']->sys_language_content);
 							// Set global overlay process flag to true
-						$hasBeenThroughOverlayProcess |= true;
+						$hasBeenThroughOverlayProcess |= TRUE;
 					}
 				}
 //t3lib_div::debug($allUIDs, 'Unique IDs per table');
