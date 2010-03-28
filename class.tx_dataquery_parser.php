@@ -26,7 +26,8 @@ require_once(t3lib_extMgm::extPath('overlays', 'class.tx_overlays.php'));
 
 /**
  * This class is used to parse a SELECT SQL query into a structured array
- * It can automatically handle a number of TYPO3 constructs, like enable fields and language overlays
+ * It rebuilds the query aferwards, automatically handling a number of TYPO3 constructs,
+ * like enable fields and language overlays
  *
  * @author		Francois Suter (Cobweb) <typo3@cobweb.ch>
  * @package		TYPO3
@@ -68,132 +69,12 @@ class tx_dataquery_parser {
 			$query = substr($query, 0, strlen($query) - 1);
 		}
 			// Parse query for subexpressions
-		$query = tx_expressions_parser::evaluateString($query, false);
+		$query = tx_expressions_parser::evaluateString($query, FALSE);
 
-			// Get all parts of the query, using the SQL keywords as tokens
-			// The returned matches array contains the keywords matched (in position 2) and the string after each keyword (in position 3)
-		$regexp = '/(' . implode('|', self::$tokens) . ')/';
-		$matches = preg_split($regexp, $query, -1, PREG_SPLIT_NO_EMPTY | PREG_SPLIT_DELIM_CAPTURE);
-//t3lib_div::debug($regexp);
-//t3lib_div::debug($query);
-//t3lib_div::debug($matches);
+			// Parse the SQL query
+		$this->parseSQL($query);
 
-			// Fill the structure array, as suited for each keyword
-		$i = 0;
-		$numMatches = count($matches);
-		$this->aliases = array();
-		$this->structure['DISTINCT'] = FALSE;
-		while ($i < $numMatches) {
-			$keyword = $matches[$i];
-			$i++;
-			$value = $matches[$i];
-			$i++;
-			if (!isset($this->structure[$keyword])) $this->structure[$keyword] = array();
-			switch ($keyword) {
-				case 'SELECT':
-					$selectString = trim($value);
-						// Check if the select string starts with "DISTINCT"
-						// If yes, remove that and set the distinct flag to true
-					if (strpos($selectString, 'DISTINCT') === 0) {
-						$this->structure['DISTINCT'] = TRUE;
-						$croppedString = substr($selectString, 8);
-						$selectString = trim($croppedString);
-					}
-
-						// Explode the select string in its constituent parts and store it as is
-						// More processing takes place later on
-					$selectArray = t3lib_div::trimExplode(',', $selectString, 1);
-					foreach ($selectArray as $value) {
-						$this->structure[$keyword][] = $value;
-					}
-					break;
-				case 'FROM':
-					$fromParts = explode('AS',$value);
-					$this->structure[$keyword]['table'] = trim($fromParts[0]);
-					if (count($fromParts) > 1) {
-						$this->structure[$keyword]['alias'] = trim($fromParts[1]);
-					}
-					else {
-						$this->structure[$keyword]['alias'] = $this->structure[$keyword]['table'];
-					}
-					$this->mainTable = $this->structure[$keyword]['alias'];
-					$this->aliases[$this->structure[$keyword]['alias']] = $this->structure[$keyword]['table'];
-					break;
-				case 'INNER JOIN':
-				case 'LEFT JOIN':
-				case 'RIGHT JOIN':
-						// Extract the JOIN type (INNER, LEFT or RIGHT)
-					$joinType = strtolower(substr($keyword, 0, strpos($keyword,'JOIN') - 1));
-					$theJoin = array();
-					$theJoin['type'] = $joinType;
-						// Separate the table from the join condition
-					$parts = explode('ON', $value);
-						// Separate an alias from the table name
-					$moreParts = t3lib_div::trimExplode('AS', $parts[0]);
-					$theJoin['table'] = trim($moreParts[0]);
-					if (count($moreParts) > 1) {
-						$theJoin['alias'] = trim($moreParts[1]);
-					}
-					else {
-						$theJoin['alias'] = $theJoin['table'];
-					}
-					$this->subtables[] = $theJoin['alias'];
-					$this->aliases[$theJoin['alias']] = $theJoin['table'];
-						// Handle the "ON" part which may contain the non-SQL keyword "MAX"
-						// This keyword is not used in the SQL query, but is an indication to the wrapper that
-						// we want only a single record from this join
-					if (count($parts) > 1) {
-						$moreParts = t3lib_div::trimExplode('MAX', $parts[1]);
-						$theJoin['on'] = trim($moreParts[0]);
-						if (count($moreParts) > 1) {
-							$theJoin['limit'] = $moreParts[1];
-						}
-					}
-					else {
-						$theJoin['on'] = '';
-					}
-					if (!isset($this->structure['JOIN'])) $this->structure['JOIN'] = array();
-					$this->structure['JOIN'][$theJoin['alias']] = $theJoin;
-					break;
-				case 'WHERE':
-					$this->structure[$keyword][] = trim($value);
-					break;
-				case 'ORDER BY':
-				case 'GROUP BY':
-					$orderParts = explode(',', $value);
-					foreach ($orderParts as $part) {
-						$thePart = trim($part);
-						$this->structure[$keyword][] = $thePart;
-							// In case of ORDER BY, perform additional operation to get field name and sort order separately
-						if ($keyword == 'ORDER BY') {
-							$finerParts = preg_split('/\s/', $thePart, -1, PREG_SPLIT_NO_EMPTY);
-							$orderField = $finerParts[0];
-							$orderSort = (isset($finerParts[1])) ? $finerParts[1] : 'ASC';
-							$this->orderFields[] = array('field' => $orderField, 'order' => $orderSort);
-						}
-
-					}
-					break;
-				case 'LIMIT':
-					$this->structure[$keyword] = trim($value);
-					break;
-				case 'OFFSET':
-					$this->structure[$keyword] = trim($value);
-					break;
-
-// Dataquery allows for non-standard keywords to be used in the SQL query for special purposes
-// MERGED says that results from different tables are kept as single records.
-// Otherwise joined tables are structured as subtables from the main table (the one in the FROM clause)
-
-				case 'MERGED':
-					$this->isMergedResult = true;
-					break;
-			}
-		}
-			// Free some memory
-		unset($matches);
-
-			// Loop again on all SELECT items
+			// Loop on all SELECT items
 		$numSelects = count($this->structure['SELECT']);
 		$tableHasUid = array();
 			// This is an array of all "explicit aliases"
@@ -418,6 +299,142 @@ class tx_dataquery_parser {
 //t3lib_div::debug($this->fieldTrueNames, 'Field true names');
 //t3lib_div::debug($this->queryFields, 'Query fields');
 //t3lib_div::debug($this->structure);
+	}
+
+	/**
+	 * This method parses the actual SQL query and turns it into its constituent parts,
+	 * based on the keywords found in the query
+	 * 
+	 * @param	string	$query: the SQL query to parse
+	 * @return	void
+	 */
+	protected function parseSQL($query) {
+
+			// Get all parts of the query, using the SQL keywords as tokens
+			// The returned matches array contains the keywords matched (in position 2) and the string after each keyword (in position 3)
+		$regexp = '/(' . implode('|', self::$tokens) . ')/';
+		$matches = preg_split($regexp, $query, -1, PREG_SPLIT_NO_EMPTY | PREG_SPLIT_DELIM_CAPTURE);
+//t3lib_div::debug($regexp);
+//t3lib_div::debug($query);
+//t3lib_div::debug($matches);
+
+			// Fill the structure array, as suited for each keyword
+		$i = 0;
+		$numMatches = count($matches);
+		$this->aliases = array();
+		$this->structure['DISTINCT'] = FALSE;
+		while ($i < $numMatches) {
+			$keyword = $matches[$i];
+			$i++;
+			$value = $matches[$i];
+			$i++;
+			if (!isset($this->structure[$keyword])) $this->structure[$keyword] = array();
+			switch ($keyword) {
+				case 'SELECT':
+					$selectString = trim($value);
+						// Check if the select string starts with "DISTINCT"
+						// If yes, remove that and set the distinct flag to true
+					if (strpos($selectString, 'DISTINCT') === 0) {
+						$this->structure['DISTINCT'] = TRUE;
+						$croppedString = substr($selectString, 8);
+						$selectString = trim($croppedString);
+					}
+
+						// Explode the select string in its constituent parts and store it as is
+						// More processing takes place later on
+					$selectArray = t3lib_div::trimExplode(',', $selectString, 1);
+					foreach ($selectArray as $value) {
+						$this->structure[$keyword][] = $value;
+					}
+					break;
+				case 'FROM':
+					$fromParts = explode('AS', $value);
+					$this->structure[$keyword]['table'] = trim($fromParts[0]);
+					if (count($fromParts) > 1) {
+						$this->structure[$keyword]['alias'] = trim($fromParts[1]);
+					}
+					else {
+						$this->structure[$keyword]['alias'] = $this->structure[$keyword]['table'];
+					}
+					$this->mainTable = $this->structure[$keyword]['alias'];
+					$this->aliases[$this->structure[$keyword]['alias']] = $this->structure[$keyword]['table'];
+					break;
+				case 'INNER JOIN':
+				case 'LEFT JOIN':
+				case 'RIGHT JOIN':
+						// Extract the JOIN type (INNER, LEFT or RIGHT)
+					$joinType = strtolower(substr($keyword, 0, strpos($keyword,'JOIN') - 1));
+					$theJoin = array();
+					$theJoin['type'] = $joinType;
+						// Separate the table from the join condition
+					$parts = explode('ON', $value);
+						// Separate an alias from the table name
+					$moreParts = t3lib_div::trimExplode('AS', $parts[0]);
+					$theJoin['table'] = trim($moreParts[0]);
+					if (count($moreParts) > 1) {
+						$theJoin['alias'] = trim($moreParts[1]);
+					}
+					else {
+						$theJoin['alias'] = $theJoin['table'];
+					}
+					$this->subtables[] = $theJoin['alias'];
+					$this->aliases[$theJoin['alias']] = $theJoin['table'];
+						// Handle the "ON" part which may contain the non-SQL keyword "MAX"
+						// This keyword is not used in the SQL query, but is an indication to the wrapper that
+						// we want only a single record from this join
+					if (count($parts) > 1) {
+						$moreParts = t3lib_div::trimExplode('MAX', $parts[1]);
+						$theJoin['on'] = trim($moreParts[0]);
+						if (count($moreParts) > 1) {
+							$theJoin['limit'] = $moreParts[1];
+						}
+					}
+					else {
+						$theJoin['on'] = '';
+					}
+					if (!isset($this->structure['JOIN'])) $this->structure['JOIN'] = array();
+					$this->structure['JOIN'][$theJoin['alias']] = $theJoin;
+					break;
+				case 'WHERE':
+					$this->structure[$keyword][] = trim($value);
+					break;
+				case 'ORDER BY':
+				case 'GROUP BY':
+					$orderParts = explode(',', $value);
+					foreach ($orderParts as $part) {
+						$thePart = trim($part);
+						$this->structure[$keyword][] = $thePart;
+							// In case of ORDER BY, perform additional operation to get field name and sort order separately
+						if ($keyword == 'ORDER BY') {
+							$finerParts = preg_split('/\s/', $thePart, -1, PREG_SPLIT_NO_EMPTY);
+							$orderField = $finerParts[0];
+							$orderSort = (isset($finerParts[1])) ? $finerParts[1] : 'ASC';
+							$this->orderFields[] = array('field' => $orderField, 'order' => $orderSort);
+						}
+
+					}
+					break;
+				case 'LIMIT':
+					$this->structure[$keyword] = trim($value);
+					break;
+				case 'OFFSET':
+					$this->structure[$keyword] = trim($value);
+					break;
+
+// Dataquery allows for non-standard keywords to be used in the SQL query for special purposes
+// MERGED says that results from different tables are kept as single records.
+// Otherwise joined tables are structured as subtables from the main table (the one in the FROM clause)
+/* NOTE: this is not used anymore
+ * TODO: implement usage again or drop altogether
+				case 'MERGED':
+					$this->isMergedResult = true;
+					break;
+ *
+ */
+			}
+		}
+			// Free some memory
+		unset($matches);
 	}
 
 	/**
