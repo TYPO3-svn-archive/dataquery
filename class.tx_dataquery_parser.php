@@ -36,19 +36,25 @@ require_once(t3lib_extMgm::extPath('overlays', 'class.tx_overlays.php'));
  * $Id$
  */
 class tx_dataquery_parser {
+		/*
+		 * List of all the main keywords accepted in the query
+		 */
 	static protected $tokens = array('SELECT', 'FROM', 'INNER JOIN', 'LEFT JOIN', 'RIGHT JOIN', 'WHERE', 'GROUP BY', 'ORDER BY', 'LIMIT', 'OFFSET', 'MERGED');
+		/*
+		 * List of eval types which indicate non-text fields
+		 */
+	static protected $notTextTypes = array('date', 'datetime', 'time', 'timesec', 'year', 'num', 'md5', 'int', 'double2');
 	protected $structure = array(); // Contains all components of the parsed query
 	protected $mainTable; // Name (or alias if defined) of the main query table, i.e. the one in the FROM part of the query
 	protected $aliases = array(); // The keys to this array are the aliases of the tables used in the query and they point to the true table names
 	protected $fieldAliases = array(); // List of aliases for all fields that have one, per table
 	protected $fieldTrueNames = array(); // True names for all the fields. The key is the actual alias used in the query.
-	protected $isMergedResult = false;
+	protected $isMergedResult = FALSE;
 	protected $subtables = array(); // List of all subtables, i.e. tables in the JOIN statements
 	protected $queryFields = array(); // List of all fields being queried, arranged per table (aliased)
 	protected $doOverlays = array(); // Flag for each table whether to perform overlays or not
 	protected $orderFields = array(); // Array with all information of the fields used to order data
-	protected $processOrderBy = true; // True if order by is processed using SQL, false otherwise (see preprocessOrderByFields())
-	static protected $notTextTypes = array('date', 'datetime', 'time', 'timesec', 'year', 'num', 'md5', 'int', 'double2'); // List of eval types which indicate non-text fields
+	protected $processOrderBy = TRUE; // True if order by is processed using SQL, false otherwise (see preprocessOrderByFields())
 
 	/**
 	 * This method is used to parse a SELECT SQL query.
@@ -89,17 +95,18 @@ class tx_dataquery_parser {
 			$functions = array();
 				// If the string is just * (or possibly table.*), get all the fields for the table
 			if (stristr($selector, '*')) {
-					// It's only *, get list of fields for the main table
+					// It's only *, set table as main table
 				if ($selector == '*') {
 					$table = $this->mainTable;
 					$alias = $table;
 
-					// It's table.*, get list of fields for the given table
+					// It's table.*, extract table name
                 } else {
 					$selectorParts = t3lib_div::trimExplode('.', $selector, 1);
 					$table = (isset($this->aliases[$selectorParts[0]]) ? $this->aliases[$selectorParts[0]] : $selectorParts[0]);
 					$alias = $selectorParts[0];
                 }
+					// Get all fields for the given table
 				$fieldInfo = $GLOBALS['TYPO3_DB']->admin_get_fields($table);
 				$fields = array_keys($fieldInfo);
 
