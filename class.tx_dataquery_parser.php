@@ -719,14 +719,24 @@ class tx_dataquery_parser {
 		$logicalOperator = (empty($filter['logicalOperator'])) ? 'AND' : $filter['logicalOperator'];
 		if (isset($filter['filters']) && is_array($filter['filters'])) {
 			foreach ($filter['filters'] as $filterData) {
-				$table = (empty($filterData['table'])) ? $this->mainTable: $filterData['table'];
+				$table = (empty($filterData['table'])) ? $this->mainTable : $filterData['table'];
 				$field = $filterData['field'];
 				$fullField = $table . '.' . $field;
 				$condition = '';
-				if (empty($completeFilters[$table])) {
-					$completeFilters[$table] = '';
+					// Define table on which to apply the condition
+					// Conditions will normally be applied in the WHERE clause
+					// if the table is the main one, otherwise it is applied
+					// in the ON clause of the relevant JOIN statement
+					// However the application of the condition may be forced to be in the WHERE clause,
+					// no matter which table it targets
+				$tableForApplication = $table;
+				if ($filterData['main']) {
+					$tableForApplication = $this->mainTable;
+				}
+				if (empty($completeFilters[$tableForApplication])) {
+					$completeFilters[$tableForApplication] = '';
 				} else {
-					$completeFilters[$table] .= ' ' . $logicalOperator . ' ';
+					$completeFilters[$tableForApplication] .= ' ' . $logicalOperator . ' ';
 				}
 				foreach ($filterData['conditions'] as $conditionData) {
 					if (!empty($condition)) {
@@ -787,7 +797,7 @@ class tx_dataquery_parser {
 						$condition .= $fullField . ' ' . $operator . ' ' . $quotedValue;
 					}
 				}
-				$completeFilters[$table] .= '(' . $condition . ')';
+				$completeFilters[$tableForApplication] .= '(' . $condition . ')';
 			}
 			foreach ($completeFilters as $table => $whereClause) {
 				if ($table == $this->mainTable) {
