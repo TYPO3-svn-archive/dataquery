@@ -29,7 +29,7 @@
  * @package		TYPO3
  * @subpackage	tx_dataquery
  *
- * $Id: class.ext_update.php 30493 2010-02-25 19:54:58Z francois $
+ * $Id$
  */
 class ext_update {
 
