@@ -46,7 +46,7 @@ class ext_update {
 			while ($row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res)) {
 				$fields = array();
 				$fields['tx_dataquery_sql'] = $row['additional_sql'];
-				$GLOBALS['TYPO3_DB']->exec_UPDATEquery('tx_datafilter_filters', 'uid = ' . $row['uid']);
+				$GLOBALS['TYPO3_DB']->exec_UPDATEquery('tx_datafilter_filters', 'uid = ' . $row['uid'], $fields);
 			}
 		}
 		$content = '<h2>Updating additional SQL field</h2>';
