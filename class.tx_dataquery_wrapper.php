@@ -536,7 +536,7 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 								$numItems = count($subUidList);
 								$recordsPerSubtable[$table] = $numItems;
 								if ($numItems > 0) {
-									$theFullRecord['sds:subtables'][] = array(
+									$theFullRecord['sds:subtables'][$table] = array(
 																			'name' => $table,
 																			'trueName' => $allTablesTrueNames[$table],
 																			'count' => $numItems,
