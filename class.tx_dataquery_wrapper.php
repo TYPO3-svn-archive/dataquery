@@ -77,8 +77,9 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 		$returnStructure = array();
 
 			// If the cache duration is not set to 0, try to find a cached query
+			// Avoid that if global no_cache flag is set
 		$hasStructure = FALSE;
-		if (!empty($this->providerData['cache_duration'])) {
+		if (!empty($this->providerData['cache_duration']) && empty($GLOBALS['TSFE']->no_cache)) {
 			try {
 				$dataStructure = $this->getCachedStructure();
 //t3lib_div::debug($dataStructure);
