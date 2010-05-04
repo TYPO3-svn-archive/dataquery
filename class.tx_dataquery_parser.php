@@ -39,7 +39,7 @@ class tx_dataquery_parser {
 		/*
 		 * List of all the main keywords accepted in the query
 		 */
-	static protected $tokens = array('SELECT', 'FROM', 'INNER JOIN', 'LEFT JOIN', 'RIGHT JOIN', 'WHERE', 'GROUP BY', 'ORDER BY', 'LIMIT', 'OFFSET', 'MERGED');
+	static protected $tokens = array('INNER JOIN', 'LEFT JOIN', 'RIGHT JOIN', 'WHERE', 'GROUP BY', 'ORDER BY', 'LIMIT', 'OFFSET', 'MERGED');
 		/*
 		 * List of eval types which indicate non-text fields
 		 */
@@ -86,6 +86,7 @@ class tx_dataquery_parser {
 			// This is an array of all "explicit aliases"
 			// This means all fields for which an alias was given in the SQL query using the AS keyword
 		$this->fieldAliases = array();
+		$numFunctions = 0;
 		for ($i = 0; $i < $numSelects; $i++) {
 			$selector = $this->structure['SELECT'][$i];
 			$alias = '';
@@ -119,23 +120,30 @@ class tx_dataquery_parser {
 					$selector = $selectorParts[0];
 					$fieldAlias = $selectorParts[1];
                 }
-					// If there's a dot (but no function), get table name
 				$field = '';
-				if (stristr($selector, '.') && !stristr($selector, '(')) {
-					$selectorParts = t3lib_div::trimExplode('.', $selector, 1);
-					$table = (isset($this->aliases[$selectorParts[0]]) ? $this->aliases[$selectorParts[0]] : $selectorParts[0]);
-					$alias = $selectorParts[0];
-					$field = $selectorParts[1];
+				$isFunction = FALSE;
+					// There's no function call
+				if (strpos($selector, '(') === FALSE) {
+						// If there's a dot, get table name
+					if (stristr($selector, '.')) {
+						$selectorParts = t3lib_div::trimExplode('.', $selector, 1);
+						$table = (isset($this->aliases[$selectorParts[0]]) ? $this->aliases[$selectorParts[0]] : $selectorParts[0]);
+						$alias = $selectorParts[0];
+						$field = $selectorParts[1];
 
-					// No dot, the table is the main one
+						// No dot, the table is the main one
+					} else {
+						$table = $this->mainTable;
+						$alias = $table;
+						$field = $selector;
+					}
 				} else {
+					$numFunctions++;
+					$isFunction = TRUE;
 					$table = $this->mainTable;
 					$alias = $table;
 					$field = $selector;
-				}
-					// Check if there's a function call and handle it
-				$function = '';
-				if (strpos($field, '(') !== FALSE) {
+/*
 					$functionInformation = $this->parseFunctionInformation($field);
 					$field = $functionInformation['field'];
 					$function = $functionInformation['function'];
@@ -143,29 +151,25 @@ class tx_dataquery_parser {
 						$table = $functionInformation['table'];
 						$alias = $functionInformation['table'];
 					}
+ *
+ */
 						// Function calls need aliases
 						// If none was given, define one
 					if (empty($fieldAlias)) {
-						$fieldAlias = $field . '_' . $function;
+						$fieldAlias = 'function_' . $numFunctions;
 					}
 				}
-				$fields = array($field);
-				$functions = array($function);
+
 					// If there's an alias for the field, store it in a separate array, for later use
 				if (!empty($fieldAlias)) {
 					if (!isset($this->fieldAliases[$alias])) {
 						$this->fieldAliases[$alias] = array();
 					}
-						// If the field is used with a function, add an extra alias
-						// to disambiguate the field if needed
-						// (this is be necessary if the same field is called twice,
-						// with different functions)
-					if (!empty($functions[0])) {
-						$this->fieldAliases[$alias][$fields[0] . '_' . $functions[0]] = $fieldAlias;
-					} else {
-						$this->fieldAliases[$alias][$fields[0]] = $fieldAlias;
-					}
+					$this->fieldAliases[$alias][$field] = $fieldAlias;
 				}
+					// Make field into an array to match structure when selector is "*"
+				$fields = array($field);
+				$functions = array($isFunction);
             }
 
 				// Assemble list of fields per table
@@ -174,7 +178,7 @@ class tx_dataquery_parser {
 				$this->queryFields[$alias] = array('name' => $table, 'table' => (empty($this->aliases[$alias])) ? $table : $this->aliases[$alias], 'fields' => array());
 			}
 			foreach ($fields as $index => $aField) {
-				$this->queryFields[$alias]['fields'][] = array('name' => $aField, 'function' => (isset($functions[$index])) ? $functions[$index] : '');
+				$this->queryFields[$alias]['fields'][] = array('name' => $aField, 'function' => (empty($functions[$index])) ? FALSE : TRUE);
 			}
 
 				// Keep track of whether a field called "uid" (either its true name or an alias)
@@ -222,7 +226,7 @@ class tx_dataquery_parser {
 				$mappedTable = '';
 				$fullField = $alias . '.' . $name;
 				if (!empty($functions[$index])) {
-					$fullField = $functions[$index] . '(' . $fullField . ')';
+					$fullField = $name;
 				}
 				$theField = $name;
 					// Case 4a
@@ -269,7 +273,7 @@ class tx_dataquery_parser {
 														'table' => $table,
 														'aliasTable' => $alias,
 														'field' => $theField,
-														'function' => (isset($functions[$index])) ? $functions[$index] : '',
+//														'function' => (empty($functions[$index])) ? FALSE : TRUE,
 														'mapping' => array('table' => $mappedTable, 'field' => $mappedField)
 													);
 				$completeFields[] = $fullField;
@@ -294,18 +298,18 @@ class tx_dataquery_parser {
 														'table' => $this->getTrueTableName($alias),
 														'aliasTable' => $alias,
 														'field' => $theField,
-														'function' => '',
+//														'function' => FALSE,
 														'mapping' => array('table' => $alias, 'field' => $theField)
 													);
 				$this->structure['SELECT'][] = $fullField;
-				$this->queryFields[$alias]['fields'][] = array('name' => 'uid', 'function' => '');
+				$this->queryFields[$alias]['fields'][] = array('name' => 'uid', 'function' => FALSE);
         	}
         }
 //t3lib_div::debug($this->aliases, 'Table aliases');
 //t3lib_div::debug($this->fieldAliases, 'Field aliases');
 //t3lib_div::debug($this->fieldTrueNames, 'Field true names');
 //t3lib_div::debug($this->queryFields, 'Query fields');
-//t3lib_div::debug($this->structure);
+//t3lib_div::debug($this->structure, 'Structure');
 	}
 
 	/**
@@ -315,44 +319,122 @@ class tx_dataquery_parser {
 	 * @param	string	$query: the SQL query to parse
 	 * @return	void
 	 */
-	protected function parseSQL($query) {
+	public function parseSQL($query) {
+		$this->aliases = array();
+		$this->structure['DISTINCT'] = FALSE;
+
+			// First find the start of the SELECT statement
+		$selectPosition = stripos($query, 'SELECT');
+		if ($selectPosition === FALSE) {
+			throw new tx_tesseract_exception('Missing SELECT keyword', 1272556228);
+		}
+			// Next find the position of the last FROM keyword
+			// There may be more than one FROM keyword when some functions are used
+			// (example: EXTRACT(YEAR FROM tstamp))
+			// NOTE: sub-selects are not supported, but these could be a source
+			// of additional FROMs
+		$matches = array();
+		$queryParts = preg_split('/\bFROM\b/', $query);
+			// If the query was not split, FROM keyword is missing
+		if (count($queryParts) == 1) {
+			throw new tx_tesseract_exception('Missing FROM keyword', 1272556601);
+		}
+		$afterLastFrom = array_pop($queryParts);
+
+			// Everything before the last FROM is the SELECT part
+		$selectPart = implode(' FROM ', $queryParts);
+		$selectedFields = trim(substr($selectPart, $selectPosition + 6));
+
+			// Parse the SELECT part
+			// First, check if the select string starts with "DISTINCT"
+			// If yes, remove that and set the distinct flag to true
+		$distinctPosition = strpos($selectedFields, 'DISTINCT');
+		if ($distinctPosition !== FALSE) {
+			$this->structure['DISTINCT'] = TRUE;
+			$croppedString = substr($selectedFields, $distinctPosition, 8);
+			$selectedFields = trim($croppedString);
+		}
+			// Next, parse the rest of the string character by character
+		$stringLenth = strlen($selectedFields);
+		$openBrackets = 0;
+		$currentField = '';
+		for ($i = 0; $i < $stringLenth; $i++) {
+			$character = $selectedFields[$i];
+			switch ($character) {
+					// An open bracket is the sign of a function call
+					// Functions may be nested, so we count the number of open brackets
+				case '(':
+					$currentField .= $character;
+					$openBrackets++;
+					break;
+
+					// Decrease the open bracket count
+				case ')':
+					$currentField .= $character;
+					$openBrackets--;
+					break;
+
+					// A comma indicates that we have reached the end of a field,
+					// unless there are open brackets, in which case the comma is
+					// a separator of function arguments
+				case ',':
+						// We are at the end of a field: add it to the list of fields
+						// and reset the current field
+					if ($openBrackets == 0) {
+						$this->structure['SELECT'][] = trim($currentField);
+						$currentField = '';
+
+						// We're inside a function, keep the comma and keep the current character
+					} else {
+						$currentField .= $character;
+					}
+					break;
+
+					// Nothing special, just add the current character to the current field's name
+				default:
+					$currentField .= $character;
+					break;
+			}
+		}
+			// Upon exit from the loop, save the last field found,
+			// except if there's still an open bracket, in which case we have a syntax error
+		if ($openBrackets > 0) {
+			throw new tx_tesseract_exception('Bad SQL syntax, opening and closing brackets are not balanced', 1272954424);
+		} else {
+			$this->structure['SELECT'][] = trim($currentField);
+		}
+
+			// Explode the select string in its constituent parts and store it as is
+			// More processing takes place later on
+//		$selectArray = t3lib_div::trimExplode(',', $selectedFields, 1);
+//		foreach ($selectArray as $value) {
+//			$this->structure['SELECT'][] = $value;
+//		}
 
 			// Get all parts of the query, using the SQL keywords as tokens
 			// The returned matches array contains the keywords matched (in position 2) and the string after each keyword (in position 3)
 		$regexp = '/(' . implode('|', self::$tokens) . ')/';
-		$matches = preg_split($regexp, $query, -1, PREG_SPLIT_NO_EMPTY | PREG_SPLIT_DELIM_CAPTURE);
+		$matches = preg_split($regexp, $afterLastFrom, -1, PREG_SPLIT_NO_EMPTY | PREG_SPLIT_DELIM_CAPTURE);
 //t3lib_div::debug($regexp);
 //t3lib_div::debug($query);
-//t3lib_div::debug($matches);
+//t3lib_div::debug($matches, 'Matches');
 
 			// Fill the structure array, as suited for each keyword
 		$i = 0;
 		$numMatches = count($matches);
-		$this->aliases = array();
-		$this->structure['DISTINCT'] = FALSE;
 		while ($i < $numMatches) {
-			$keyword = $matches[$i];
-			$i++;
+				// Special case with the fist part, it's the FROM clause
+			if ($i == 0) {
+				$keyword = 'FROM';
+			} else {
+				$keyword = $matches[$i];
+				$i++;
+			}
 			$value = $matches[$i];
 			$i++;
 			if (!isset($this->structure[$keyword])) $this->structure[$keyword] = array();
 			switch ($keyword) {
 				case 'SELECT':
-					$selectString = trim($value);
-						// Check if the select string starts with "DISTINCT"
-						// If yes, remove that and set the distinct flag to true
-					if (strpos($selectString, 'DISTINCT') === 0) {
-						$this->structure['DISTINCT'] = TRUE;
-						$croppedString = substr($selectString, 8);
-						$selectString = trim($croppedString);
-					}
-
-						// Explode the select string in its constituent parts and store it as is
-						// More processing takes place later on
-					$selectArray = t3lib_div::trimExplode(',', $selectString, 1);
-					foreach ($selectArray as $value) {
-						$this->structure[$keyword][] = $value;
-					}
 					break;
 				case 'FROM':
 					$fromParts = explode('AS', $value);
@@ -449,7 +531,6 @@ class tx_dataquery_parser {
 	 *
 	 * @param	string	$field: a field and its function call
 	 * @return	array	An array containing the information, with a "function" key and a "field" key
-	 */
 	protected function parseFunctionInformation($field) {
 		$stringParts = preg_split('/(\(|\))/', $field, 0, PREG_SPLIT_NO_EMPTY);
 		$aggregationInformation = array();
@@ -466,6 +547,7 @@ class tx_dataquery_parser {
 		$aggregationInformation['table']  = $table;
 		return $aggregationInformation;
 	}
+ */
 
 	/**
 	 * This method gets the localized labels for all tables and fields in the query in the given language
@@ -530,20 +612,17 @@ class tx_dataquery_parser {
 					// Set default values
 				$tableAlias = $alias;
 				$field = $fieldData['name'];
-					// Get the localized label, if it exists
+					// Get the localized label, if it exists, otherwise use field name
+					// Skip if it's a function (it will have no TCA definition anyway)
 				$fieldName = $field;
-				if (isset($GLOBALS['TCA'][$table]['columns'][$fieldData['name']]['label'])) {
+				if (!$fieldData['function'] && isset($GLOBALS['TCA'][$table]['columns'][$fieldData['name']]['label'])) {
 					$fieldName = $lang->sL($GLOBALS['TCA'][$table]['columns'][$fieldData['name']]['label']);
 				}
 					// Check if the field has an alias, if yes use it
-				$fieldKey = $field;
-					// If the field is called with a function, use the disambiguation key
-				if (!empty($fieldData['function'])) {
-					$fieldKey .= '_' . $fieldData['function'];
-				}
+					// Otherwise use the field name itself as an alias
 				$fieldAlias = $field;
-				if (isset($this->fieldAliases[$alias][$fieldKey])) {
-					$fieldAlias = $this->fieldAliases[$alias][$fieldKey];
+				if (isset($this->fieldAliases[$alias][$field])) {
+					$fieldAlias = $this->fieldAliases[$alias][$field];
 						// If the alias contains a dot (.), it means it contains the alias of a table name
 						// Explode the name on the dot and use the parts as a new table alias and field name
 					if (strpos($fieldAlias, '.') !== false) {
@@ -615,10 +694,13 @@ class tx_dataquery_parser {
 						// The table uses translations in the same table (transOrigPointerField) or in a foreign table (transForeignTable)
 						// Prepare for overlays
 					if (isset($GLOBALS['TCA'][$table]['ctrl']['transOrigPointerField']) || isset($GLOBALS['TCA'][$table]['ctrl']['transForeignTable'])) {
-							// Assemble a list of all fields for the table
+							// Assemble a list of all fields for the table,
+							// skipping function calls (which can't be overlayed anyway)
 						$fields = array();
 						foreach ($tableData['fields'] as $fieldData) {
-							$fields[] = $fieldData['name'];
+							if (!$fieldData['function']) {
+								$fields[] = $fieldData['name'];
+							}
 						}
 							// For each table, make sure that the fields necessary for handling the language overlay are included in the list of selected fields
 						try {
@@ -636,12 +718,12 @@ class tx_dataquery_parser {
 									$newFieldName = $alias . '.' . $aField;
 									$newFieldAlias = $alias . '$' . $aField;
 									$this->structure['SELECT'][] = $newFieldName . ' AS ' . $newFieldAlias;
-									$this->queryFields[$table]['fields'][] = array('name' => $aField, 'function' => '');
+									$this->queryFields[$table]['fields'][] = array('name' => $aField, 'function' => FALSE);
 									$this->fieldTrueNames[$newFieldAlias] = array(
 																				'table' => $table,
 																				'aliasTable' => $alias,
 																				'field' => $aField,
-																				'function' => '',
+//																				'function' => '',
 																				'mapping' => array('table' => $alias, 'field' => $aField)
 																			);
 								}
@@ -1033,13 +1115,13 @@ t3lib_div::debug($this->structure['SELECT'], 'Select structure');
 						// (it will be added only if necessary, i.e. if at least one field needs to be ordered later)
 					if (!$this->isAQueryField($alias, $field) && !isset($this->fieldAliases[$alias][$field])) {
 						$fieldAlias = $alias . '$' . $field;
-						$newQueryFields[$alias]['fields'][] = array('name' => $field, 'function' => '');
+						$newQueryFields[$alias]['fields'][] = array('name' => $field, 'function' => FALSE);
 						$newSelectFields[] = $alias . '.' . $field . ' AS ' . $fieldAlias;
 						$newTrueNames[$fieldAlias] = array(
 														'table' => $table,
 														'aliasTable' => $alias,
 														'field' => $field,
-														'function' => '',
+//														'function' => '',
 														'mapping' => array('table' => $alias, 'field' => $field)
 													);
 						$countNewFields++;
@@ -1113,6 +1195,17 @@ t3lib_div::debug($this->structure['SELECT'], 'Updated select structure');
 	}
 
 	/**
+	 * This method returns the structure of the parsed query
+	 * There should be little real-life uses for this, but it is used by the
+	 * test case to get the parsed structure
+	 * 
+	 * @return	array	The parsed query
+	 */
+	public function getQueryStructure() {
+		return $this->structure;
+	}
+
+	/**
 	 * This method returns the name (alias) of the main table of the query,
 	 * which is the table name that appears in the FROM clause, or the alias, if any
 	 *
@@ -1154,9 +1247,9 @@ t3lib_div::debug($this->structure['SELECT'], 'Updated select structure');
 		$trueNameInformation = $this->fieldTrueNames[$alias];
 			// Assemble field key (possibly disambiguated with function name)
 		$fieldKey = $trueNameInformation['field'];
-		if (!empty($trueNameInformation['function'])) {
-			$fieldKey .= '_' . $trueNameInformation['function'];
-		}
+//		if (!empty($trueNameInformation['function'])) {
+//			$fieldKey .= '_' . $trueNameInformation['function'];
+//		}
 			// If the field has an explicit alias, we must also pass back that information
 		if (isset($this->fieldAliases[$trueNameInformation['aliasTable']][$fieldKey])) {
 			$alias = $this->fieldAliases[$trueNameInformation['aliasTable']][$fieldKey];
@@ -1228,7 +1321,7 @@ t3lib_div::debug($this->structure['SELECT'], 'Updated select structure');
 	 * If the first significant table is not INNER JOINed or if there are no JOINs
 	 * or no INNER JOINs, an empty string is returned
 	 *
-	 * @return	boolean		alias of the first significant table, if INNER JOINed, empty string otherwise
+	 * @return	string	alias of the first significant table, if INNER JOINed, empty string otherwise
 	 */
 	public function hasInnerJoinOnFirstSubtable() {
 		$returnValue = '';
