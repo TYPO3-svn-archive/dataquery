@@ -38,10 +38,6 @@ require_once(t3lib_extMgm::extPath('dataquery', 'class.tx_dataquery_sqlparser.ph
  */
 class tx_dataquery_parser {
 		/*
-		 * List of all the main keywords accepted in the query
-		 */
-	static protected $tokens = array('INNER JOIN', 'LEFT JOIN', 'RIGHT JOIN', 'WHERE', 'GROUP BY', 'ORDER BY', 'LIMIT', 'OFFSET', 'MERGED');
-		/*
 		 * List of eval types which indicate non-text fields
 		 */
 	static protected $notTextTypes = array('date', 'datetime', 'time', 'timesec', 'year', 'num', 'md5', 'int', 'double2');
@@ -87,6 +83,7 @@ class tx_dataquery_parser {
 			$parseResult = $sqlParser->parseSQL($query);
 			$this->structure = $parseResult['structure'];
 			$this->mainTable = $parseResult['mainTable'];
+			$this->subtables = $parseResult['subtables'];
 			$this->aliases = $parseResult['aliases'];
 			$this->orderFields = $parseResult['orderFields'];
 		}

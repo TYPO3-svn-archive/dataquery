@@ -32,10 +32,16 @@
  * $Id$
  */
 class tx_dataquery_sqlparser {
+		/**
+		 * @var	array	List of all the main keywords accepted in the query
+		 */
+	static protected $tokens = array('INNER JOIN', 'LEFT JOIN', 'RIGHT JOIN', 'WHERE', 'GROUP BY', 'ORDER BY', 'LIMIT', 'OFFSET', 'MERGED');
+
 	protected $structure = array(); // Contains all components of the parsed query
 	protected $mainTable; // Name (or alias if defined) of the main query table, i.e. the one in the FROM part of the query
 	protected $aliases = array(); // The keys to this array are the aliases of the tables used in the query and they point to the true table names
 	protected $orderFields = array(); // Array with all information of the fields used to order data
+	protected $subtables = array(); // List of all subtables, i.e. tables in the JOIN statements
 
 	/**
 	 * This function parses a SQL query and extract structured information about it
@@ -70,13 +76,6 @@ class tx_dataquery_sqlparser {
 		$selectedFields = trim(substr($selectPart, $selectPosition + 6));
 		$this->parseSelectStatement($selectedFields);
 
-			// Explode the select string in its constituent parts and store it as is
-			// More processing takes place later on
-//		$selectArray = t3lib_div::trimExplode(',', $selectedFields, 1);
-//		foreach ($selectArray as $value) {
-//			$this->structure['SELECT'][] = $value;
-//		}
-
 			// Get all parts of the query, using the SQL keywords as tokens
 			// The returned matches array contains the keywords matched (in position 2) and the string after each keyword (in position 3)
 		$regexp = '/(' . implode('|', self::$tokens) . ')/';
@@ -84,18 +83,16 @@ class tx_dataquery_sqlparser {
 //t3lib_div::debug($regexp);
 //t3lib_div::debug($query);
 //t3lib_div::debug($matches, 'Matches');
+			// The first position is the string that followed the main FROM keyword
+		$fromPart = array_shift($matches);
+		$this->parseFromStatement($fromPart);
 
 			// Fill the structure array, as suited for each keyword
 		$i = 0;
 		$numMatches = count($matches);
 		while ($i < $numMatches) {
-				// Special case with the fist part, it's the FROM clause
-			if ($i == 0) {
-				$keyword = 'FROM';
-			} else {
-				$keyword = $matches[$i];
-				$i++;
-			}
+			$keyword = $matches[$i];
+			$i++;
 			$value = $matches[$i];
 			$i++;
 			if (!isset($this->structure[$keyword])) $this->structure[$keyword] = array();
@@ -103,16 +100,6 @@ class tx_dataquery_sqlparser {
 				case 'SELECT':
 					break;
 				case 'FROM':
-					$fromParts = explode('AS', $value);
-					$this->structure[$keyword]['table'] = trim($fromParts[0]);
-					if (count($fromParts) > 1) {
-						$this->structure[$keyword]['alias'] = trim($fromParts[1]);
-					}
-					else {
-						$this->structure[$keyword]['alias'] = $this->structure[$keyword]['table'];
-					}
-					$this->mainTable = $this->structure[$keyword]['alias'];
-					$this->aliases[$this->structure[$keyword]['alias']] = $this->structure[$keyword]['table'];
 					break;
 				case 'INNER JOIN':
 				case 'LEFT JOIN':
@@ -193,12 +180,20 @@ class tx_dataquery_sqlparser {
 			// Assemble the results of parsing in a single array and return it
 		$result = array(
 			'mainTable' => $this->mainTable,
+			'subtables' => $this->subtables,
 			'structure' => $this->structure,
 			'aliases' => $this->aliases,
 			'orderFields' => $this->orderFields
 		);
 		return $result;
 	}
+
+	/**
+	 * This method parses the SELECT part of the statement and isolates each field in the selection
+	 *
+	 * @param	string	$select: the beginning of the SQL statement, between SELECT and FROM (both excluded)
+	 * @return	void
+	 */
 	public function parseSelectStatement($select) {
 
 			// Parse the SELECT part
@@ -260,6 +255,48 @@ class tx_dataquery_sqlparser {
 			$this->structure['SELECT'][] = trim($currentField);
 		}
 
+	}
+
+	/**
+	 * This method parses the FROM statement of the query,
+	 * which may be comprised of a comma-separated list of tables
+	 *
+	 * @param	string	$from: the FROM statement
+	 * @return	void
+	 */
+	public function parseFromStatement($from) {
+		$this->structure['FROM'] = array();
+		$this->structure['JOIN'] = array();
+		$fromTables = t3lib_div::trimExplode(',', $from, TRUE);
+		$numTables = count($fromTables);
+		for ($i = 0; $i < $numTables; $i++) {
+			$tableName = $fromTables[$i];
+			$tableAlias = $tableName;
+			if (strpos($fromTables[$i], ' AS ') !== FALSE) {
+				$tableParts = t3lib_div::trimExplode(' AS ', $fromTables[$i], TRUE);
+				$tableName = $tableParts[0];
+				$tableAlias = $tableParts[1];
+			}
+				// Consider the first table to be the main table of the query,
+				// i.e. the table to which all others are JOINed
+			if ($i == 0) {
+				$this->structure['FROM']['table'] = $tableName;
+				$this->structure['FROM']['alias'] = $tableAlias;
+				$this->mainTable = $tableAlias;
+
+				// Each further table in the FROM statement is registered
+				// as being INNER JOINed
+			} else {
+				$this->structure['JOIN'][$tableAlias] = array(
+					'table' => $tableName,
+					'alias' => $tableAlias,
+					'type' => 'inner',
+					'on' => ''
+				);
+				$this->subtables[] = $tableAlias;
+			}
+			$this->aliases[$tableAlias] = $tableName;
+		}
 	}
 }
 

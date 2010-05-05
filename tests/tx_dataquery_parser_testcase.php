@@ -22,7 +22,7 @@
 *  This copyright notice MUST APPEAR in all copies of the script!
 ***************************************************************/
 
-require_once(t3lib_extMgm::extPath('dataquery', 'class.tx_dataquery_parser.php'));
+require_once(t3lib_extMgm::extPath('dataquery', 'class.tx_dataquery_sqlparser.php'));
 
 /**
  * Testcase for the Data Query SQL parser
@@ -44,16 +44,17 @@ class tx_dataquery_parser_testcase extends tx_phpunit_testcase {
 		/**
 		 * @var tx_dataquery_parser	$parser
 		 */
-		$parser = t3lib_div::makeInstance('tx_dataquery_parser');
+		$parser = t3lib_div::makeInstance('tx_dataquery_sqlparser');
 		$query = 'SELECT * FROM tt_content';
 		$expectedResult = array(
 			'DISTINCT' => FALSE,
 			'SELECT' => array(0 => '*'),
-			'FROM' => array('table' => 'tt_content', 'alias' => 'tt_content')
+			'FROM' => array('table' => 'tt_content', 'alias' => 'tt_content'),
+			'JOIN' => array()
 		);
-		$parser->parseSQL($query);
-		$actualResult = $parser->getQueryStructure();
-		$this->assertEquals($expectedResult, $actualResult);
+		$actualResult = $parser->parseSQL($query);
+			// Check if the "structure" part if correct
+		$this->assertEquals($expectedResult, $actualResult['structure']);
 	}
 
 	/**
@@ -65,7 +66,7 @@ class tx_dataquery_parser_testcase extends tx_phpunit_testcase {
 		/**
 		 * @var tx_dataquery_parser	$parser
 		 */
-		$parser = t3lib_div::makeInstance('tx_dataquery_parser');
+		$parser = t3lib_div::makeInstance('tx_dataquery_sqlparser');
 		$query = 'SELECT uid, FROM_UNIXTIME(tstamp, \'%Y\') AS year, CONCAT(uid, \' in \', pid) FROM tt_content AS content';
 		$expectedResult = array(
 			'DISTINCT' => FALSE,
@@ -74,11 +75,44 @@ class tx_dataquery_parser_testcase extends tx_phpunit_testcase {
 				1 => 'FROM_UNIXTIME(tstamp, \'%Y\') AS year',
 				2 => 'CONCAT(uid, \' in \', pid)'
 			),
-			'FROM' => array('table' => 'tt_content', 'alias' => 'content')
+			'FROM' => array('table' => 'tt_content', 'alias' => 'content'),
+			'JOIN' => array()
 		);
-		$parser->parseSQL($query);
-		$actualResult = $parser->getQueryStructure();
-		$this->assertEquals($expectedResult, $actualResult);
+		$actualResult = $parser->parseSQL($query);
+			// Check if the "structure" part if correct
+		$this->assertEquals($expectedResult, $actualResult['structure']);
+	}
+
+	/**
+	 * Test a SELECT query with an implicit join
+	 *
+	 * @test
+	 */
+	public function selectQueryWithImplicitJoin() {
+		/**
+		 * @var tx_dataquery_parser	$parser
+		 */
+		$parser = t3lib_div::makeInstance('tx_dataquery_sqlparser');
+		$query = 'SELECT t.uid, p.uid FROM tt_content AS t, pages AS p';
+		$expectedResult = array(
+			'DISTINCT' => FALSE,
+			'SELECT' => array(
+				0 => 't.uid',
+				1 => 'p.uid'
+			),
+			'FROM' => array('table' => 'tt_content', 'alias' => 't'),
+			'JOIN' => array(
+				'p' => array(
+					'table' => 'pages',
+					'alias' => 'p',
+					'type' => 'inner',
+					'on' => ''
+				)
+			)
+		);
+		$actualResult = $parser->parseSQL($query);
+			// Check if the "structure" part if correct
+		$this->assertEquals($expectedResult, $actualResult['structure']);
 	}
 }
 ?>
