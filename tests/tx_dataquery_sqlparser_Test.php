@@ -33,7 +33,7 @@ require_once(t3lib_extMgm::extPath('dataquery', 'class.tx_dataquery_sqlparser.ph
  *
  * $Id$
  */
-class tx_dataquery_parser_testcase extends tx_phpunit_testcase {
+class tx_dataquery_sqlparser_Test extends tx_phpunit_testcase {
 
 	/**
 	 * Test a simple SELECT query
