@@ -23,6 +23,7 @@
 ***************************************************************/
 
 require_once(t3lib_extMgm::extPath('overlays', 'class.tx_overlays.php'));
+require_once(t3lib_extMgm::extPath('dataquery', 'class.tx_dataquery_sqlparser.php'));
 
 /**
  * This class is used to parse a SELECT SQL query into a structured array
@@ -78,7 +79,20 @@ class tx_dataquery_parser {
 		$query = tx_expressions_parser::evaluateString($query, FALSE);
 
 			// Parse the SQL query
-		$this->parseSQL($query);
+			/**
+			 * @var	tx_dataquery_sqlparser
+			 */
+		$sqlParser = t3lib_div::makeInstance('tx_dataquery_sqlparser');
+		try {
+			$parseResult = $sqlParser->parseSQL($query);
+			$this->structure = $parseResult['structure'];
+			$this->mainTable = $parseResult['mainTable'];
+			$this->aliases = $parseResult['aliases'];
+			$this->orderFields = $parseResult['orderFields'];
+		}
+		catch (Exception $e) {
+			// Decide what to do here: handle exception of let it bubble up
+		}
 
 			// Loop on all SELECT items
 		$numSelects = count($this->structure['SELECT']);
@@ -311,243 +325,6 @@ class tx_dataquery_parser {
 //t3lib_div::debug($this->queryFields, 'Query fields');
 //t3lib_div::debug($this->structure, 'Structure');
 	}
-
-	/**
-	 * This method parses the actual SQL query and turns it into its constituent parts,
-	 * based on the keywords found in the query
-	 * 
-	 * @param	string	$query: the SQL query to parse
-	 * @return	void
-	 */
-	public function parseSQL($query) {
-		$this->aliases = array();
-		$this->structure['DISTINCT'] = FALSE;
-
-			// First find the start of the SELECT statement
-		$selectPosition = stripos($query, 'SELECT');
-		if ($selectPosition === FALSE) {
-			throw new tx_tesseract_exception('Missing SELECT keyword', 1272556228);
-		}
-			// Next find the position of the last FROM keyword
-			// There may be more than one FROM keyword when some functions are used
-			// (example: EXTRACT(YEAR FROM tstamp))
-			// NOTE: sub-selects are not supported, but these could be a source
-			// of additional FROMs
-		$matches = array();
-		$queryParts = preg_split('/\bFROM\b/', $query);
-			// If the query was not split, FROM keyword is missing
-		if (count($queryParts) == 1) {
-			throw new tx_tesseract_exception('Missing FROM keyword', 1272556601);
-		}
-		$afterLastFrom = array_pop($queryParts);
-
-			// Everything before the last FROM is the SELECT part
-		$selectPart = implode(' FROM ', $queryParts);
-		$selectedFields = trim(substr($selectPart, $selectPosition + 6));
-
-			// Parse the SELECT part
-			// First, check if the select string starts with "DISTINCT"
-			// If yes, remove that and set the distinct flag to true
-		$distinctPosition = strpos($selectedFields, 'DISTINCT');
-		if ($distinctPosition !== FALSE) {
-			$this->structure['DISTINCT'] = TRUE;
-			$croppedString = substr($selectedFields, $distinctPosition, 8);
-			$selectedFields = trim($croppedString);
-		}
-			// Next, parse the rest of the string character by character
-		$stringLenth = strlen($selectedFields);
-		$openBrackets = 0;
-		$currentField = '';
-		for ($i = 0; $i < $stringLenth; $i++) {
-			$character = $selectedFields[$i];
-			switch ($character) {
-					// An open bracket is the sign of a function call
-					// Functions may be nested, so we count the number of open brackets
-				case '(':
-					$currentField .= $character;
-					$openBrackets++;
-					break;
-
-					// Decrease the open bracket count
-				case ')':
-					$currentField .= $character;
-					$openBrackets--;
-					break;
-
-					// A comma indicates that we have reached the end of a field,
-					// unless there are open brackets, in which case the comma is
-					// a separator of function arguments
-				case ',':
-						// We are at the end of a field: add it to the list of fields
-						// and reset the current field
-					if ($openBrackets == 0) {
-						$this->structure['SELECT'][] = trim($currentField);
-						$currentField = '';
-
-						// We're inside a function, keep the comma and keep the current character
-					} else {
-						$currentField .= $character;
-					}
-					break;
-
-					// Nothing special, just add the current character to the current field's name
-				default:
-					$currentField .= $character;
-					break;
-			}
-		}
-			// Upon exit from the loop, save the last field found,
-			// except if there's still an open bracket, in which case we have a syntax error
-		if ($openBrackets > 0) {
-			throw new tx_tesseract_exception('Bad SQL syntax, opening and closing brackets are not balanced', 1272954424);
-		} else {
-			$this->structure['SELECT'][] = trim($currentField);
-		}
-
-			// Explode the select string in its constituent parts and store it as is
-			// More processing takes place later on
-//		$selectArray = t3lib_div::trimExplode(',', $selectedFields, 1);
-//		foreach ($selectArray as $value) {
-//			$this->structure['SELECT'][] = $value;
-//		}
-
-			// Get all parts of the query, using the SQL keywords as tokens
-			// The returned matches array contains the keywords matched (in position 2) and the string after each keyword (in position 3)
-		$regexp = '/(' . implode('|', self::$tokens) . ')/';
-		$matches = preg_split($regexp, $afterLastFrom, -1, PREG_SPLIT_NO_EMPTY | PREG_SPLIT_DELIM_CAPTURE);
-//t3lib_div::debug($regexp);
-//t3lib_div::debug($query);
-//t3lib_div::debug($matches, 'Matches');
-
-			// Fill the structure array, as suited for each keyword
-		$i = 0;
-		$numMatches = count($matches);
-		while ($i < $numMatches) {
-				// Special case with the fist part, it's the FROM clause
-			if ($i == 0) {
-				$keyword = 'FROM';
-			} else {
-				$keyword = $matches[$i];
-				$i++;
-			}
-			$value = $matches[$i];
-			$i++;
-			if (!isset($this->structure[$keyword])) $this->structure[$keyword] = array();
-			switch ($keyword) {
-				case 'SELECT':
-					break;
-				case 'FROM':
-					$fromParts = explode('AS', $value);
-					$this->structure[$keyword]['table'] = trim($fromParts[0]);
-					if (count($fromParts) > 1) {
-						$this->structure[$keyword]['alias'] = trim($fromParts[1]);
-					}
-					else {
-						$this->structure[$keyword]['alias'] = $this->structure[$keyword]['table'];
-					}
-					$this->mainTable = $this->structure[$keyword]['alias'];
-					$this->aliases[$this->structure[$keyword]['alias']] = $this->structure[$keyword]['table'];
-					break;
-				case 'INNER JOIN':
-				case 'LEFT JOIN':
-				case 'RIGHT JOIN':
-						// Extract the JOIN type (INNER, LEFT or RIGHT)
-					$joinType = strtolower(substr($keyword, 0, strpos($keyword,'JOIN') - 1));
-					$theJoin = array();
-					$theJoin['type'] = $joinType;
-						// Separate the table from the join condition
-					$parts = explode('ON', $value);
-						// Separate an alias from the table name
-					$moreParts = t3lib_div::trimExplode('AS', $parts[0]);
-					$theJoin['table'] = trim($moreParts[0]);
-					if (count($moreParts) > 1) {
-						$theJoin['alias'] = trim($moreParts[1]);
-					}
-					else {
-						$theJoin['alias'] = $theJoin['table'];
-					}
-					$this->subtables[] = $theJoin['alias'];
-					$this->aliases[$theJoin['alias']] = $theJoin['table'];
-						// Handle the "ON" part which may contain the non-SQL keyword "MAX"
-						// This keyword is not used in the SQL query, but is an indication to the wrapper that
-						// we want only a single record from this join
-					if (count($parts) > 1) {
-						$moreParts = t3lib_div::trimExplode('MAX', $parts[1]);
-						$theJoin['on'] = trim($moreParts[0]);
-						if (count($moreParts) > 1) {
-							$theJoin['limit'] = $moreParts[1];
-						}
-					}
-					else {
-						$theJoin['on'] = '';
-					}
-					if (!isset($this->structure['JOIN'])) $this->structure['JOIN'] = array();
-					$this->structure['JOIN'][$theJoin['alias']] = $theJoin;
-					break;
-				case 'WHERE':
-					$this->structure[$keyword][] = trim($value);
-					break;
-				case 'ORDER BY':
-				case 'GROUP BY':
-					$orderParts = explode(',', $value);
-					foreach ($orderParts as $part) {
-						$thePart = trim($part);
-						$this->structure[$keyword][] = $thePart;
-							// In case of ORDER BY, perform additional operation to get field name and sort order separately
-						if ($keyword == 'ORDER BY') {
-							$finerParts = preg_split('/\s/', $thePart, -1, PREG_SPLIT_NO_EMPTY);
-							$orderField = $finerParts[0];
-							$orderSort = (isset($finerParts[1])) ? $finerParts[1] : 'ASC';
-							$this->orderFields[] = array('field' => $orderField, 'order' => $orderSort);
-						}
-
-					}
-					break;
-				case 'LIMIT':
-					$this->structure[$keyword] = trim($value);
-					break;
-				case 'OFFSET':
-					$this->structure[$keyword] = trim($value);
-					break;
-
-// Dataquery allows for non-standard keywords to be used in the SQL query for special purposes
-// MERGED says that results from different tables are kept as single records.
-// Otherwise joined tables are structured as subtables from the main table (the one in the FROM clause)
-/* NOTE: this is not used anymore
- * TODO: implement usage again or drop altogether
-				case 'MERGED':
-					$this->isMergedResult = true;
-					break;
- *
- */
-			}
-		}
-			// Free some memory
-		unset($matches);
-	}
-
-	/**
-	 * This method splits a SQL function call into a function part and a field part
-	 *
-	 * @param	string	$field: a field and its function call
-	 * @return	array	An array containing the information, with a "function" key and a "field" key
-	protected function parseFunctionInformation($field) {
-		$stringParts = preg_split('/(\(|\))/', $field, 0, PREG_SPLIT_NO_EMPTY);
-		$aggregationInformation = array();
-		$aggregationInformation['function'] = $stringParts[0];
-		$field = trim($stringParts[1]);
-		$table = '';
-			// Check if the notation table.field was used inside the function
-		if (stristr($field, '.')) {
-			$fieldParts = t3lib_div::trimExplode('.', $field, 1);
-			$table = $fieldParts[0];
-			$field = $fieldParts[1];
-		}
-		$aggregationInformation['field']  = $field;
-		$aggregationInformation['table']  = $table;
-		return $aggregationInformation;
-	}
- */
 
 	/**
 	 * This method gets the localized labels for all tables and fields in the query in the given language
