@@ -160,5 +160,59 @@ class tx_dataquery_sqlparser_Test extends tx_phpunit_testcase {
 			// Check if the "structure" part if correct
 		$this->assertEquals($expectedResult, $actualResult['structure']);
 	}
+
+	/**
+	 * Test a SELECT query with LIMIT defined as LIMIT x,y
+	 *
+	 * @test
+	 */
+	public function selectQueryWithImplicitLimitAndOffset() {
+		/**
+		 * @var tx_dataquery_parser	$parser
+		 */
+		$parser = t3lib_div::makeInstance('tx_dataquery_sqlparser');
+		$query = 'SELECT * FROM tt_content LIMIT 10, 20';
+		$expectedResult = array(
+			'DISTINCT' => FALSE,
+			'SELECT' => array(0 => '*'),
+			'FROM' => array('table' => 'tt_content', 'alias' => 'tt_content'),
+			'JOIN' => array(),
+			'WHERE' => array(),
+			'ORDER BY' => array(),
+			'GROUP BY' => array(),
+			'LIMIT' => 20,
+			'OFFSET' => 10
+		);
+		$actualResult = $parser->parseSQL($query);
+			// Check if the "structure" part if correct
+		$this->assertEquals($expectedResult, $actualResult['structure']);
+	}
+
+	/**
+	 * Test a SELECT query with LIMIT defined as LIMIT y OFFSET x
+	 *
+	 * @test
+	 */
+	public function selectQueryWithExplicitLimitAndOffset() {
+		/**
+		 * @var tx_dataquery_parser	$parser
+		 */
+		$parser = t3lib_div::makeInstance('tx_dataquery_sqlparser');
+		$query = 'SELECT * FROM tt_content LIMIT 20 OFFSET 10';
+		$expectedResult = array(
+			'DISTINCT' => FALSE,
+			'SELECT' => array(0 => '*'),
+			'FROM' => array('table' => 'tt_content', 'alias' => 'tt_content'),
+			'JOIN' => array(),
+			'WHERE' => array(),
+			'ORDER BY' => array(),
+			'GROUP BY' => array(),
+			'LIMIT' => 20,
+			'OFFSET' => 10
+		);
+		$actualResult = $parser->parseSQL($query);
+			// Check if the "structure" part if correct
+		$this->assertEquals($expectedResult, $actualResult['structure']);
+	}
 }
 ?>

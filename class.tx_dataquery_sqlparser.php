@@ -159,7 +159,13 @@ class tx_dataquery_sqlparser {
 					}
 					break;
 				case 'LIMIT':
-					$this->structure[$keyword] = intval($value);
+					if (strpos($value, ',') !== FALSE) {
+						$limitParts = t3lib_div::trimExplode(',', $value, TRUE);
+						$this->structure['OFFSET'] = intval($limitParts[0]);
+						$this->structure[$keyword] = intval($limitParts[1]);
+					} else {
+						$this->structure[$keyword] = intval($value);
+					}
 					break;
 				case 'OFFSET':
 					$this->structure[$keyword] = intval($value);
