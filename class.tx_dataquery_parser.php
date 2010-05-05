@@ -763,7 +763,7 @@ class tx_dataquery_parser {
 				$query .= ' ';
 			}
 		}
-		if (isset($this->structure['WHERE'])) {
+		if (count($this->structure['WHERE']) > 0) {
 			$whereClause = '';
 			foreach ($this->structure['WHERE'] as $clause) {
 				if (!empty($whereClause)) {
@@ -780,9 +780,9 @@ class tx_dataquery_parser {
 		if ($this->processOrderBy && count($this->structure['ORDER BY']) > 0) {
 			$query .= 'ORDER BY ' . implode(', ', $this->structure['ORDER BY']) . ' ';
 		}
-		if (count($this->structure['LIMIT']) > 0) {
+		if (isset($this->structure['LIMIT'])) {
 			$query .= 'LIMIT ' . $this->structure['LIMIT'];
-			if (count($this->structure['OFFSET']) > 0) {
+			if (isset($this->structure['OFFSET'])) {
 				$query .= ' OFFSET ' . $this->structure['OFFSET'];
 			}
 		}

@@ -52,6 +52,12 @@ class tx_dataquery_sqlparser {
 	public function parseSQL($query) {
 		$this->aliases = array();
 		$this->structure['DISTINCT'] = FALSE;
+		$this->structure['SELECT'] = array();
+		$this->structure['FROM'] = array();
+		$this->structure['JOIN'] = array();
+		$this->structure['WHERE'] = array();
+		$this->structure['ORDER BY'] = array();
+		$this->structure['GROUP BY'] = array();
 
 			// First find the start of the SELECT statement
 		$selectPosition = stripos($query, 'SELECT');
@@ -83,6 +89,7 @@ class tx_dataquery_sqlparser {
 //t3lib_div::debug($regexp);
 //t3lib_div::debug($query);
 //t3lib_div::debug($matches, 'Matches');
+
 			// The first position is the string that followed the main FROM keyword
 		$fromPart = array_shift($matches);
 		$this->parseFromStatement($fromPart);
@@ -95,12 +102,7 @@ class tx_dataquery_sqlparser {
 			$i++;
 			$value = $matches[$i];
 			$i++;
-			if (!isset($this->structure[$keyword])) $this->structure[$keyword] = array();
 			switch ($keyword) {
-				case 'SELECT':
-					break;
-				case 'FROM':
-					break;
 				case 'INNER JOIN':
 				case 'LEFT JOIN':
 				case 'RIGHT JOIN':
@@ -157,10 +159,10 @@ class tx_dataquery_sqlparser {
 					}
 					break;
 				case 'LIMIT':
-					$this->structure[$keyword] = trim($value);
+					$this->structure[$keyword] = intval($value);
 					break;
 				case 'OFFSET':
-					$this->structure[$keyword] = trim($value);
+					$this->structure[$keyword] = intval($value);
 					break;
 
 // Dataquery allows for non-standard keywords to be used in the SQL query for special purposes
@@ -265,8 +267,6 @@ class tx_dataquery_sqlparser {
 	 * @return	void
 	 */
 	public function parseFromStatement($from) {
-		$this->structure['FROM'] = array();
-		$this->structure['JOIN'] = array();
 		$fromTables = t3lib_div::trimExplode(',', $from, TRUE);
 		$numTables = count($fromTables);
 		for ($i = 0; $i < $numTables; $i++) {
@@ -288,9 +288,9 @@ class tx_dataquery_sqlparser {
 				// as being INNER JOINed
 			} else {
 				$this->structure['JOIN'][$tableAlias] = array(
+					'type' => 'inner',
 					'table' => $tableName,
 					'alias' => $tableAlias,
-					'type' => 'inner',
 					'on' => ''
 				);
 				$this->subtables[] = $tableAlias;

@@ -50,7 +50,10 @@ class tx_dataquery_parser_testcase extends tx_phpunit_testcase {
 			'DISTINCT' => FALSE,
 			'SELECT' => array(0 => '*'),
 			'FROM' => array('table' => 'tt_content', 'alias' => 'tt_content'),
-			'JOIN' => array()
+			'JOIN' => array(),
+			'WHERE' => array(),
+			'ORDER BY' => array(),
+			'GROUP BY' => array()
 		);
 		$actualResult = $parser->parseSQL($query);
 			// Check if the "structure" part if correct
@@ -76,7 +79,10 @@ class tx_dataquery_parser_testcase extends tx_phpunit_testcase {
 				2 => 'CONCAT(uid, \' in \', pid)'
 			),
 			'FROM' => array('table' => 'tt_content', 'alias' => 'content'),
-			'JOIN' => array()
+			'JOIN' => array(),
+			'WHERE' => array(),
+			'ORDER BY' => array(),
+			'GROUP BY' => array()
 		);
 		$actualResult = $parser->parseSQL($query);
 			// Check if the "structure" part if correct
@@ -93,7 +99,7 @@ class tx_dataquery_parser_testcase extends tx_phpunit_testcase {
 		 * @var tx_dataquery_parser	$parser
 		 */
 		$parser = t3lib_div::makeInstance('tx_dataquery_sqlparser');
-		$query = 'SELECT t.uid, p.uid FROM tt_content AS t, pages AS p';
+		$query = 'SELECT t.uid, p.uid FROM tt_content AS t, pages AS p WHERE p.uid = t.pid';
 		$expectedResult = array(
 			'DISTINCT' => FALSE,
 			'SELECT' => array(
@@ -103,12 +109,52 @@ class tx_dataquery_parser_testcase extends tx_phpunit_testcase {
 			'FROM' => array('table' => 'tt_content', 'alias' => 't'),
 			'JOIN' => array(
 				'p' => array(
+					'type' => 'inner',
 					'table' => 'pages',
 					'alias' => 'p',
-					'type' => 'inner',
 					'on' => ''
 				)
-			)
+			),
+			'WHERE' => array(
+				0 => 'p.uid = t.pid'
+			),
+			'ORDER BY' => array(),
+			'GROUP BY' => array()
+		);
+		$actualResult = $parser->parseSQL($query);
+			// Check if the "structure" part if correct
+		$this->assertEquals($expectedResult, $actualResult['structure']);
+	}
+
+	/**
+	 * Test a SELECT query with an explicit join
+	 *
+	 * @test
+	 */
+	public function selectQueryWithExplicitJoin() {
+		/**
+		 * @var tx_dataquery_parser	$parser
+		 */
+		$parser = t3lib_div::makeInstance('tx_dataquery_sqlparser');
+		$query = 'SELECT t.uid, p.uid FROM pages AS p LEFT JOIN tt_content AS t ON t.pid = p.uid';
+		$expectedResult = array(
+			'DISTINCT' => FALSE,
+			'SELECT' => array(
+				0 => 't.uid',
+				1 => 'p.uid'
+			),
+			'FROM' => array('table' => 'pages', 'alias' => 'p'),
+			'JOIN' => array(
+				't' => array(
+					'type' => 'left',
+					'table' => 'tt_content',
+					'alias' => 't',
+					'on' => 't.pid = p.uid'
+				)
+			),
+			'WHERE' => array(),
+			'ORDER BY' => array(),
+			'GROUP BY' => array()
 		);
 		$actualResult = $parser->parseSQL($query);
 			// Check if the "structure" part if correct
