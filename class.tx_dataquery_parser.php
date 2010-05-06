@@ -45,6 +45,7 @@ class tx_dataquery_parser {
 	protected $mainTable; // Name (or alias if defined) of the main query table, i.e. the one in the FROM part of the query
 	protected $aliases = array(); // The keys to this array are the aliases of the tables used in the query and they point to the true table names
 	protected $fieldAliases = array(); // List of aliases for all fields that have one, per table
+	protected $fieldAliasMappings = array(); // List of what field aliases map to (table, field and whether it's a function or not)
 	protected $fieldTrueNames = array(); // True names for all the fields. The key is the actual alias used in the query.
 	protected $isMergedResult = FALSE;
 	protected $subtables = array(); // List of all subtables, i.e. tables in the JOIN statements
@@ -154,16 +155,6 @@ class tx_dataquery_parser {
 					$table = $this->mainTable;
 					$alias = $table;
 					$field = $selector;
-/*
-					$functionInformation = $this->parseFunctionInformation($field);
-					$field = $functionInformation['field'];
-					$function = $functionInformation['function'];
-					if (!empty($functionInformation['table'])) {
-						$table = $functionInformation['table'];
-						$alias = $functionInformation['table'];
-					}
- *
- */
 						// Function calls need aliases
 						// If none was given, define one
 					if (empty($fieldAlias)) {
@@ -177,6 +168,15 @@ class tx_dataquery_parser {
 						$this->fieldAliases[$alias] = array();
 					}
 					$this->fieldAliases[$alias][$field] = $fieldAlias;
+						// Keep track of which field the alias is related to
+						// (this is used later to map alias used in filters)
+						// If the alias is related to a function, we store the function syntax as is,
+						// otherwise we map the alias to the syntax table.field
+					if ($isFunction) {
+						$this->fieldAliasMappings[$fieldAlias] = $field;
+					} else {
+						$this->fieldAliasMappings[$fieldAlias] = $table . '.' . $field;
+					}
 				}
 					// Make field into an array to match structure when selector is "*"
 				$fields = array($field);
@@ -578,6 +578,11 @@ class tx_dataquery_parser {
 				$table = (empty($filterData['table'])) ? $this->mainTable : $filterData['table'];
 				$field = $filterData['field'];
 				$fullField = $table . '.' . $field;
+					// If the field is an alias, override full field definition
+					// to whatever the alias is mapped to
+				if (isset($this->fieldAliasMappings[$field])) {
+					$fullField = $this->fieldAliasMappings[$field];
+				}
 				$condition = '';
 					// Define table on which to apply the condition
 					// Conditions will normally be applied in the WHERE clause
