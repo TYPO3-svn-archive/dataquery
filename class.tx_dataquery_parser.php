@@ -128,7 +128,7 @@ class tx_dataquery_parser {
 
 					// If there's an alias, extract it and continue parsing
 					// An alias is indicated by a "AS" keyword after the last closing bracket if any
-					// (brackets indicated a function call and there might be "AS" keywords inside them)
+					// (brackets indicate a function call and there might be "AS" keywords inside them)
 				$lastBracket = strrpos($selector, ')');
 				if (!$lastBracket) {
 					$lastBracket = 0;
