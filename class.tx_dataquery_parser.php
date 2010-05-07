@@ -127,11 +127,17 @@ class tx_dataquery_parser {
             } else {
 
 					// If there's an alias, extract it and continue parsing
-				if (stristr($selector, 'AS')) {
-					$selectorParts = t3lib_div::trimExplode('AS', $selector, 1);
-					$selector = $selectorParts[0];
-					$fieldAlias = $selectorParts[1];
-                }
+					// An alias is indicated by a "AS" keyword after the last closing bracket if any
+					// (brackets indicated a function call and there might be "AS" keywords inside them)
+				$lastBracket = strrpos($selector, ')');
+				if (!$lastBracket) {
+					$lastBracket = 0;
+				}
+				$asPosition = strpos($selector, ' AS ', $lastBracket);
+				if ($asPosition !== FALSE) {
+					$fieldAlias = trim(substr($selector, $asPosition + 4));
+					$selector = trim(substr($selector, 0, $asPosition));
+				}
 				$field = '';
 				$isFunction = FALSE;
 					// There's no function call
