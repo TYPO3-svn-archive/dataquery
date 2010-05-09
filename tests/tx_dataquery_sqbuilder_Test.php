@@ -76,5 +76,77 @@ class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 			// Check if the "structure" part if correct
 		$this->assertEquals($expectedResult, $actualResult);
 	}
+
+	/**
+	 * Parse and rebuild a simple SELECT query
+	 *
+	 * @test
+	 */
+	public function selectQueryWithFilter() {
+		$expectedResult = 'SELECT tt_content.uid, tt_content.header FROM tt_content AS tt_content WHERE (tt_content.uid > \'10\' AND tt_content.uid <= \'50\') AND (tt_content.header LIKE \'%foo%\') AND (tt_content.image IS NOT NULL) ORDER BY tt_content.crdate desc ';
+		/**
+		 * @var tx_dataquery_parser	$parser
+		 */
+		$parser = t3lib_div::makeInstance('tx_dataquery_parser');
+		$query = 'SELECT uid,header FROM tt_content';
+			// Replace time marker by time used for starttime and endtime enable fields
+//		$condition = str_replace('###NOW###', $GLOBALS['SIM_ACCESS_TIME'], self::$baseConditionForContent);
+		$parser->parseQuery($query);
+			// Define filter with many different conditions
+		$filter = array(
+			'filters' => array(
+				0 => array(
+					'table' => 'tt_content',
+					'field' => 'uid',
+					'conditions' => array(
+						0 => array(
+							'operator' => '>',
+							'value' => 10
+						),
+						1 => array(
+							'operator' => '<=',
+							'value' => 50
+						)
+					)
+				),
+				1 => array(
+					'table' => 'tt_content',
+					'field' => 'header',
+					'conditions' => array(
+						0 => array(
+							'operator' => 'like',
+							'value' => 'foo'
+						)
+					)
+				),
+				2 => array(
+					'table' => 'tt_content',
+					'field' => 'image',
+					'conditions' => array(
+						0 => array(
+							'operator' => '!=',
+							'value' => 'null'
+						)
+					)
+				)
+			),
+			'logicalOperator' => 'AND',
+			'limit' => array(
+				'max' => 20,
+				'offset' => 2
+			),
+			'orderby' => array(
+				0 => array(
+					'table' => 'tt_content',
+					'field' => 'crdate',
+					'order' => 'desc'
+				)
+			)
+		);
+		$parser->addFilter($filter);
+		$actualResult = $parser->buildQuery();
+			// Check if the "structure" part if correct
+		$this->assertEquals($expectedResult, $actualResult);
+	}
 }
 ?>
