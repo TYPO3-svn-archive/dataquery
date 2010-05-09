@@ -42,7 +42,7 @@ class tx_dataquery_sqlparser_Test extends tx_phpunit_testcase {
 	 */
 	public function simpleSelectQuery() {
 		/**
-		 * @var tx_dataquery_parser	$parser
+		 * @var tx_dataquery_sqlparser	$parser
 		 */
 		$parser = t3lib_div::makeInstance('tx_dataquery_sqlparser');
 		$query = 'SELECT * FROM tt_content';
@@ -67,7 +67,7 @@ class tx_dataquery_sqlparser_Test extends tx_phpunit_testcase {
 	 */
 	public function selectQueryWithFunctionCalls() {
 		/**
-		 * @var tx_dataquery_parser	$parser
+		 * @var tx_dataquery_sqlparser	$parser
 		 */
 		$parser = t3lib_div::makeInstance('tx_dataquery_sqlparser');
 		$query = 'SELECT uid, FROM_UNIXTIME(tstamp, \'%Y\') AS year, CONCAT(uid, \' in \', pid) FROM tt_content AS content';
@@ -96,7 +96,7 @@ class tx_dataquery_sqlparser_Test extends tx_phpunit_testcase {
 	 */
 	public function selectQueryWithImplicitJoin() {
 		/**
-		 * @var tx_dataquery_parser	$parser
+		 * @var tx_dataquery_sqlparser	$parser
 		 */
 		$parser = t3lib_div::makeInstance('tx_dataquery_sqlparser');
 		$query = 'SELECT t.uid, p.uid FROM tt_content AS t, pages AS p WHERE p.uid = t.pid';
@@ -133,7 +133,7 @@ class tx_dataquery_sqlparser_Test extends tx_phpunit_testcase {
 	 */
 	public function selectQueryWithExplicitJoin() {
 		/**
-		 * @var tx_dataquery_parser	$parser
+		 * @var tx_dataquery_sqlparser	$parser
 		 */
 		$parser = t3lib_div::makeInstance('tx_dataquery_sqlparser');
 		$query = 'SELECT t.uid, p.uid FROM pages AS p LEFT JOIN tt_content AS t ON t.pid = p.uid';
@@ -168,7 +168,7 @@ class tx_dataquery_sqlparser_Test extends tx_phpunit_testcase {
 	 */
 	public function selectQueryWithImplicitLimitAndOffset() {
 		/**
-		 * @var tx_dataquery_parser	$parser
+		 * @var tx_dataquery_sqlparser	$parser
 		 */
 		$parser = t3lib_div::makeInstance('tx_dataquery_sqlparser');
 		$query = 'SELECT * FROM tt_content LIMIT 10, 20';
@@ -195,7 +195,7 @@ class tx_dataquery_sqlparser_Test extends tx_phpunit_testcase {
 	 */
 	public function selectQueryWithExplicitLimitAndOffset() {
 		/**
-		 * @var tx_dataquery_parser	$parser
+		 * @var tx_dataquery_sqlparser	$parser
 		 */
 		$parser = t3lib_div::makeInstance('tx_dataquery_sqlparser');
 		$query = 'SELECT * FROM tt_content LIMIT 20 OFFSET 10';
