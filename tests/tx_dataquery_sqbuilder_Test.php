@@ -34,7 +34,7 @@ require_once(t3lib_extMgm::extPath('dataquery', 'class.tx_dataquery_parser.php')
  * $Id$
  */
 class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
-	protected static $baseConditionForContent = 'WHERE tt_content.deleted=0 AND tt_content.t3ver_state<=0 AND tt_content.hidden=0 AND tt_content.starttime<=###NOW### AND (tt_content.endtime=0 OR tt_content.endtime>###NOW###) AND (tt_content.fe_group=\'\' OR tt_content.fe_group IS NULL OR tt_content.fe_group=\'0\' OR (tt_content.fe_group LIKE \'%,0,%\' OR tt_content.fe_group LIKE \'0,%\' OR tt_content.fe_group LIKE \'%,0\' OR tt_content.fe_group=\'0\') OR (tt_content.fe_group LIKE \'%,-1,%\' OR tt_content.fe_group LIKE \'-1,%\' OR tt_content.fe_group LIKE \'%,-1\' OR tt_content.fe_group=\'-1\')) AND (tt_content.sys_language_uid IN (0,-1)) AND tt_content.t3ver_oid = \'0\' ';
+	protected static $baseConditionForTTContent = 'WHERE tt_content.deleted=0 AND tt_content.t3ver_state<=0 AND tt_content.hidden=0 AND tt_content.starttime<=###NOW### AND (tt_content.endtime=0 OR tt_content.endtime>###NOW###) AND (tt_content.fe_group=\'\' OR tt_content.fe_group IS NULL OR tt_content.fe_group=\'0\' OR (tt_content.fe_group LIKE \'%,0,%\' OR  tt_content.fe_group LIKE \'0,%\' OR tt_content.fe_group LIKE \'%,0\' OR tt_content.fe_group=\'0\') OR (tt_content.fe_group LIKE \'%,-1,%\' OR  tt_content.fe_group LIKE \'-1,%\' OR tt_content.fe_group LIKE \'%,-1\' OR tt_content.fe_group=\'-1\')) AND (tt_content.sys_language_uid IN (0,-1)) AND tt_content.t3ver_oid = \'0\' ';
 
 	/**
 	 * Parse and rebuild a simple SELECT query
@@ -42,11 +42,11 @@ class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 	 * @test
 	 */
 	public function simpleSelectQuery() {
-		$condition = str_replace('###NOW###', $GLOBALS['SIM_ACCESS_TIME'], self::$baseConditionForContent);
+		$condition = str_replace('###NOW###', $GLOBALS['SIM_ACCESS_TIME'], self::$baseConditionForTTContent);
 		$expectedResult = 'SELECT tt_content.uid, tt_content.header, tt_content.pid AS tt_content$pid, tt_content.sys_language_uid AS tt_content$sys_language_uid FROM tt_content AS tt_content ' . $condition;
-		/**
-		 * @var tx_dataquery_parser	$parser
-		 */
+			/**
+			 * @var tx_dataquery_parser	$parser
+			 */
 		$parser = t3lib_div::makeInstance('tx_dataquery_parser');
 		$query = 'SELECT uid,header FROM tt_content';
 			// Replace time marker by time used for starttime and endtime enable fields
@@ -68,13 +68,11 @@ class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 	 */
 	public function selectQueryWithIdList() {
 		$expectedResult = 'SELECT tt_content.uid, tt_content.header FROM tt_content AS tt_content WHERE tt_content.uid IN (1,12) ';
-		/**
-		 * @var tx_dataquery_parser	$parser
-		 */
+			/**
+			 * @var tx_dataquery_parser	$parser
+			 */
 		$parser = t3lib_div::makeInstance('tx_dataquery_parser');
 		$query = 'SELECT uid,header FROM tt_content';
-			// Replace time marker by time used for starttime and endtime enable fields
-//		$condition = str_replace('###NOW###', $GLOBALS['SIM_ACCESS_TIME'], self::$baseConditionForContent);
 		$parser->parseQuery($query);
 		$parser->addIdList('1,tt_content_12');
 		$actualResult = $parser->buildQuery();
@@ -89,13 +87,11 @@ class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 	 */
 	public function selectQueryWithFilter() {
 		$expectedResult = 'SELECT tt_content.uid, tt_content.header FROM tt_content AS tt_content WHERE (tt_content.uid > \'10\' AND tt_content.uid <= \'50\') AND (tt_content.header LIKE \'%foo%\') AND (tt_content.image IS NOT NULL) ORDER BY tt_content.crdate desc ';
-		/**
-		 * @var tx_dataquery_parser	$parser
-		 */
+			/**
+			 * @var tx_dataquery_parser	$parser
+			 */
 		$parser = t3lib_div::makeInstance('tx_dataquery_parser');
 		$query = 'SELECT uid,header FROM tt_content';
-			// Replace time marker by time used for starttime and endtime enable fields
-//		$condition = str_replace('###NOW###', $GLOBALS['SIM_ACCESS_TIME'], self::$baseConditionForContent);
 		$parser->parseQuery($query);
 			// Define filter with many different conditions
 		$filter = array(
@@ -161,13 +157,11 @@ class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 	 */
 	public function selectQueryWithJoin() {
 		$expectedResult = 'SELECT tt_content.uid, tt_content.header, pages.title AS tt_content$title, pages.uid AS pages$uid FROM tt_content AS tt_content INNER JOIN pages AS pages ON pages.uid = tt_content.pid ';
-		/**
-		 * @var tx_dataquery_parser	$parser
-		 */
+			/**
+			 * @var tx_dataquery_parser	$parser
+			 */
 		$parser = t3lib_div::makeInstance('tx_dataquery_parser');
 		$query = 'SELECT uid,header,pages.title AS tt_content.title FROM tt_content INNER JOIN pages ON pages.uid = tt_content.pid';
-			// Replace time marker by time used for starttime and endtime enable fields
-//		$condition = str_replace('###NOW###', $GLOBALS['SIM_ACCESS_TIME'], self::$baseConditionForContent);
 		$parser->parseQuery($query);
 		$actualResult = $parser->buildQuery();
 			// Check if the "structure" part if correct

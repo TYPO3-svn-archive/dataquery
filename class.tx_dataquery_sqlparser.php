@@ -44,11 +44,11 @@ class tx_dataquery_sqlparser {
 		 */
 	protected $queryObject;
 
-	protected $structure = array(); // Contains all components of the parsed query
-	protected $mainTable; // Name (or alias if defined) of the main query table, i.e. the one in the FROM part of the query
-	protected $aliases = array(); // The keys to this array are the aliases of the tables used in the query and they point to the true table names
-	protected $orderFields = array(); // Array with all information of the fields used to order data
-	protected $subtables = array(); // List of all subtables, i.e. tables in the JOIN statements
+		/**
+		 *
+		 * @var	integer	Number of SQL function calls inside SELECT statement
+		 */
+	protected $numFunctions = 0;
 
 	/**
 	 * This function parses a SQL query and extract structured information about it
@@ -78,11 +78,11 @@ class tx_dataquery_sqlparser {
 		$afterLastFrom = array_pop($queryParts);
 
 			// Everything before the last FROM is the SELECT part
+			// This is parsed last as we need information about any table aliases used in the query first
 		$selectPart = implode(' FROM ', $queryParts);
 		$selectedFields = trim(substr($selectPart, $selectPosition + 6));
-		$this->parseSelectStatement($selectedFields);
 
-			// Get all parts of the query, using the SQL keywords as tokens
+			// Get all parts of the query after SELECT ... FROM, using the SQL keywords as tokens
 			// The returned matches array contains the keywords matched (in position 2) and the string after each keyword (in position 3)
 		$regexp = '/(' . implode('|', self::$tokens) . ')/';
 		$matches = preg_split($regexp, $afterLastFrom, -1, PREG_SPLIT_NO_EMPTY | PREG_SPLIT_DELIM_CAPTURE);
@@ -91,6 +91,8 @@ class tx_dataquery_sqlparser {
 //t3lib_div::debug($matches, 'Matches');
 
 			// The first position is the string that followed the main FROM keyword
+			// Parse that information. It's important to do this first,
+			// as we need to know the query' main table for later
 		$fromPart = array_shift($matches);
 		$this->parseFromStatement($fromPart);
 
@@ -185,6 +187,10 @@ class tx_dataquery_sqlparser {
 		}
 			// Free some memory
 		unset($matches);
+
+			// Parse the SELECT part
+		$this->parseSelectStatement($selectedFields);
+
 			// Return the object containing the parsed query
 		return $this->queryObject;
 	}
@@ -209,21 +215,41 @@ class tx_dataquery_sqlparser {
 			// Next, parse the rest of the string character by character
 		$stringLenth = strlen($select);
 		$openBrackets = 0;
+		$lastBracketPosition = 0;
 		$currentField = '';
+		$currentPosition = 0;
+		$hasFunctionCall = FALSE;
+		$hasWildcard = FALSE;
 		for ($i = 0; $i < $stringLenth; $i++) {
+				// Get the current character
 			$character = $select[$i];
+				// Count the position inside the current field
+				// This is reset for each new field found
+			$currentPosition++;
 			switch ($character) {
 					// An open bracket is the sign of a function call
 					// Functions may be nested, so we count the number of open brackets
 				case '(':
 					$currentField .= $character;
 					$openBrackets++;
+					$hasFunctionCall = TRUE;
 					break;
 
 					// Decrease the open bracket count
 				case ')':
 					$currentField .= $character;
 					$openBrackets--;
+						// Store position of closing bracket (minus one), as we need the position
+						// of the last one later for further processing
+					$lastBracketPosition = $currentPosition - 1;
+					break;
+
+					// If the wildcard character appears outside of function calls,
+					// take it into consideration. Otherwise not (it might be COUNT(*) for example)
+				case '*':
+					if (!$hasFunctionCall) {
+						$hasWildcard = TRUE;
+					}
 					break;
 
 					// A comma indicates that we have reached the end of a field,
@@ -231,10 +257,14 @@ class tx_dataquery_sqlparser {
 					// a separator of function arguments
 				case ',':
 						// We are at the end of a field: add it to the list of fields
-						// and reset the current field
+						// and reset some values
 					if ($openBrackets == 0) {
-						$this->queryObject->structure['SELECT'][] = trim($currentField);
+						$this->parseSelectField(trim($currentField), $lastBracketPosition, $hasFunctionCall, $hasWildcard);
 						$currentField = '';
+						$hasFunctionCall = FALSE;
+						$hasWildcard = FALSE;
+						$currentPosition = 0;
+						$lastBracketPosition = 0;
 
 						// We're inside a function, keep the comma and keep the current character
 					} else {
@@ -253,9 +283,133 @@ class tx_dataquery_sqlparser {
 		if ($openBrackets > 0) {
 			throw new tx_tesseract_exception('Bad SQL syntax, opening and closing brackets are not balanced', 1272954424);
 		} else {
-			$this->queryObject->structure['SELECT'][] = trim($currentField);
+			$this->parseSelectField(trim($currentField), $lastBracketPosition, $hasFunctionCall, $hasWildcard);
 		}
 
+	}
+
+	/**
+	 * This method parses one field from the SELECT part of the SQL query and
+	 * analyzes its content. In particular it will expand the "*" wildcard to include
+	 * all fields. It also keeps tracks of field aliases.
+	 *
+	 * @param	string		$fieldString: the string to parse
+	 * @param	integer		$lastBracketPosition: the position of the last closing bracket in the string, if any
+	 * @param	boolean		$hasFunctionCall: true if a SQL function call was detected in the string
+	 * @param	boolean		$hasWildcard: true if the wildcard character (*) was detected in the string
+	 */
+	protected function parseSelectField($fieldString, $lastBracketPosition = 0, $hasFunctionCall = FALSE, $hasWildcard = FALSE) {
+		$table = '';
+		$alias = '';
+
+			// If the string is just * (or possibly table.*), get all the fields for the table
+		if ($hasWildcard) {
+				// It's only *, set table as main table
+			if ($fieldString === '*') {
+				$table = $this->queryObject->mainTable;
+				$alias = $table;
+
+				// It's table.*, extract table name
+			} else {
+				$fieldParts = t3lib_div::trimExplode('.', $fieldString, 1);
+				$table = (isset($this->queryObject->aliases[$fieldParts[0]]) ? $this->queryObject->aliases[$fieldParts[0]] : $fieldParts[0]);
+				$alias = $fieldParts[0];
+			}
+			if (!isset($this->queryObject->hasUidField[$alias])) {
+				$this->queryObject->hasUidField[$alias] = FALSE;
+			}
+				// Get all fields for the given table
+			$fieldInfo = $GLOBALS['TYPO3_DB']->admin_get_fields($table);
+			$fields = array_keys($fieldInfo);
+				// Add all fields to the query structure
+			foreach ($fields as $aField) {
+				if ($aField == 'uid') {
+					$this->queryObject->hasUidField[$alias] = TRUE;
+				}
+				$this->queryObject->structure['SELECT'][] = array(
+					'table' => $table,
+					'tableAlias' => $alias,
+					'field' => $aField,
+					'fieldAlias' => '',
+					'function' => FALSE
+				);
+			}
+
+			// Else, the field is some string, analyse it
+		} else {
+
+				// If there's an alias, extract it and continue parsing
+				// An alias is indicated by a "AS" keyword after the last closing bracket if any
+				// (brackets indicate a function call and there might be "AS" keywords inside them)
+			$field = '';
+			$fieldAlias = '';
+			$asPosition = strpos($fieldString, ' AS ', $lastBracketPosition);
+			if ($asPosition !== FALSE) {
+				$fieldAlias = trim(substr($fieldString, $asPosition + 4));
+				$fieldString = trim(substr($fieldString, 0, $asPosition));
+			}
+			if ($hasFunctionCall) {
+				$this->numFunctions++;
+				$alias = $this->queryObject->mainTable;
+				$table = (isset($this->queryObject->aliases[$alias]) ? $this->queryObject->aliases[$alias] : $alias);
+				$field = $fieldString;
+					// Function calls need aliases
+					// If none was given, define one
+				if (empty($fieldAlias)) {
+					$fieldAlias = 'function_' . $this->numFunctions;
+				}
+
+				// There's no function call
+			} else {
+
+					// If there's a dot, get table name
+				if (stristr($fieldString, '.')) {
+					$fieldParts = t3lib_div::trimExplode('.', $fieldString, 1);
+					$table = (isset($this->queryObject->aliases[$fieldParts[0]]) ? $this->queryObject->aliases[$fieldParts[0]] : $fieldParts[0]);
+					$alias = $fieldParts[0];
+					$field = $fieldParts[1];
+
+					// No dot, the table is the main one
+				} else {
+					$alias = $this->queryObject->mainTable;
+					$table = (isset($this->queryObject->aliases[$alias]) ? $this->queryObject->aliases[$alias] : $alias);
+					$field = $fieldString;
+				}
+			}
+				// Set the appropriate flag if the field is uid
+				// Initialize first, if not yet done
+			if (!isset($this->queryObject->hasUidField[$alias])) {
+				$this->queryObject->hasUidField[$alias] = FALSE;
+			}
+			if ($field == 'uid') {
+				$this->queryObject->hasUidField[$alias] = TRUE;
+			}
+				// Add field's information to query structure
+			$this->queryObject->structure['SELECT'][] = array(
+				'table' => $table,
+				'tableAlias' => $alias,
+				'field' => $field,
+				'fieldAlias' => $fieldAlias,
+				'function' => $hasFunctionCall
+			);
+
+				// If there's an alias for the field, store it in a separate array, for later use
+			if (!empty($fieldAlias)) {
+				if (!isset($this->queryObject->fieldAliases[$alias])) {
+					$this->queryObject->fieldAliases[$alias] = array();
+				}
+				$this->queryObject->fieldAliases[$alias][$field] = $fieldAlias;
+					// Keep track of which field the alias is related to
+					// (this is used by the parser to map alias used in filters)
+					// If the alias is related to a function, we store the function syntax as is,
+					// otherwise we map the alias to the syntax table.field
+				if ($hasFunctionCall) {
+					$this->queryObject->fieldAliasMappings[$fieldAlias] = $field;
+				} else {
+					$this->queryObject->fieldAliasMappings[$fieldAlias] = $table . '.' . $field;
+				}
+			}
+		}
 	}
 
 	/**

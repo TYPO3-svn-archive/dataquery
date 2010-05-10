@@ -38,23 +38,42 @@ require_once(t3lib_extMgm::extPath('dataquery', 'class.tx_dataquery_queryobject.
  * $Id$
  */
 class tx_dataquery_parser {
-		/*
+		/**
 		 * List of eval types which indicate non-text fields
+		 * @var	array	$notTextTypes
 		 */
 	static protected $notTextTypes = array('date', 'datetime', 'time', 'timesec', 'year', 'num', 'md5', 'int', 'double2');
 
 		/**
-		 * @var	tx_dataquery_queryobject	Structured type containing the parts of the parsed query
+		 * Structured type containing the parts of the parsed query
+		 * @var	tx_dataquery_queryobject	$queryObject
 		 */
 	protected $queryObject;
 
-	protected $fieldAliases = array(); // List of aliases for all fields that have one, per table
-	protected $fieldAliasMappings = array(); // List of what field aliases map to (table, field and whether it's a function or not)
-	protected $fieldTrueNames = array(); // True names for all the fields. The key is the actual alias used in the query.
+		/**
+		 * True names for all the fields. The key is the actual alias used in the query.
+		 * @var	array	$fieldTrueNames
+		 */
+	protected $fieldTrueNames = array();
+
+		/**
+		 * List of all fields being queried, arranged per table (aliased)
+		 * @var	array	$queryFields
+		 */
+	protected $queryFields = array();
+
+		/**
+		 * Flag for each table whether to perform overlays or not
+		 * @var	array
+		 */
+	protected $doOverlays = array();
+
+		/**
+		 * True if order by is processed using SQL, false otherwise (see preprocessOrderByFields())
+		 * @var	boolean
+		 */
+	protected $processOrderBy = TRUE;
 	protected $isMergedResult = FALSE;
-	protected $queryFields = array(); // List of all fields being queried, arranged per table (aliased)
-	protected $doOverlays = array(); // Flag for each table whether to perform overlays or not
-	protected $processOrderBy = TRUE; // True if order by is processed using SQL, false otherwise (see preprocessOrderByFields())
 
 	/**
 	 * This method is used to parse a SELECT SQL query.
@@ -89,122 +108,14 @@ class tx_dataquery_parser {
 			// Decide what to do here: handle exception of let it bubble up
 		}
 
-			// Loop on all SELECT items
-		$numSelects = count($this->queryObject->structure['SELECT']);
-		$tableHasUid = array();
-			// This is an array of all "explicit aliases"
-			// This means all fields for which an alias was given in the SQL query using the AS keyword
-		$this->fieldAliases = array();
-		$numFunctions = 0;
-		for ($i = 0; $i < $numSelects; $i++) {
-			$selector = $this->queryObject->structure['SELECT'][$i];
-			$alias = '';
-			$table = '';
-			$fieldAlias = '';
-			$fields = array();
-			$functions = array();
-				// If the string is just * (or possibly table.*), get all the fields for the table
-			if (stristr($selector, '*')) {
-					// It's only *, set table as main table
-				if ($selector == '*') {
-					$table = $this->queryObject->mainTable;
-					$alias = $table;
-
-					// It's table.*, extract table name
-                } else {
-					$selectorParts = t3lib_div::trimExplode('.', $selector, 1);
-					$table = (isset($this->queryObject->aliases[$selectorParts[0]]) ? $this->queryObject->aliases[$selectorParts[0]] : $selectorParts[0]);
-					$alias = $selectorParts[0];
-                }
-					// Get all fields for the given table
-				$fieldInfo = $GLOBALS['TYPO3_DB']->admin_get_fields($table);
-				$fields = array_keys($fieldInfo);
-
-				// Else, the field is some string, analyse it
-            } else {
-
-					// If there's an alias, extract it and continue parsing
-					// An alias is indicated by a "AS" keyword after the last closing bracket if any
-					// (brackets indicate a function call and there might be "AS" keywords inside them)
-				$lastBracket = strrpos($selector, ')');
-				if (!$lastBracket) {
-					$lastBracket = 0;
-				}
-				$asPosition = strpos($selector, ' AS ', $lastBracket);
-				if ($asPosition !== FALSE) {
-					$fieldAlias = trim(substr($selector, $asPosition + 4));
-					$selector = trim(substr($selector, 0, $asPosition));
-				}
-				$field = '';
-				$isFunction = FALSE;
-					// There's no function call
-				if (strpos($selector, '(') === FALSE) {
-						// If there's a dot, get table name
-					if (stristr($selector, '.')) {
-						$selectorParts = t3lib_div::trimExplode('.', $selector, 1);
-						$table = (isset($this->queryObject->aliases[$selectorParts[0]]) ? $this->queryObject->aliases[$selectorParts[0]] : $selectorParts[0]);
-						$alias = $selectorParts[0];
-						$field = $selectorParts[1];
-
-						// No dot, the table is the main one
-					} else {
-						$table = $this->queryObject->mainTable;
-						$alias = $table;
-						$field = $selector;
-					}
-				} else {
-					$numFunctions++;
-					$isFunction = TRUE;
-					$table = $this->queryObject->mainTable;
-					$alias = $table;
-					$field = $selector;
-						// Function calls need aliases
-						// If none was given, define one
-					if (empty($fieldAlias)) {
-						$fieldAlias = 'function_' . $numFunctions;
-					}
-				}
-
-					// If there's an alias for the field, store it in a separate array, for later use
-				if (!empty($fieldAlias)) {
-					if (!isset($this->fieldAliases[$alias])) {
-						$this->fieldAliases[$alias] = array();
-					}
-					$this->fieldAliases[$alias][$field] = $fieldAlias;
-						// Keep track of which field the alias is related to
-						// (this is used later to map alias used in filters)
-						// If the alias is related to a function, we store the function syntax as is,
-						// otherwise we map the alias to the syntax table.field
-					if ($isFunction) {
-						$this->fieldAliasMappings[$fieldAlias] = $field;
-					} else {
-						$this->fieldAliasMappings[$fieldAlias] = $table . '.' . $field;
-					}
-				}
-					// Make field into an array to match structure when selector is "*"
-				$fields = array($field);
-				$functions = array($isFunction);
-            }
-
+			// Loop on all query fields to assemble additional information structures
+		foreach ($this->queryObject->structure['SELECT'] as $index => $fieldInfo) {
 				// Assemble list of fields per table
 				// The name of the field is used both as key and value, but the value will be replaced by the fields' labels in getLocalizedLabels()
-			if (!isset($this->queryFields[$alias])) {
-				$this->queryFields[$alias] = array('name' => $table, 'table' => (empty($this->queryObject->aliases[$alias])) ? $table : $this->queryObject->aliases[$alias], 'fields' => array());
+			if (!isset($this->queryFields[$fieldInfo['tableAlias']])) {
+				$this->queryFields[$fieldInfo['tableAlias']] = array('name' => $fieldInfo['table'], 'table' => $fieldInfo['tableAlias'], 'fields' => array());
 			}
-			foreach ($fields as $index => $aField) {
-				$this->queryFields[$alias]['fields'][] = array('name' => $aField, 'function' => (empty($functions[$index])) ? FALSE : TRUE);
-			}
-
-				// Keep track of whether a field called "uid" (either its true name or an alias)
-				// exists for every table. If not, it will be added later
-				// (there must be a primary key, if it is not called "uid", an alias called "uid" must be used in the query)
-            if (!isset($tableHasUid[$alias])) {
-					// Initialise to false
-				$tableHasUid[$alias] = false;
-			}
-			if (in_array('uid', $fields) || (isset($fieldAlias) && $fieldAlias == 'uid')) {
-				$tableHasUid[$alias] |= true;
-			}
+			$this->queryFields[$fieldInfo['tableAlias']]['fields'][] = array('name' => $fieldInfo['field'], 'function' => $fieldInfo['function']);
 
 				// Assemble full names for each field
 				// The full name is:
@@ -232,73 +143,67 @@ class tx_dataquery_parser {
 				//	4b-2)	like 4a-2) above, but for subtables
 				//
 				// The $ sign is used in class tx_dataquery_wrapper for building the data structure
-			$completeFields = array();
-			foreach ($fields as $index => $name) {
-					// Initialize values
-				$theAlias = '';
-				$mappedField = '';
-				$mappedTable = '';
-				$fullField = $alias . '.' . $name;
-				if (!empty($functions[$index])) {
-					$fullField = $name;
-				}
-				$theField = $name;
-					// Case 4a
-				if ($alias == $this->queryObject->mainTable) {
-					if (empty($fieldAlias)) {
-						$theAlias = $theField;
-					} else {
-						$fullField .= ' AS ';
-						if (strpos($fieldAlias, '.') === false) {
-							$theAlias = $fieldAlias;
-							$mappedTable = $alias;
-							$mappedField = $fieldAlias;
-						}
-							// Case 4a-2
-						else {
-							list($mappedTable, $mappedField) = explode('.', $fieldAlias);
-							$theAlias = str_replace('.', '$', $fieldAlias);
-						}
-						$fullField .= $theAlias;
-					}
-                } else {
-					$fullField .= ' AS ';
-					if (empty($fieldAlias)) {
-						$theAlias = $alias . '$' . $name;
-					}
-					else {
-							// Case 4b
-						if (strpos($fieldAlias, '.') === false) {
-							$theAlias = $alias . '$' . $fieldAlias;
-						}
-							// Case 4b-2
-						else {
-							list($mappedTable, $mappedField) = explode('.', $fieldAlias);
-							$theAlias = str_replace('.', '$', $fieldAlias);
-						}
-                    }
-					$fullField .= $theAlias;
-                }
-				if (empty($mappedTable)) {
-					$mappedTable = $alias;
-					$mappedField = $theField;
-				}
-				$this->fieldTrueNames[$theAlias] = array(
-														'table' => $table,
-														'aliasTable' => $alias,
-														'field' => $theField,
-														'mapping' => array('table' => $mappedTable, 'field' => $mappedField)
-													);
-				$completeFields[] = $fullField;
+				// Initialize values
+			$theAlias = '';
+			$mappedField = '';
+			$mappedTable = '';
+			$fullField = $fieldInfo['tableAlias'] . '.' . $fieldInfo['field'];
+			if ($fieldInfo['function']) {
+				$fullField = $fieldInfo['field'];
 			}
-			$this->queryObject->structure['SELECT'][$i] = implode(', ', $completeFields);
-				// Free some memory
-			unset($completeFields);
+			$theField = $fieldInfo['field'];
+				// Case 4a
+			if ($fieldInfo['tableAlias'] == $this->queryObject->mainTable) {
+				if (empty($fieldInfo['fieldAlias'])) {
+					$theAlias = $theField;
+				} else {
+					$fullField .= ' AS ';
+					if (strpos($fieldInfo['fieldAlias'], '.') === false) {
+						$theAlias = $fieldInfo['fieldAlias'];
+						$mappedTable = $fieldInfo['tableAlias'];
+						$mappedField = $fieldInfo['fieldAlias'];
+					}
+						// Case 4a-2
+					else {
+						list($mappedTable, $mappedField) = explode('.', $fieldInfo['fieldAlias']);
+						$theAlias = str_replace('.', '$', $fieldInfo['fieldAlias']);
+					}
+					$fullField .= $theAlias;
+				}
+			} else {
+				$fullField .= ' AS ';
+				if (empty($fieldInfo['fieldAlias'])) {
+					$theAlias = $fieldInfo['tableAlias'] . '$' . $fieldInfo['field'];
+				}
+				else {
+						// Case 4b
+					if (strpos($fieldInfo['fieldAlias'], '.') === false) {
+						$theAlias = $fieldInfo['tableAlias'] . '$' . $fieldInfo['fieldAlias'];
+					}
+						// Case 4b-2
+					else {
+						list($mappedTable, $mappedField) = explode('.', $fieldInfo['fieldAlias']);
+						$theAlias = str_replace('.', '$', $fieldInfo['fieldAlias']);
+					}
+				}
+				$fullField .= $theAlias;
+			}
+			if (empty($mappedTable)) {
+				$mappedTable = $fieldInfo['tableAlias'];
+				$mappedField = $theField;
+			}
+			$this->fieldTrueNames[$theAlias] = array(
+													'table' => $fieldInfo['table'],
+													'aliasTable' => $fieldInfo['tableAlias'],
+													'field' => $theField,
+													'mapping' => array('table' => $mappedTable, 'field' => $mappedField)
+												);
+			$this->queryObject->structure['SELECT'][$index] = $fullField;
         }
 
 			// Add the uid field to tables that don't have it yet
 			// TODO: check if the table really has a uid field
-        foreach ($tableHasUid as $alias => $flag) {
+        foreach ($this->queryObject->hasUidField as $alias => $flag) {
         	if (!$flag) {
         		$fullField = $alias . '.uid';
 				$theField = 'uid';
@@ -396,8 +301,8 @@ class tx_dataquery_parser {
 					// Check if the field has an alias, if yes use it
 					// Otherwise use the field name itself as an alias
 				$fieldAlias = $field;
-				if (isset($this->fieldAliases[$alias][$field])) {
-					$fieldAlias = $this->fieldAliases[$alias][$field];
+				if (isset($this->queryObject->fieldAliases[$alias][$field])) {
+					$fieldAlias = $this->queryObject->fieldAliases[$alias][$field];
 						// If the alias contains a dot (.), it means it contains the alias of a table name
 						// Explode the name on the dot and use the parts as a new table alias and field name
 					if (strpos($fieldAlias, '.') !== false) {
@@ -486,7 +391,7 @@ class tx_dataquery_parser {
 							for ($i = 0; $i < $numFields; $i++) {
 								$fieldsForOverlayArray[$i] = str_replace($table . '.', '', $fieldsForOverlayArray[$i]);
 							}
-								// Extract which fields were added and add them the list of fields to select
+								// Extract which fields were added and add them to the list of fields to select
 							$addedFields = array_diff($fieldsForOverlayArray, $fields);
 							if (count($addedFields) > 0) {
 								foreach ($addedFields as $aField) {
@@ -498,7 +403,6 @@ class tx_dataquery_parser {
 																				'table' => $table,
 																				'aliasTable' => $alias,
 																				'field' => $aField,
-//																				'function' => '',
 																				'mapping' => array('table' => $alias, 'field' => $aField)
 																			);
 								}
@@ -531,7 +435,7 @@ class tx_dataquery_parser {
 				} else {
 					if (isset($GLOBALS['TCA'][$table]['ctrl']['languageField'])) {
 							// Take language that corresponds to current language or [All]
-						$languageCondition = $alias.'.'.$GLOBALS['TCA'][$table]['ctrl']['languageField'].' IN ('.$GLOBALS['TSFE']->sys_language_content.', -1)';
+						$languageCondition = $alias . '.' . $GLOBALS['TCA'][$table]['ctrl']['languageField'] . ' IN (' . $GLOBALS['TSFE']->sys_language_content . ', -1)';
 						if ($alias == $this->queryObject->mainTable) {
 							$this->addWhereClause($languageCondition);
 						} else {
@@ -581,8 +485,8 @@ class tx_dataquery_parser {
 				$fullField = $table . '.' . $field;
 					// If the field is an alias, override full field definition
 					// to whatever the alias is mapped to
-				if (isset($this->fieldAliasMappings[$field])) {
-					$fullField = $this->fieldAliasMappings[$field];
+				if (isset($this->queryObject->fieldAliasMappings[$field])) {
+					$fullField = $this->queryObject->fieldAliasMappings[$field];
 				}
 				$condition = '';
 					// Define table on which to apply the condition
@@ -808,7 +712,7 @@ class tx_dataquery_parser {
 	protected function preprocessOrderByFields() {
 /*
 t3lib_div::debug($this->queryObject->orderFields, 'Order fields');
-t3lib_div::debug($this->fieldAliases, 'Field aliases');
+t3lib_div::debug($this->queryObject->fieldAliases, 'Field aliases');
 t3lib_div::debug($this->fieldTrueNames, 'Field true names');
 t3lib_div::debug($this->queryFields, 'Query fields');
 t3lib_div::debug($this->queryObject->structure['SELECT'], 'Select structure');
@@ -839,9 +743,9 @@ t3lib_div::debug($this->queryObject->structure['SELECT'], 'Select structure');
 						$field = $fieldParts[1];
 					}
 						// If the field has an alias, change the order fields list to use it
-					if (isset($this->fieldAliases[$alias][$field])) {
+					if (isset($this->queryObject->fieldAliases[$alias][$field])) {
 						$this->queryObject->orderFields[$index]['alias'] = $this->queryObject->orderFields[$index]['field'];
-						$this->queryObject->orderFields[$index]['field'] = $this->fieldAliases[$alias][$field];
+						$this->queryObject->orderFields[$index]['field'] = $this->queryObject->fieldAliases[$alias][$field];
 					}
 						// Get the field's true table and name, if defined, in case an alias is used in the ORDER BY statement
 					if (isset($this->fieldTrueNames[$field])) {
@@ -893,7 +797,7 @@ t3lib_div::debug($this->queryObject->structure['SELECT'], 'Select structure');
 						// Check if the field is already part of the SELECTed fields (under its true name or an alias)
 						// If not, get ready to add it by defining all necessary info in temporary arrays
 						// (it will be added only if necessary, i.e. if at least one field needs to be ordered later)
-					if (!$this->isAQueryField($alias, $field) && !isset($this->fieldAliases[$alias][$field])) {
+					if (!$this->isAQueryField($alias, $field) && !isset($this->queryObject->fieldAliases[$alias][$field])) {
 						$fieldAlias = $alias . '$' . $field;
 						$newQueryFields[$alias]['fields'][] = array('name' => $field, 'function' => FALSE);
 						$newSelectFields[] = $alias . '.' . $field . ' AS ' . $fieldAlias;
@@ -901,7 +805,6 @@ t3lib_div::debug($this->queryObject->structure['SELECT'], 'Select structure');
 														'table' => $table,
 														'aliasTable' => $alias,
 														'field' => $field,
-//														'function' => '',
 														'mapping' => array('table' => $alias, 'field' => $field)
 													);
 						$countNewFields++;
@@ -1031,8 +934,8 @@ t3lib_div::debug($this->queryObject->structure['SELECT'], 'Updated select struct
 //			$fieldKey .= '_' . $trueNameInformation['function'];
 //		}
 			// If the field has an explicit alias, we must also pass back that information
-		if (isset($this->fieldAliases[$trueNameInformation['aliasTable']][$fieldKey])) {
-			$alias = $this->fieldAliases[$trueNameInformation['aliasTable']][$fieldKey];
+		if (isset($this->queryObject->fieldAliases[$trueNameInformation['aliasTable']][$fieldKey])) {
+			$alias = $this->queryObject->fieldAliases[$trueNameInformation['aliasTable']][$fieldKey];
 				// Check if the alias contains a table name
 				// If yes, strip it, as this information is already handled
 			$table = '';

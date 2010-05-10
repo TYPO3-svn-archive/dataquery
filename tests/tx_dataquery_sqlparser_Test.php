@@ -48,13 +48,27 @@ class tx_dataquery_sqlparser_Test extends tx_phpunit_testcase {
 		$query = 'SELECT * FROM tt_content';
 		$expectedResult = array(
 			'DISTINCT' => FALSE,
-			'SELECT' => array(0 => '*'),
+			'SELECT' => array(),
 			'FROM' => array('table' => 'tt_content', 'alias' => 'tt_content'),
 			'JOIN' => array(),
 			'WHERE' => array(),
 			'ORDER BY' => array(),
 			'GROUP BY' => array()
 		);
+			// The wildcard will get expanded to include all fields for the given table
+			// So get them and add them to the expected results
+		$fieldInfo = $GLOBALS['TYPO3_DB']->admin_get_fields($table);
+		$fields = array_keys($fieldInfo);
+			// Add all fields to the query structure
+		foreach ($fields as $aField) {
+			$expectedResult['SELECT'][] = array(
+				'table' => 'tt_content',
+				'tableAlias' => 'tt_content',
+				'field' => $aField,
+				'fieldAlias' => '',
+				'function' => FALSE
+			);
+		}
 		$actualResult = $parser->parseSQL($query);
 			// Check if the "structure" part if correct
 		$this->assertEquals($expectedResult, $actualResult->structure);
@@ -74,9 +88,27 @@ class tx_dataquery_sqlparser_Test extends tx_phpunit_testcase {
 		$expectedResult = array(
 			'DISTINCT' => FALSE,
 			'SELECT' => array(
-				0 => 'uid',
-				1 => 'FROM_UNIXTIME(tstamp, \'%Y\') AS year',
-				2 => 'CONCAT(uid, \' in \', pid)'
+				0 => array(
+					'table' => 'tt_content',
+					'tableAlias' => 'content',
+					'field' => 'uid',
+					'fieldAlias' => '',
+					'function' => FALSE
+				),
+				1 => array(
+					'table' => 'tt_content',
+					'tableAlias' => 'content',
+					'field' => 'FROM_UNIXTIME(tstamp, \'%Y\')',
+					'fieldAlias' => 'year',
+					'function' => TRUE
+				),
+				2 => array(
+					'table' => 'tt_content',
+					'tableAlias' => 'content',
+					'field' => 'CONCAT(uid, \' in \', pid)',
+					'fieldAlias' => 'function_2',
+					'function' => TRUE
+				)
 			),
 			'FROM' => array('table' => 'tt_content', 'alias' => 'content'),
 			'JOIN' => array(),
@@ -103,8 +135,20 @@ class tx_dataquery_sqlparser_Test extends tx_phpunit_testcase {
 		$expectedResult = array(
 			'DISTINCT' => FALSE,
 			'SELECT' => array(
-				0 => 't.uid',
-				1 => 'p.uid'
+				0 => array(
+					'table' => 'tt_content',
+					'tableAlias' => 't',
+					'field' => 'uid',
+					'fieldAlias' => '',
+					'function' => FALSE
+				),
+				1 => array(
+					'table' => 'pages',
+					'tableAlias' => 'p',
+					'field' => 'uid',
+					'fieldAlias' => '',
+					'function' => FALSE
+				)
 			),
 			'FROM' => array('table' => 'tt_content', 'alias' => 't'),
 			'JOIN' => array(
@@ -140,8 +184,20 @@ class tx_dataquery_sqlparser_Test extends tx_phpunit_testcase {
 		$expectedResult = array(
 			'DISTINCT' => FALSE,
 			'SELECT' => array(
-				0 => 't.uid',
-				1 => 'p.uid'
+				0 => array(
+					'table' => 'tt_content',
+					'tableAlias' => 't',
+					'field' => 'uid',
+					'fieldAlias' => '',
+					'function' => FALSE
+				),
+				1 => array(
+					'table' => 'pages',
+					'tableAlias' => 'p',
+					'field' => 'uid',
+					'fieldAlias' => '',
+					'function' => FALSE
+				)
 			),
 			'FROM' => array('table' => 'pages', 'alias' => 'p'),
 			'JOIN' => array(
@@ -171,10 +227,25 @@ class tx_dataquery_sqlparser_Test extends tx_phpunit_testcase {
 		 * @var tx_dataquery_sqlparser	$parser
 		 */
 		$parser = t3lib_div::makeInstance('tx_dataquery_sqlparser');
-		$query = 'SELECT * FROM tt_content LIMIT 10, 20';
+		$query = 'SELECT uid, header FROM tt_content LIMIT 10, 20';
 		$expectedResult = array(
 			'DISTINCT' => FALSE,
-			'SELECT' => array(0 => '*'),
+			'SELECT' => array(
+				0 => array(
+					'table' => 'tt_content',
+					'tableAlias' => 'tt_content',
+					'field' => 'uid',
+					'fieldAlias' => '',
+					'function' => FALSE
+				),
+				1 => array(
+					'table' => 'tt_content',
+					'tableAlias' => 'tt_content',
+					'field' => 'header',
+					'fieldAlias' => '',
+					'function' => FALSE
+				)
+			),
 			'FROM' => array('table' => 'tt_content', 'alias' => 'tt_content'),
 			'JOIN' => array(),
 			'WHERE' => array(),
@@ -198,10 +269,25 @@ class tx_dataquery_sqlparser_Test extends tx_phpunit_testcase {
 		 * @var tx_dataquery_sqlparser	$parser
 		 */
 		$parser = t3lib_div::makeInstance('tx_dataquery_sqlparser');
-		$query = 'SELECT * FROM tt_content LIMIT 20 OFFSET 10';
+		$query = 'SELECT uid, header FROM tt_content LIMIT 20 OFFSET 10';
 		$expectedResult = array(
 			'DISTINCT' => FALSE,
-			'SELECT' => array(0 => '*'),
+			'SELECT' => array(
+				0 => array(
+					'table' => 'tt_content',
+					'tableAlias' => 'tt_content',
+					'field' => 'uid',
+					'fieldAlias' => '',
+					'function' => FALSE
+				),
+				1 => array(
+					'table' => 'tt_content',
+					'tableAlias' => 'tt_content',
+					'field' => 'header',
+					'fieldAlias' => '',
+					'function' => FALSE
+				)
+			),
 			'FROM' => array('table' => 'tt_content', 'alias' => 'tt_content'),
 			'JOIN' => array(),
 			'WHERE' => array(),

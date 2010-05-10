@@ -36,29 +36,51 @@
 class tx_dataquery_QueryObject {
 		/**
 		 * Contains all components of the parsed query
-		 * @var array
+		 * @var array	$structure
 		 */
 	public $structure = array();
+
 		/**
 		 * Name (or alias if defined) of the main query table, i.e. the first one in the FROM part of the query
-		 * @var	string
+		 * @var	string	$mainTable
 		 */
 	public $mainTable;
+
 		/**
 		 * List of all subtables, i.e. tables in the JOIN statements
-		 * @var	array
+		 * @var	array	$subtables
 		 */
 	public $subtables = array();
+
 		/**
 		 * The keys to this array are the aliases of the tables used in the query and they point to the true table names
-		 * @var	array
+		 * @var	array	$aliases
 		 */
 	public $aliases = array();
+
+		/**
+		 * For each table, set to true if the uid field is part of the SELECT query, false otherwise
+		 * @var	array	$hasUidField
+		 */
+	public $hasUidField = array();
+
 		/**
 		 * Array with all information of the fields used to order data
-		 * @var	array
+		 * @var	array	$orderFields
 		 */
 	public $orderFields = array();
+
+		/**
+		 * List of aliases for all fields that have one, per table
+		 * @var	array	$fieldAliases
+		 */
+	public $fieldAliases = array();
+
+		/**
+		 * List of what field aliases map to (table, field and whether it's a function or not)
+		 * @var	array	$fieldAliasMappings
+		 */
+	public $fieldAliasMappings = array();
 
 
 	public function __construct() {
