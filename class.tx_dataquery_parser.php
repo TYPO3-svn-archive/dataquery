@@ -58,8 +58,8 @@ class tx_dataquery_parser {
 	 * This method is used to parse a SELECT SQL query.
 	 * It is a simple parser and no way generic. It expects queries to be written a certain way.
 	 *
-	 * @param	string		the query to be parsed
-	 * @return	mixed		array containing the query parts or false if the query was empty or invalid
+	 * @param	string		$query: the query to be parsed
+	 * @return	void
 	 */
 	public function parseQuery($query) {
 			// Put the query through the field parser to filter out commented lines
@@ -700,7 +700,7 @@ class tx_dataquery_parser {
 	 * as returned in the "uidListWithTable" property of a idList-type SDS,
 	 * and makes it into appropriate SQL IN conditions for every table that matches those used in the query
 	 *
-	 * @param	array		$idList: Comma-separated list of uid's prepended by their table name
+	 * @param	string		$idList: Comma-separated list of uid's prepended by their table name
 	 * @return	void
 	 */
 	public function addIdList($idList) {
