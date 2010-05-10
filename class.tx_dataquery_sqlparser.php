@@ -22,6 +22,8 @@
 *  This copyright notice MUST APPEAR in all copies of the script!
 ***************************************************************/
 
+require_once(t3lib_extMgm::extPath('dataquery', 'class.tx_dataquery_queryobject.php'));
+
 /**
  * SQL parser class for extension "dataquery"
  *
@@ -37,6 +39,11 @@ class tx_dataquery_sqlparser {
 		 */
 	static protected $tokens = array('INNER JOIN', 'LEFT JOIN', 'RIGHT JOIN', 'WHERE', 'GROUP BY', 'ORDER BY', 'LIMIT', 'OFFSET', 'MERGED');
 
+		/**
+		 * @var	tx_dataquery_queryobject	Structured type containing the parts of the parsed query
+		 */
+	protected $queryObject;
+
 	protected $structure = array(); // Contains all components of the parsed query
 	protected $mainTable; // Name (or alias if defined) of the main query table, i.e. the one in the FROM part of the query
 	protected $aliases = array(); // The keys to this array are the aliases of the tables used in the query and they point to the true table names
@@ -50,14 +57,7 @@ class tx_dataquery_sqlparser {
 	 * @return	array	An associative array with information about the query
 	 */
 	public function parseSQL($query) {
-		$this->aliases = array();
-		$this->structure['DISTINCT'] = FALSE;
-		$this->structure['SELECT'] = array();
-		$this->structure['FROM'] = array();
-		$this->structure['JOIN'] = array();
-		$this->structure['WHERE'] = array();
-		$this->structure['ORDER BY'] = array();
-		$this->structure['GROUP BY'] = array();
+		$this->queryObject = t3lib_div::makeInstance('tx_dataquery_queryobject');
 
 			// First find the start of the SELECT statement
 		$selectPosition = stripos($query, 'SELECT');
@@ -121,8 +121,8 @@ class tx_dataquery_sqlparser {
 					else {
 						$theJoin['alias'] = $theJoin['table'];
 					}
-					$this->subtables[] = $theJoin['alias'];
-					$this->aliases[$theJoin['alias']] = $theJoin['table'];
+					$this->queryObject->subtables[] = $theJoin['alias'];
+					$this->queryObject->aliases[$theJoin['alias']] = $theJoin['table'];
 						// Handle the "ON" part which may contain the non-SQL keyword "MAX"
 						// This keyword is not used in the SQL query, but is an indication to the wrapper that
 						// we want only a single record from this join
@@ -136,24 +136,24 @@ class tx_dataquery_sqlparser {
 					else {
 						$theJoin['on'] = '';
 					}
-					if (!isset($this->structure['JOIN'])) $this->structure['JOIN'] = array();
-					$this->structure['JOIN'][$theJoin['alias']] = $theJoin;
+					if (!isset($this->queryObject->structure['JOIN'])) $this->queryObject->structure['JOIN'] = array();
+					$this->queryObject->structure['JOIN'][$theJoin['alias']] = $theJoin;
 					break;
 				case 'WHERE':
-					$this->structure[$keyword][] = trim($value);
+					$this->queryObject->structure[$keyword][] = trim($value);
 					break;
 				case 'ORDER BY':
 				case 'GROUP BY':
 					$orderParts = explode(',', $value);
 					foreach ($orderParts as $part) {
 						$thePart = trim($part);
-						$this->structure[$keyword][] = $thePart;
+						$this->queryObject->structure[$keyword][] = $thePart;
 							// In case of ORDER BY, perform additional operation to get field name and sort order separately
 						if ($keyword == 'ORDER BY') {
 							$finerParts = preg_split('/\s/', $thePart, -1, PREG_SPLIT_NO_EMPTY);
 							$orderField = $finerParts[0];
 							$orderSort = (isset($finerParts[1])) ? $finerParts[1] : 'ASC';
-							$this->orderFields[] = array('field' => $orderField, 'order' => $orderSort);
+							$this->queryObject->orderFields[] = array('field' => $orderField, 'order' => $orderSort);
 						}
 
 					}
@@ -161,14 +161,14 @@ class tx_dataquery_sqlparser {
 				case 'LIMIT':
 					if (strpos($value, ',') !== FALSE) {
 						$limitParts = t3lib_div::trimExplode(',', $value, TRUE);
-						$this->structure['OFFSET'] = intval($limitParts[0]);
-						$this->structure[$keyword] = intval($limitParts[1]);
+						$this->queryObject->structure['OFFSET'] = intval($limitParts[0]);
+						$this->queryObject->structure[$keyword] = intval($limitParts[1]);
 					} else {
-						$this->structure[$keyword] = intval($value);
+						$this->queryObject->structure[$keyword] = intval($value);
 					}
 					break;
 				case 'OFFSET':
-					$this->structure[$keyword] = intval($value);
+					$this->queryObject->structure[$keyword] = intval($value);
 					break;
 
 // Dataquery allows for non-standard keywords to be used in the SQL query for special purposes
@@ -185,15 +185,8 @@ class tx_dataquery_sqlparser {
 		}
 			// Free some memory
 		unset($matches);
-			// Assemble the results of parsing in a single array and return it
-		$result = array(
-			'mainTable' => $this->mainTable,
-			'subtables' => $this->subtables,
-			'structure' => $this->structure,
-			'aliases' => $this->aliases,
-			'orderFields' => $this->orderFields
-		);
-		return $result;
+			// Return the object containing the parsed query
+		return $this->queryObject;
 	}
 
 	/**
@@ -209,7 +202,7 @@ class tx_dataquery_sqlparser {
 			// If yes, remove that and set the distinct flag to true
 		$distinctPosition = strpos($select, 'DISTINCT');
 		if ($distinctPosition !== FALSE) {
-			$this->structure['DISTINCT'] = TRUE;
+			$this->queryObject->structure['DISTINCT'] = TRUE;
 			$croppedString = substr($select, $distinctPosition, 8);
 			$select = trim($croppedString);
 		}
@@ -240,7 +233,7 @@ class tx_dataquery_sqlparser {
 						// We are at the end of a field: add it to the list of fields
 						// and reset the current field
 					if ($openBrackets == 0) {
-						$this->structure['SELECT'][] = trim($currentField);
+						$this->queryObject->structure['SELECT'][] = trim($currentField);
 						$currentField = '';
 
 						// We're inside a function, keep the comma and keep the current character
@@ -260,7 +253,7 @@ class tx_dataquery_sqlparser {
 		if ($openBrackets > 0) {
 			throw new tx_tesseract_exception('Bad SQL syntax, opening and closing brackets are not balanced', 1272954424);
 		} else {
-			$this->structure['SELECT'][] = trim($currentField);
+			$this->queryObject->structure['SELECT'][] = trim($currentField);
 		}
 
 	}
@@ -286,22 +279,22 @@ class tx_dataquery_sqlparser {
 				// Consider the first table to be the main table of the query,
 				// i.e. the table to which all others are JOINed
 			if ($i == 0) {
-				$this->structure['FROM']['table'] = $tableName;
-				$this->structure['FROM']['alias'] = $tableAlias;
-				$this->mainTable = $tableAlias;
+				$this->queryObject->structure['FROM']['table'] = $tableName;
+				$this->queryObject->structure['FROM']['alias'] = $tableAlias;
+				$this->queryObject->mainTable = $tableAlias;
 
 				// Each further table in the FROM statement is registered
 				// as being INNER JOINed
 			} else {
-				$this->structure['JOIN'][$tableAlias] = array(
+				$this->queryObject->structure['JOIN'][$tableAlias] = array(
 					'type' => 'inner',
 					'table' => $tableName,
 					'alias' => $tableAlias,
 					'on' => ''
 				);
-				$this->subtables[] = $tableAlias;
+				$this->queryObject->subtables[] = $tableAlias;
 			}
-			$this->aliases[$tableAlias] = $tableName;
+			$this->queryObject->aliases[$tableAlias] = $tableName;
 		}
 	}
 }

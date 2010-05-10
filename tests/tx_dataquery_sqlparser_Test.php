@@ -57,7 +57,7 @@ class tx_dataquery_sqlparser_Test extends tx_phpunit_testcase {
 		);
 		$actualResult = $parser->parseSQL($query);
 			// Check if the "structure" part if correct
-		$this->assertEquals($expectedResult, $actualResult['structure']);
+		$this->assertEquals($expectedResult, $actualResult->structure);
 	}
 
 	/**
@@ -86,7 +86,7 @@ class tx_dataquery_sqlparser_Test extends tx_phpunit_testcase {
 		);
 		$actualResult = $parser->parseSQL($query);
 			// Check if the "structure" part if correct
-		$this->assertEquals($expectedResult, $actualResult['structure']);
+		$this->assertEquals($expectedResult, $actualResult->structure);
 	}
 
 	/**
@@ -123,7 +123,7 @@ class tx_dataquery_sqlparser_Test extends tx_phpunit_testcase {
 		);
 		$actualResult = $parser->parseSQL($query);
 			// Check if the "structure" part if correct
-		$this->assertEquals($expectedResult, $actualResult['structure']);
+		$this->assertEquals($expectedResult, $actualResult->structure);
 	}
 
 	/**
@@ -158,7 +158,7 @@ class tx_dataquery_sqlparser_Test extends tx_phpunit_testcase {
 		);
 		$actualResult = $parser->parseSQL($query);
 			// Check if the "structure" part if correct
-		$this->assertEquals($expectedResult, $actualResult['structure']);
+		$this->assertEquals($expectedResult, $actualResult->structure);
 	}
 
 	/**
@@ -185,7 +185,7 @@ class tx_dataquery_sqlparser_Test extends tx_phpunit_testcase {
 		);
 		$actualResult = $parser->parseSQL($query);
 			// Check if the "structure" part if correct
-		$this->assertEquals($expectedResult, $actualResult['structure']);
+		$this->assertEquals($expectedResult, $actualResult->structure);
 	}
 
 	/**
@@ -212,7 +212,7 @@ class tx_dataquery_sqlparser_Test extends tx_phpunit_testcase {
 		);
 		$actualResult = $parser->parseSQL($query);
 			// Check if the "structure" part if correct
-		$this->assertEquals($expectedResult, $actualResult['structure']);
+		$this->assertEquals($expectedResult, $actualResult->structure);
 	}
 }
 ?>

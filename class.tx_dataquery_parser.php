@@ -24,6 +24,7 @@
 
 require_once(t3lib_extMgm::extPath('overlays', 'class.tx_overlays.php'));
 require_once(t3lib_extMgm::extPath('dataquery', 'class.tx_dataquery_sqlparser.php'));
+require_once(t3lib_extMgm::extPath('dataquery', 'class.tx_dataquery_queryobject.php'));
 
 /**
  * This class is used to parse a SELECT SQL query into a structured array
@@ -41,17 +42,18 @@ class tx_dataquery_parser {
 		 * List of eval types which indicate non-text fields
 		 */
 	static protected $notTextTypes = array('date', 'datetime', 'time', 'timesec', 'year', 'num', 'md5', 'int', 'double2');
-	protected $structure = array(); // Contains all components of the parsed query
-	protected $mainTable; // Name (or alias if defined) of the main query table, i.e. the one in the FROM part of the query
-	protected $aliases = array(); // The keys to this array are the aliases of the tables used in the query and they point to the true table names
+
+		/**
+		 * @var	tx_dataquery_queryobject	Structured type containing the parts of the parsed query
+		 */
+	protected $queryObject;
+
 	protected $fieldAliases = array(); // List of aliases for all fields that have one, per table
 	protected $fieldAliasMappings = array(); // List of what field aliases map to (table, field and whether it's a function or not)
 	protected $fieldTrueNames = array(); // True names for all the fields. The key is the actual alias used in the query.
 	protected $isMergedResult = FALSE;
-	protected $subtables = array(); // List of all subtables, i.e. tables in the JOIN statements
 	protected $queryFields = array(); // List of all fields being queried, arranged per table (aliased)
 	protected $doOverlays = array(); // Flag for each table whether to perform overlays or not
-	protected $orderFields = array(); // Array with all information of the fields used to order data
 	protected $processOrderBy = TRUE; // True if order by is processed using SQL, false otherwise (see preprocessOrderByFields())
 
 	/**
@@ -81,26 +83,21 @@ class tx_dataquery_parser {
 			 */
 		$sqlParser = t3lib_div::makeInstance('tx_dataquery_sqlparser');
 		try {
-			$parseResult = $sqlParser->parseSQL($query);
-			$this->structure = $parseResult['structure'];
-			$this->mainTable = $parseResult['mainTable'];
-			$this->subtables = $parseResult['subtables'];
-			$this->aliases = $parseResult['aliases'];
-			$this->orderFields = $parseResult['orderFields'];
+			$this->queryObject = $sqlParser->parseSQL($query);
 		}
 		catch (Exception $e) {
 			// Decide what to do here: handle exception of let it bubble up
 		}
 
 			// Loop on all SELECT items
-		$numSelects = count($this->structure['SELECT']);
+		$numSelects = count($this->queryObject->structure['SELECT']);
 		$tableHasUid = array();
 			// This is an array of all "explicit aliases"
 			// This means all fields for which an alias was given in the SQL query using the AS keyword
 		$this->fieldAliases = array();
 		$numFunctions = 0;
 		for ($i = 0; $i < $numSelects; $i++) {
-			$selector = $this->structure['SELECT'][$i];
+			$selector = $this->queryObject->structure['SELECT'][$i];
 			$alias = '';
 			$table = '';
 			$fieldAlias = '';
@@ -110,13 +107,13 @@ class tx_dataquery_parser {
 			if (stristr($selector, '*')) {
 					// It's only *, set table as main table
 				if ($selector == '*') {
-					$table = $this->mainTable;
+					$table = $this->queryObject->mainTable;
 					$alias = $table;
 
 					// It's table.*, extract table name
                 } else {
 					$selectorParts = t3lib_div::trimExplode('.', $selector, 1);
-					$table = (isset($this->aliases[$selectorParts[0]]) ? $this->aliases[$selectorParts[0]] : $selectorParts[0]);
+					$table = (isset($this->queryObject->aliases[$selectorParts[0]]) ? $this->queryObject->aliases[$selectorParts[0]] : $selectorParts[0]);
 					$alias = $selectorParts[0];
                 }
 					// Get all fields for the given table
@@ -145,20 +142,20 @@ class tx_dataquery_parser {
 						// If there's a dot, get table name
 					if (stristr($selector, '.')) {
 						$selectorParts = t3lib_div::trimExplode('.', $selector, 1);
-						$table = (isset($this->aliases[$selectorParts[0]]) ? $this->aliases[$selectorParts[0]] : $selectorParts[0]);
+						$table = (isset($this->queryObject->aliases[$selectorParts[0]]) ? $this->queryObject->aliases[$selectorParts[0]] : $selectorParts[0]);
 						$alias = $selectorParts[0];
 						$field = $selectorParts[1];
 
 						// No dot, the table is the main one
 					} else {
-						$table = $this->mainTable;
+						$table = $this->queryObject->mainTable;
 						$alias = $table;
 						$field = $selector;
 					}
 				} else {
 					$numFunctions++;
 					$isFunction = TRUE;
-					$table = $this->mainTable;
+					$table = $this->queryObject->mainTable;
 					$alias = $table;
 					$field = $selector;
 						// Function calls need aliases
@@ -192,7 +189,7 @@ class tx_dataquery_parser {
 				// Assemble list of fields per table
 				// The name of the field is used both as key and value, but the value will be replaced by the fields' labels in getLocalizedLabels()
 			if (!isset($this->queryFields[$alias])) {
-				$this->queryFields[$alias] = array('name' => $table, 'table' => (empty($this->aliases[$alias])) ? $table : $this->aliases[$alias], 'fields' => array());
+				$this->queryFields[$alias] = array('name' => $table, 'table' => (empty($this->queryObject->aliases[$alias])) ? $table : $this->queryObject->aliases[$alias], 'fields' => array());
 			}
 			foreach ($fields as $index => $aField) {
 				$this->queryFields[$alias]['fields'][] = array('name' => $aField, 'function' => (empty($functions[$index])) ? FALSE : TRUE);
@@ -247,7 +244,7 @@ class tx_dataquery_parser {
 				}
 				$theField = $name;
 					// Case 4a
-				if ($alias == $this->mainTable) {
+				if ($alias == $this->queryObject->mainTable) {
 					if (empty($fieldAlias)) {
 						$theAlias = $theField;
 					} else {
@@ -290,12 +287,11 @@ class tx_dataquery_parser {
 														'table' => $table,
 														'aliasTable' => $alias,
 														'field' => $theField,
-//														'function' => (empty($functions[$index])) ? FALSE : TRUE,
 														'mapping' => array('table' => $mappedTable, 'field' => $mappedField)
 													);
 				$completeFields[] = $fullField;
 			}
-			$this->structure['SELECT'][$i] = implode(', ', $completeFields);
+			$this->queryObject->structure['SELECT'][$i] = implode(', ', $completeFields);
 				// Free some memory
 			unset($completeFields);
         }
@@ -307,7 +303,7 @@ class tx_dataquery_parser {
         		$fullField = $alias . '.uid';
 				$theField = 'uid';
 				$fieldAlias = 'uid';
-				if ($alias != $this->mainTable) {
+				if ($alias != $this->queryObject->mainTable) {
 					$fieldAlias = $alias . '$uid';
 	       			$fullField .= ' AS ' . $fieldAlias;
 				}
@@ -315,18 +311,17 @@ class tx_dataquery_parser {
 														'table' => $this->getTrueTableName($alias),
 														'aliasTable' => $alias,
 														'field' => $theField,
-//														'function' => FALSE,
 														'mapping' => array('table' => $alias, 'field' => $theField)
 													);
-				$this->structure['SELECT'][] = $fullField;
+				$this->queryObject->structure['SELECT'][] = $fullField;
 				$this->queryFields[$alias]['fields'][] = array('name' => 'uid', 'function' => FALSE);
         	}
         }
-//t3lib_div::debug($this->aliases, 'Table aliases');
+//t3lib_div::debug($this->queryObject->aliases, 'Table aliases');
 //t3lib_div::debug($this->fieldAliases, 'Field aliases');
 //t3lib_div::debug($this->fieldTrueNames, 'Field true names');
 //t3lib_div::debug($this->queryFields, 'Query fields');
-//t3lib_div::debug($this->structure, 'Structure');
+//t3lib_div::debug($this->queryObject->structure, 'Structure');
 	}
 
 	/**
@@ -434,32 +429,32 @@ class tx_dataquery_parser {
 
 			// Add the enable fields, first to the main table
 		if (empty($settings['ignore_enable_fields'])) {
-			$enableClause = tx_overlays::getEnableFieldsCondition($this->aliases[$this->mainTable]);
-			if ($this->mainTable != $this->aliases[$this->mainTable]) {
-				$enableClause = str_replace($this->aliases[$this->mainTable], $this->mainTable, $enableClause);
+			$enableClause = tx_overlays::getEnableFieldsCondition($this->queryObject->aliases[$this->queryObject->mainTable]);
+			if ($this->queryObject->mainTable != $this->queryObject->aliases[$this->queryObject->mainTable]) {
+				$enableClause = str_replace($this->queryObject->aliases[$this->queryObject->mainTable], $this->queryObject->mainTable, $enableClause);
 			}
 			$this->addWhereClause($enableClause);
 
 				// Add enable fields to JOINed tables
-			if (isset($this->structure['JOIN']) && is_array($this->structure['JOIN'])) {
-				foreach ($this->structure['JOIN'] as $tableIndex => $joinData) {
+			if (isset($this->queryObject->structure['JOIN']) && is_array($this->queryObject->structure['JOIN'])) {
+				foreach ($this->queryObject->structure['JOIN'] as $tableIndex => $joinData) {
 					$table = $joinData['table'];
 					$enableClause = tx_overlays::getEnableFieldsCondition($table);
 					if (!empty($enableClause)) {
 						if ($table != $joinData['alias']) {
 							$enableClause = str_replace($table, $joinData['alias'], $enableClause);
 						}
-						if (!empty($this->structure['JOIN'][$tableIndex]['on'])) {
-							$this->structure['JOIN'][$tableIndex]['on'] .= ' AND ';
+						if (!empty($this->queryObject->structure['JOIN'][$tableIndex]['on'])) {
+							$this->queryObject->structure['JOIN'][$tableIndex]['on'] .= ' AND ';
 						}
-						$this->structure['JOIN'][$tableIndex]['on'] .= '('.$enableClause.')';
+						$this->queryObject->structure['JOIN'][$tableIndex]['on'] .= '('.$enableClause.')';
 					}
 				}
 			}
 		}
 
 			// Add the language condition, if necessary
-		if (empty($settings['ignore_language_handling']) && !$this->structure['DISTINCT']) {
+		if (empty($settings['ignore_language_handling']) && !$this->queryObject->structure['DISTINCT']) {
 
 				// Add the DB fields and the SQL conditions necessary for having everything ready to handle overlays
 				// as per the standard TYPO3 mechanism
@@ -497,7 +492,7 @@ class tx_dataquery_parser {
 								foreach ($addedFields as $aField) {
 									$newFieldName = $alias . '.' . $aField;
 									$newFieldAlias = $alias . '$' . $aField;
-									$this->structure['SELECT'][] = $newFieldName . ' AS ' . $newFieldAlias;
+									$this->queryObject->structure['SELECT'][] = $newFieldName . ' AS ' . $newFieldAlias;
 									$this->queryFields[$table]['fields'][] = array('name' => $aField, 'function' => FALSE);
 									$this->fieldTrueNames[$newFieldAlias] = array(
 																				'table' => $table,
@@ -515,13 +510,13 @@ class tx_dataquery_parser {
 								if ($table != $alias) {
 									$languageCondition = str_replace($table, $alias, $languageCondition);
 								}
-								if ($alias == $this->mainTable) {
+								if ($alias == $this->queryObject->mainTable) {
 									$this->addWhereClause($languageCondition);
 								} else {
-									if (!empty($this->structure['JOIN'][$alias]['on'])) {
-										$this->structure['JOIN'][$alias]['on'] .= ' AND ';
+									if (!empty($this->queryObject->structure['JOIN'][$alias]['on'])) {
+										$this->queryObject->structure['JOIN'][$alias]['on'] .= ' AND ';
 									}
-									$this->structure['JOIN'][$alias]['on'] .= $languageCondition;
+									$this->queryObject->structure['JOIN'][$alias]['on'] .= $languageCondition;
 								}
 							}
 						}
@@ -537,13 +532,13 @@ class tx_dataquery_parser {
 					if (isset($GLOBALS['TCA'][$table]['ctrl']['languageField'])) {
 							// Take language that corresponds to current language or [All]
 						$languageCondition = $alias.'.'.$GLOBALS['TCA'][$table]['ctrl']['languageField'].' IN ('.$GLOBALS['TSFE']->sys_language_content.', -1)';
-						if ($alias == $this->mainTable) {
+						if ($alias == $this->queryObject->mainTable) {
 							$this->addWhereClause($languageCondition);
 						} else {
-							if (!empty($this->structure['JOIN'][$alias]['on'])) {
-								$this->structure['JOIN'][$alias]['on'] .= ' AND ';
+							if (!empty($this->queryObject->structure['JOIN'][$alias]['on'])) {
+								$this->queryObject->structure['JOIN'][$alias]['on'] .= ' AND ';
 							}
-							$this->structure['JOIN'][$alias]['on'] .= '(' . $languageCondition . ')';
+							$this->queryObject->structure['JOIN'][$alias]['on'] .= '(' . $languageCondition . ')';
 						}
 					}
 				}
@@ -556,13 +551,13 @@ class tx_dataquery_parser {
 			$table = $tableData['table'];
 			if (!empty($GLOBALS['TCA'][$table]['ctrl']['versioningWS'])) {
 				$workspaceCondition = $alias . ".t3ver_oid = '0'";
-				if ($alias == $this->mainTable) {
+				if ($alias == $this->queryObject->mainTable) {
 					$this->addWhereClause($workspaceCondition);
 				} else {
-					if (!empty($this->structure['JOIN'][$alias]['on'])) {
-						$this->structure['JOIN'][$alias]['on'] .= ' AND ';
+					if (!empty($this->queryObject->structure['JOIN'][$alias]['on'])) {
+						$this->queryObject->structure['JOIN'][$alias]['on'] .= ' AND ';
 					}
-					$this->structure['JOIN'][$alias]['on'] .= '(' . $workspaceCondition . ')';
+					$this->queryObject->structure['JOIN'][$alias]['on'] .= '(' . $workspaceCondition . ')';
 				}
 			}
 		}
@@ -581,7 +576,7 @@ class tx_dataquery_parser {
 		$logicalOperator = (empty($filter['logicalOperator'])) ? 'AND' : $filter['logicalOperator'];
 		if (isset($filter['filters']) && is_array($filter['filters'])) {
 			foreach ($filter['filters'] as $filterData) {
-				$table = (empty($filterData['table'])) ? $this->mainTable : $filterData['table'];
+				$table = (empty($filterData['table'])) ? $this->queryObject->mainTable : $filterData['table'];
 				$field = $filterData['field'];
 				$fullField = $table . '.' . $field;
 					// If the field is an alias, override full field definition
@@ -598,7 +593,7 @@ class tx_dataquery_parser {
 					// no matter which table it targets
 				$tableForApplication = $table;
 				if ($filterData['main']) {
-					$tableForApplication = $this->mainTable;
+					$tableForApplication = $this->queryObject->mainTable;
 				}
 				if (empty($completeFilters[$tableForApplication])) {
 					$completeFilters[$tableForApplication] = '';
@@ -667,13 +662,13 @@ class tx_dataquery_parser {
 				$completeFilters[$tableForApplication] .= '(' . $condition . ')';
 			}
 			foreach ($completeFilters as $table => $whereClause) {
-				if ($table == $this->mainTable) {
+				if ($table == $this->queryObject->mainTable) {
 					$this->addWhereClause($whereClause);
-				} elseif (in_array($table, $this->subtables)) {
-					if (!empty($this->structure['JOIN'][$table]['on'])) {
-						$this->structure['JOIN'][$table]['on'] .= ' AND ';
+				} elseif (in_array($table, $this->queryObject->subtables)) {
+					if (!empty($this->queryObject->structure['JOIN'][$table]['on'])) {
+						$this->queryObject->structure['JOIN'][$table]['on'] .= ' AND ';
 					}
-					$this->structure['JOIN'][$table]['on'] .= $whereClause;
+					$this->queryObject->structure['JOIN'][$table]['on'] .= $whereClause;
 				}
 			}
 				// Free some mempory
@@ -687,10 +682,10 @@ class tx_dataquery_parser {
 			// Handle the order by clauses
 		if (count($filter['orderby']) > 0) {
 			foreach ($filter['orderby'] as $orderData) {
-				$completeField = ((empty($orderData['table'])) ? $this->mainTable : $orderData['table']) . '.' . $orderData['field'];
+				$completeField = ((empty($orderData['table'])) ? $this->queryObject->mainTable : $orderData['table']) . '.' . $orderData['field'];
 				$orderbyClause = $completeField . ' ' . $orderData['order'];
-				$this->structure['ORDER BY'][] = $orderbyClause;
-				$this->orderFields[] = array('field' => $completeField, 'order' => $orderData['order']);
+				$this->queryObject->structure['ORDER BY'][] = $orderbyClause;
+				$this->queryObject->orderFields[] = array('field' => $completeField, 'order' => $orderData['order']);
 			}
 		}
 	}
@@ -717,7 +712,7 @@ class tx_dataquery_parser {
 				$uid = strrev($uid);
 					// If table is not defined, assume it's the main table
 				if (empty($table)) {
-					$table = $this->mainTable;
+					$table = $this->queryObject->mainTable;
 				} else {
 					$table = strrev($table);
 				}
@@ -729,13 +724,13 @@ class tx_dataquery_parser {
 				// Loop on all tables and add test on list of uid's, if table is indeed in query
 			foreach ($idlistsPerTable as $table => $uidArray) {
 				$condition = $table . '.uid IN (' . implode(',', $uidArray) . ')';
-				if ($table == $this->mainTable) {
+				if ($table == $this->queryObject->mainTable) {
 					$this->addWhereClause($condition);
-				} elseif (in_array($table, $this->subtables)) {
-					if (!empty($this->structure['JOIN'][$table]['on'])) {
-						$this->structure['JOIN'][$table]['on'] .= ' AND ';
+				} elseif (in_array($table, $this->queryObject->subtables)) {
+					if (!empty($this->queryObject->structure['JOIN'][$table]['on'])) {
+						$this->queryObject->structure['JOIN'][$table]['on'] .= ' AND ';
 					}
-					$this->structure['JOIN'][$table]['on'] .= $condition;
+					$this->queryObject->structure['JOIN'][$table]['on'] .= $condition;
 				}
 			}
 				// Free some memory
@@ -753,17 +748,17 @@ class tx_dataquery_parser {
 		$this->preprocessOrderByFields();
 			// Start assembling the query
 		$query  = 'SELECT ';
-		if ($this->structure['DISTINCT']) {
+		if ($this->queryObject->structure['DISTINCT']) {
 			$query .= 'DISTINCT ';
 		}
-		$query .= implode(', ', $this->structure['SELECT']) . ' ';
-		$query .= 'FROM ' . $this->structure['FROM']['table'];
-		if (!empty($this->structure['FROM']['alias'])) {
-			$query .= ' AS ' . $this->structure['FROM']['alias'];
+		$query .= implode(', ', $this->queryObject->structure['SELECT']) . ' ';
+		$query .= 'FROM ' . $this->queryObject->structure['FROM']['table'];
+		if (!empty($this->queryObject->structure['FROM']['alias'])) {
+			$query .= ' AS ' . $this->queryObject->structure['FROM']['alias'];
 		}
 		$query .= ' ';
-		if (isset($this->structure['JOIN'])) {
-			foreach ($this->structure['JOIN'] as $theJoin) {
+		if (isset($this->queryObject->structure['JOIN'])) {
+			foreach ($this->queryObject->structure['JOIN'] as $theJoin) {
 				$query .= strtoupper($theJoin['type']) . ' JOIN ' . $theJoin['table'];
 				if (!empty($theJoin['alias'])) {
 					$query .= ' AS ' . $theJoin['alias'];
@@ -774,9 +769,9 @@ class tx_dataquery_parser {
 				$query .= ' ';
 			}
 		}
-		if (count($this->structure['WHERE']) > 0) {
+		if (count($this->queryObject->structure['WHERE']) > 0) {
 			$whereClause = '';
-			foreach ($this->structure['WHERE'] as $clause) {
+			foreach ($this->queryObject->structure['WHERE'] as $clause) {
 				if (!empty($whereClause)) {
 					$whereClause .= ' AND ';
 				}
@@ -784,17 +779,17 @@ class tx_dataquery_parser {
 			}
 			$query .= 'WHERE ' . $whereClause . ' ';
 		}
-		if (count($this->structure['GROUP BY']) > 0) {
-			$query .= 'GROUP BY ' . implode(', ', $this->structure['GROUP BY']) . ' ';
+		if (count($this->queryObject->structure['GROUP BY']) > 0) {
+			$query .= 'GROUP BY ' . implode(', ', $this->queryObject->structure['GROUP BY']) . ' ';
 		}
 			// Add order by clause if defined and if applicable (see preprocessOrderByFields())
-		if ($this->processOrderBy && count($this->structure['ORDER BY']) > 0) {
-			$query .= 'ORDER BY ' . implode(', ', $this->structure['ORDER BY']) . ' ';
+		if ($this->processOrderBy && count($this->queryObject->structure['ORDER BY']) > 0) {
+			$query .= 'ORDER BY ' . implode(', ', $this->queryObject->structure['ORDER BY']) . ' ';
 		}
-		if (isset($this->structure['LIMIT'])) {
-			$query .= 'LIMIT ' . $this->structure['LIMIT'];
-			if (isset($this->structure['OFFSET'])) {
-				$query .= ' OFFSET ' . $this->structure['OFFSET'];
+		if (isset($this->queryObject->structure['LIMIT'])) {
+			$query .= 'LIMIT ' . $this->queryObject->structure['LIMIT'];
+			if (isset($this->queryObject->structure['OFFSET'])) {
+				$query .= ' OFFSET ' . $this->queryObject->structure['OFFSET'];
 			}
 		}
 //t3lib_div::debug($query);
@@ -812,14 +807,14 @@ class tx_dataquery_parser {
 	 */
 	protected function preprocessOrderByFields() {
 /*
-t3lib_div::debug($this->orderFields, 'Order fields');
+t3lib_div::debug($this->queryObject->orderFields, 'Order fields');
 t3lib_div::debug($this->fieldAliases, 'Field aliases');
 t3lib_div::debug($this->fieldTrueNames, 'Field true names');
 t3lib_div::debug($this->queryFields, 'Query fields');
-t3lib_div::debug($this->structure['SELECT'], 'Select structure');
+t3lib_div::debug($this->queryObject->structure['SELECT'], 'Select structure');
  *
  */
-		if (count($this->orderFields) > 0) {
+		if (count($this->queryObject->orderFields) > 0) {
 				// If in the FE context and not the default language, start checking for possible use of SQL or not
 			if (TYPO3_MODE == 'FE' && $GLOBALS['TSFE']->sys_language_content > 0) {
 					// Include the complete ctrl TCA
@@ -831,13 +826,13 @@ t3lib_div::debug($this->structure['SELECT'], 'Select structure');
 				$newSelectFields = array();
 				$newTrueNames = array();
 				$countNewFields = 0;
-				foreach ($this->orderFields as $index => $orderInfo) {
+				foreach ($this->queryObject->orderFields as $index => $orderInfo) {
 					$alias = '';
 					$field = '';
 						// Define the table and field names
 					$fieldParts = explode('.', $orderInfo['field']);
 					if (count($fieldParts) == 1) {
-						$alias = $this->mainTable;
+						$alias = $this->queryObject->mainTable;
 						$field = $fieldParts[0];
 					} else {
 						$alias = $fieldParts[0];
@@ -845,8 +840,8 @@ t3lib_div::debug($this->structure['SELECT'], 'Select structure');
 					}
 						// If the field has an alias, change the order fields list to use it
 					if (isset($this->fieldAliases[$alias][$field])) {
-						$this->orderFields[$index]['alias'] = $this->orderFields[$index]['field'];
-						$this->orderFields[$index]['field'] = $this->fieldAliases[$alias][$field];
+						$this->queryObject->orderFields[$index]['alias'] = $this->queryObject->orderFields[$index]['field'];
+						$this->queryObject->orderFields[$index]['field'] = $this->fieldAliases[$alias][$field];
 					}
 						// Get the field's true table and name, if defined, in case an alias is used in the ORDER BY statement
 					if (isset($this->fieldTrueNames[$field])) {
@@ -917,7 +912,7 @@ t3lib_div::debug($this->structure['SELECT'], 'Select structure');
 				if ($cannotUseSQLForSorting) {
 					if ($countNewFields > 0) {
 						$this->queryFields = t3lib_div::array_merge_recursive_overrule($this->queryFields, $newQueryFields);
-						$this->structure['SELECT'] = array_merge($this->structure['SELECT'], $newSelectFields);
+						$this->queryObject->structure['SELECT'] = array_merge($this->queryObject->structure['SELECT'], $newSelectFields);
 						$this->fieldTrueNames = t3lib_div::array_merge_recursive_overrule($this->fieldTrueNames, $newTrueNames);
 /*
 t3lib_div::debug($newQueryFields, 'New query fields');
@@ -925,7 +920,7 @@ t3lib_div::debug($this->queryFields, 'Updated query fields');
 t3lib_div::debug($newTrueNames, 'New field true names');
 t3lib_div::debug($this->fieldTrueNames, 'Updated field true names');
 t3lib_div::debug($newSelectFields, 'New select fields');
-t3lib_div::debug($this->structure['SELECT'], 'Updated select structure');
+t3lib_div::debug($this->queryObject->structure['SELECT'], 'Updated select structure');
  *
  */
 							// Free some memory
@@ -975,7 +970,7 @@ t3lib_div::debug($this->structure['SELECT'], 'Updated select structure');
 	 */
 	public function addWhereClause($clause) {
 		if (!empty($clause)) {
-			$this->structure['WHERE'][] = $clause;
+			$this->queryObject->structure['WHERE'][] = $clause;
 		}
 	}
 
@@ -987,7 +982,7 @@ t3lib_div::debug($this->structure['SELECT'], 'Updated select structure');
 	 * @return	array	The parsed query
 	 */
 	public function getQueryStructure() {
-		return $this->structure;
+		return $this->queryObject->structure;
 	}
 
 	/**
@@ -997,7 +992,7 @@ t3lib_div::debug($this->structure['SELECT'], 'Updated select structure');
 	 * @return	string		main table name (alias)
 	 */
 	public function getMainTableName() {
-		return $this->mainTable;
+		return $this->queryObject->mainTable;
 	}
 
 	/**
@@ -1007,7 +1002,7 @@ t3lib_div::debug($this->structure['SELECT'], 'Updated select structure');
 	 * @return	array		names of all the joined tables
 	 */
 	public function getSubtablesNames() {
-		return $this->subtables;
+		return $this->queryObject->subtables;
 	}
 
 	/**
@@ -1017,7 +1012,7 @@ t3lib_div::debug($this->structure['SELECT'], 'Updated select structure');
 	 * @return	string		True name of the corresponding table
 	 */
 	public function getTrueTableName($alias) {
-		return $this->aliases[$alias];
+		return $this->queryObject->aliases[$alias];
 	}
 
 	/**
@@ -1057,7 +1052,7 @@ t3lib_div::debug($this->structure['SELECT'], 'Updated select structure');
 	 * @return	array	Fields for ordering (and sort order)
 	 */
 	public function getOrderByFields() {
-		return $this->orderFields;
+		return $this->queryObject->orderFields;
 	}
 
 	/**
@@ -1097,7 +1092,7 @@ t3lib_div::debug($this->structure['SELECT'], 'Updated select structure');
 	 * @return	boolean	true if there's at least one ordering criterion, false otherwise
 	 */
 	public function hasOrdering() {
-		return count($this->orderFields) > 0;
+		return count($this->queryObject->orderFields) > 0;
 	}
 
 	/**
@@ -1110,8 +1105,8 @@ t3lib_div::debug($this->structure['SELECT'], 'Updated select structure');
 	 */
 	public function hasInnerJoinOnFirstSubtable() {
 		$returnValue = '';
-		if (count($this->structure['JOIN']) > 0) {
-			foreach ($this->structure['JOIN'] as $alias => $joinInfo) {
+		if (count($this->queryObject->structure['JOIN']) > 0) {
+			foreach ($this->queryObject->structure['JOIN'] as $alias => $joinInfo) {
 				if (isset($this->queryFields[$alias])) {
 					if ($joinInfo['type'] == 'inner') {
 						$returnValue = $alias;
@@ -1131,7 +1126,7 @@ t3lib_div::debug($this->structure['SELECT'], 'Updated select structure');
 	 * @return	integer		Value of the limit, or 0 if not defined
 	 */
 	public function getSubTableLimit($table) {
-		return isset($this->structure['JOIN'][$table]['limit']) ? $this->structure['JOIN'][$table]['limit'] : 0;
+		return isset($this->queryObject->structure['JOIN'][$table]['limit']) ? $this->queryObject->structure['JOIN'][$table]['limit'] : 0;
 	}
 }
 
