@@ -62,7 +62,7 @@ class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 	}
 
 	/**
-	 * Parse and rebuild a simple SELECT query
+	 * Parse and rebuild a SELECT query with an id list
 	 *
 	 * @test
 	 */
@@ -81,17 +81,17 @@ class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 	}
 
 	/**
-	 * Parse and rebuild a simple SELECT query
+	 * Parse and rebuild a SELECT query with a filter
 	 *
 	 * @test
 	 */
 	public function selectQueryWithFilter() {
-		$expectedResult = 'SELECT tt_content.uid, tt_content.header FROM tt_content AS tt_content WHERE (tt_content.uid > \'10\' AND tt_content.uid <= \'50\') AND (tt_content.header LIKE \'%foo%\') AND (tt_content.image IS NOT NULL) ORDER BY tt_content.crdate desc ';
+		$expectedResult = 'SELECT tt_content.uid, tt_content.header, FROM_UNIXTIME(tstamp, \'%Y\') AS year FROM tt_content AS tt_content WHERE (tt_content.uid > \'10\' AND tt_content.uid <= \'50\') AND (tt_content.header LIKE \'%foo%\') AND (tt_content.image IS NOT NULL) AND (FROM_UNIXTIME(tstamp, \'%Y\') = \'2010\') ORDER BY tt_content.crdate desc ';
 			/**
 			 * @var tx_dataquery_parser	$parser
 			 */
 		$parser = t3lib_div::makeInstance('tx_dataquery_parser');
-		$query = 'SELECT uid,header FROM tt_content';
+		$query = 'SELECT uid,header, FROM_UNIXTIME(tstamp, \'%Y\') AS year FROM tt_content';
 		$parser->parseQuery($query);
 			// Define filter with many different conditions
 		$filter = array(
@@ -129,6 +129,16 @@ class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 							'value' => 'null'
 						)
 					)
+				),
+				3 => array(
+					'table' => 'tt_content',
+					'field' => 'year',
+					'conditions' => array(
+						0 => array(
+							'operator' => '=',
+							'value' => 2010
+						)
+					)
 				)
 			),
 			'logicalOperator' => 'AND',
@@ -151,7 +161,7 @@ class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 	}
 
 	/**
-	 * Parse and rebuild a query with an explicit JOIN and fields forced to another table
+	 * Parse and rebuild a SELECT query with an explicit JOIN and fields forced to another table
 	 *
 	 * @test
 	 */
