@@ -499,11 +499,6 @@ class tx_dataquery_parser {
 				if ($filterData['main']) {
 					$tableForApplication = $this->queryObject->mainTable;
 				}
-				if (empty($completeFilters[$tableForApplication])) {
-					$completeFilters[$tableForApplication] = '';
-				} else {
-					$completeFilters[$tableForApplication] .= ' ' . $logicalOperator . ' ';
-				}
 				foreach ($filterData['conditions'] as $conditionData) {
 					if (!empty($condition)) {
 						$condition .= ' AND ';
@@ -544,26 +539,43 @@ class tx_dataquery_parser {
 						$condition .= $fullField . ' LIKE ' . $GLOBALS['TYPO3_DB']->fullQuoteStr($value, $table);
 
 						// Other operators are handled simply
-						// We just need to take care of special values "empty" and "null"
+						// We just need to take care of special values: "\empty", "\null" and "\all"
 					} else {
 						$operator = $conditionData['operator'];
 						$quotedValue = '';
-						if ($conditionData['value'] == 'empty') {
-							$quotedValue = "''";
-						} elseif ($conditionData['value'] == 'null') {
-							if ($operator == '=') {
-								$operator = 'IS';
+							// If the value is special value "\all", all values must be taken,
+							// so the condition is simply ignored
+						if ($conditionData['value'] != '\all') {
+								// Special value "\empty" means evaluation against empty string
+							if ($conditionData['value'] == '\empty') {
+								$quotedValue = "''";
+
+								// Special value "\null" means evaluation against IS NULL or IS NOT NULL
+							} elseif ($conditionData['value'] == '\null') {
+								if ($operator == '=') {
+									$operator = 'IS';
+								} else {
+									$operator = 'IS NOT';
+								}
+								$quotedValue = 'NULL';
+
+								// Normal value
 							} else {
-								$operator = 'IS NOT';
+								$quotedValue = $GLOBALS['TYPO3_DB']->fullQuoteStr($conditionData['value'], $table);
 							}
-							$quotedValue = 'NULL';
-						} else {
-							$quotedValue = $GLOBALS['TYPO3_DB']->fullQuoteStr($conditionData['value'], $table);
+							$condition .= $fullField . ' ' . $operator . ' ' . $quotedValue;
 						}
-						$condition .= $fullField . ' ' . $operator . ' ' . $quotedValue;
 					}
 				}
-				$completeFilters[$tableForApplication] .= '(' . $condition . ')';
+					// Add the condition only if it wasn't empty
+				if (!empty($condition)) {
+					if (empty($completeFilters[$tableForApplication])) {
+						$completeFilters[$tableForApplication] = '';
+					} else {
+						$completeFilters[$tableForApplication] .= ' ' . $logicalOperator . ' ';
+					}
+					$completeFilters[$tableForApplication] .= '(' . $condition . ')';
+				}
 			}
 			foreach ($completeFilters as $table => $whereClause) {
 				if ($table == $this->queryObject->mainTable) {
