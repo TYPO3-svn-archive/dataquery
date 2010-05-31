@@ -502,7 +502,7 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 			foreach ($rows[$this->mainTable][0] as $aRecord) {
 				$uidList[] = $aRecord['uid'];
 				$theFullRecord = $aRecord;
-				$theFullRecord['sds:subtables'] = array();
+				$theFullRecord['__substructure'] = array();
 					// Check if there are any subtables in the query
 				$recordsPerSubtable = array();
 				if ($numSubtables > 0) {
@@ -537,7 +537,7 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 								$numItems = count($subUidList);
 								$recordsPerSubtable[$table] = $numItems;
 								if ($numItems > 0) {
-									$theFullRecord['sds:subtables'][$table] = array(
+									$theFullRecord['__substructure'][$table] = array(
 																			'name' => $table,
 																			'trueName' => $allTablesTrueNames[$table],
 																			'count' => $numItems,
