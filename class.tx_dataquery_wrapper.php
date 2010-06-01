@@ -442,7 +442,7 @@ class tx_dataquery_wrapper extends tx_basecontroller_providerbase {
 			foreach ($finalRecordset as $row) {
 				$currentUID = $row['uid'];
 					// If we're not handling the same main record as before, perform some initialisations
-				if ($currentUID != $oldUID) {
+				if ($currentUID !== $oldUID) {
 					if ($numSubtables > 0) {
 						foreach ($subtables as $table) {
 							$rows[$table][$currentUID] = array();
