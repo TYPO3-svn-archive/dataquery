@@ -79,6 +79,39 @@ class tx_dataquery_sqlparser_Test extends tx_phpunit_testcase {
 	 *
 	 * @test
 	 */
+	public function selectQueryWithDistinct() {
+		/**
+		 * @var tx_dataquery_sqlparser	$parser
+		 */
+		$parser = t3lib_div::makeInstance('tx_dataquery_sqlparser');
+		$query = 'SELECT DISTINCT CType AS uid FROM tt_content';
+		$expectedResult = array(
+			'DISTINCT' => TRUE,
+			'SELECT' => array(
+				0 => array(
+					'table' => 'tt_content',
+					'tableAlias' => 'tt_content',
+					'field' => 'CType',
+					'fieldAlias' => 'uid',
+					'function' => FALSE
+				)
+			),
+			'FROM' => array('table' => 'tt_content', 'alias' => 'tt_content'),
+			'JOIN' => array(),
+			'WHERE' => array(),
+			'ORDER BY' => array(),
+			'GROUP BY' => array()
+		);
+		$actualResult = $parser->parseSQL($query);
+			// Check if the "structure" part if correct
+		$this->assertEquals($expectedResult, $actualResult->structure);
+	}
+
+	/**
+	 * Test a SELECT query with function calls
+	 *
+	 * @test
+	 */
 	public function selectQueryWithFunctionCalls() {
 		/**
 		 * @var tx_dataquery_sqlparser	$parser

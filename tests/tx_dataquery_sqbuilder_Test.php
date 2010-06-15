@@ -81,6 +81,24 @@ class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 	}
 
 	/**
+	 * Parse and rebuild a SELECT query with an id list
+	 *
+	 * @test
+	 */
+	public function selectQueryWithUidAsAlias() {
+		$expectedResult = 'SELECT DISTINCT tt_content.CType AS uid FROM tt_content AS tt_content ';
+			/**
+			 * @var tx_dataquery_parser	$parser
+			 */
+		$parser = t3lib_div::makeInstance('tx_dataquery_parser');
+		$query = 'SELECT DISTINCT CType AS uid FROM tt_content';
+		$parser->parseQuery($query);
+		$actualResult = $parser->buildQuery();
+			// Check if the "structure" part if correct
+		$this->assertEquals($expectedResult, $actualResult);
+	}
+
+	/**
 	 * Parse and rebuild a SELECT query with a filter
 	 *
 	 * @test

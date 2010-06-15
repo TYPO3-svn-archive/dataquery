@@ -209,7 +209,7 @@ class tx_dataquery_sqlparser {
 		$distinctPosition = strpos($select, 'DISTINCT');
 		if ($distinctPosition !== FALSE) {
 			$this->queryObject->structure['DISTINCT'] = TRUE;
-			$croppedString = substr($select, $distinctPosition, 8);
+			$croppedString = substr($select, $distinctPosition + 8);
 			$select = trim($croppedString);
 		}
 			// Next, parse the rest of the string character by character
@@ -381,7 +381,7 @@ class tx_dataquery_sqlparser {
 			if (!isset($this->queryObject->hasUidField[$alias])) {
 				$this->queryObject->hasUidField[$alias] = FALSE;
 			}
-			if ($field == 'uid') {
+			if ((empty($fieldAlias) && $field == 'uid') || (!empty($fieldAlias) && $fieldAlias == 'uid')) {
 				$this->queryObject->hasUidField[$alias] = TRUE;
 			}
 				// Add field's information to query structure
