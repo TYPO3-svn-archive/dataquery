@@ -49,6 +49,9 @@ $TCA['tx_dataquery_queries'] = array(
 				'type' => 'text',
 				'cols' => '30',	
 				'rows' => '8',
+				'wizards' => array(
+					'_PADDING' => 2,
+				)
 			)
 		),
 		'cache_duration' => array(		
@@ -91,4 +94,15 @@ $TCA['tx_dataquery_queries'] = array(
 		'1' => array('showitem' => 'description'),
 	)
 );
+
+	// Add the check query wizard only if TYPO3 is version 4.3 or more
+	// (because the wizard relies on ExtJS being loaded)
+	// NOTE: the check doesn't use t3lib_div::compat_version() because this method
+	// also takes $TYPO3_CONF_VARS['SYS']['compat_version'] into account, which has nothing to do here
+if (t3lib_div::int_from_ver(TYPO3_version) >= t3lib_div::int_from_ver('4.3.0')) {
+	$TCA['tx_dataquery_queries']['columns']['sql_query']['config']['wizards']['check'] = array(
+		'type' => 'userFunc',
+		'userFunc' => 'EXT:dataquery/wizards/class.tx_dataquery_wizards_check.php:tx_dataquery_wizards_Check->render'
+	);
+}
 ?>
