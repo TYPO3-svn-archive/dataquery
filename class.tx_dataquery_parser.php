@@ -202,24 +202,28 @@ class tx_dataquery_parser {
         }
 
 			// Add the uid field to tables that don't have it yet
-			// TODO: check if the table really has a uid field
         foreach ($this->queryObject->hasUidField as $alias => $flag) {
         	if (!$flag) {
-        		$fullField = $alias . '.uid';
-				$theField = 'uid';
-				$fieldAlias = 'uid';
-				if ($alias != $this->queryObject->mainTable) {
-					$fieldAlias = $alias . '$uid';
-	       			$fullField .= ' AS ' . $fieldAlias;
+					// Get all fields for the given table
+				$fieldsInfo = $GLOBALS['TYPO3_DB']->admin_get_fields($this->queryObject->aliases[$alias]);
+					// Add the uid field only if it exists
+				if (isset($fieldsInfo['uid'])) {
+					$fullField = $alias . '.uid';
+					$theField = 'uid';
+					$fieldAlias = 'uid';
+					if ($alias != $this->queryObject->mainTable) {
+						$fieldAlias = $alias . '$uid';
+						$fullField .= ' AS ' . $fieldAlias;
+					}
+					$this->fieldTrueNames[$fieldAlias] = array(
+															'table' => $this->getTrueTableName($alias),
+															'aliasTable' => $alias,
+															'field' => $theField,
+															'mapping' => array('table' => $alias, 'field' => $theField)
+														);
+					$this->queryObject->structure['SELECT'][] = $fullField;
+					$this->queryFields[$alias]['fields'][] = array('name' => 'uid', 'function' => FALSE);
 				}
-				$this->fieldTrueNames[$fieldAlias] = array(
-														'table' => $this->getTrueTableName($alias),
-														'aliasTable' => $alias,
-														'field' => $theField,
-														'mapping' => array('table' => $alias, 'field' => $theField)
-													);
-				$this->queryObject->structure['SELECT'][] = $fullField;
-				$this->queryFields[$alias]['fields'][] = array('name' => 'uid', 'function' => FALSE);
         	}
         }
 //t3lib_div::debug($this->queryObject->aliases, 'Table aliases');
