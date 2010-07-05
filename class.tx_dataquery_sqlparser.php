@@ -247,6 +247,7 @@ class tx_dataquery_sqlparser {
 					// If the wildcard character appears outside of function calls,
 					// take it into consideration. Otherwise not (it might be COUNT(*) for example)
 				case '*':
+					$currentField .= $character;
 					if (!$hasFunctionCall) {
 						$hasWildcard = TRUE;
 					}
@@ -297,8 +298,13 @@ class tx_dataquery_sqlparser {
 	 * @param	integer		$lastBracketPosition: the position of the last closing bracket in the string, if any
 	 * @param	boolean		$hasFunctionCall: true if a SQL function call was detected in the string
 	 * @param	boolean		$hasWildcard: true if the wildcard character (*) was detected in the string
+	 * @return	void
 	 */
 	protected function parseSelectField($fieldString, $lastBracketPosition = 0, $hasFunctionCall = FALSE, $hasWildcard = FALSE) {
+			// Exit early if field string is empty
+		if (empty($fieldString)) {
+			return;
+		}
 		$table = '';
 		$alias = '';
 
