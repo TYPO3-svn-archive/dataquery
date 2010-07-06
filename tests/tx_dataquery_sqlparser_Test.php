@@ -57,7 +57,7 @@ class tx_dataquery_sqlparser_Test extends tx_phpunit_testcase {
 		);
 			// The wildcard will get expanded to include all fields for the given table
 			// So get them and add them to the expected results
-		$fieldInfo = $GLOBALS['TYPO3_DB']->admin_get_fields($table);
+		$fieldInfo = $GLOBALS['TYPO3_DB']->admin_get_fields('tt_content');
 		$fields = array_keys($fieldInfo);
 			// Add all fields to the query structure
 		foreach ($fields as $aField) {
