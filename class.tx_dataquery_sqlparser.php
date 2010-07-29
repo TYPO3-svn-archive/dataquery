@@ -94,6 +94,7 @@ class tx_dataquery_sqlparser {
 			// Parse that information. It's important to do this first,
 			// as we need to know the query' main table for later
 		$fromPart = array_shift($matches);
+			// NOTE: this may throw an Exception, but we let it bubble up
 		$this->parseFromStatement($fromPart);
 
 			// Fill the structure array, as suited for each keyword
@@ -202,6 +203,9 @@ class tx_dataquery_sqlparser {
 	 * @return	void
 	 */
 	public function parseSelectStatement($select) {
+		if (empty($select)) {
+			throw new tx_tesseract_exception('Nothing SELECTed', 1280323976);
+		}
 
 			// Parse the SELECT part
 			// First, check if the select string starts with "DISTINCT"
@@ -286,7 +290,6 @@ class tx_dataquery_sqlparser {
 		} else {
 			$this->parseSelectField(trim($currentField), $lastBracketPosition, $hasFunctionCall, $hasWildcard);
 		}
-
 	}
 
 	/**
@@ -428,6 +431,11 @@ class tx_dataquery_sqlparser {
 	public function parseFromStatement($from) {
 		$fromTables = t3lib_div::trimExplode(',', $from, TRUE);
 		$numTables = count($fromTables);
+			// If there's nothing in the string, thrown an exception
+		if ($numTables == 0) {
+			throw new tx_tesseract_exception('No table defined in query (FROM).', 1280323639);
+		}
+
 		for ($i = 0; $i < $numTables; $i++) {
 			$tableName = $fromTables[$i];
 			$tableAlias = $tableName;
