@@ -91,7 +91,7 @@ class tx_dataquery_parser {
 		$query = str_replace('`', '', $query);
 			// Strip trailing semi-colon if any
 		if (strrpos($query, ';') == strlen($query) - 1) {
-			$query = substr($query, 0, strlen($query) - 1);
+			$query = substr($query, 0, -1);
 		}
 			// Parse query for subexpressions
 		$query = tx_expressions_parser::evaluateString($query, FALSE);
@@ -101,12 +101,9 @@ class tx_dataquery_parser {
 			 * @var	tx_dataquery_sqlparser
 			 */
 		$sqlParser = t3lib_div::makeInstance('tx_dataquery_sqlparser');
-		try {
-			$this->queryObject = $sqlParser->parseSQL($query);
-		}
-		catch (Exception $e) {
-			// Decide what to do here: handle exception of let it bubble up
-		}
+			// NOTE: the following call may throw exceptions,
+			// but we let them bubble up
+		$this->queryObject = $sqlParser->parseSQL($query);
 
 			// Loop on all query fields to assemble additional information structures
 		foreach ($this->queryObject->structure['SELECT'] as $index => $fieldInfo) {

@@ -41,32 +41,39 @@ class tx_dataquery_wizards_Check {
 	 * @return	string			HTML for the wizard
 	 */
 	public function render($PA, t3lib_TCEforms $fObj) {
+			// Get the attributes of the field tag to extract its id
+		$fieldAttributes = t3lib_div::get_tag_attributes($PA['item']);
+
 			/**
 			 * @var	t3lib_PageRenderer	$pageRenderer
 			 */
 		$pageRenderer = $GLOBALS['SOBE']->doc->getPageRenderer();
+			// Add Inline CSS
+		$inlineCSS = '
+			.x-btn button {
+				font-weight: normal !important; 
+			}
+			.message-header {
+				margin-bottom: 10px;
+			}';
+		$pageRenderer->addCssInlineBlock('dataquery', PHP_EOL . $inlineCSS . PHP_EOL);
 			// Load the necessary JavaScript
 		$pageRenderer->addJsFile(t3lib_extMgm::extRelPath('dataquery') . 'res/js/check_wizard.js');
-			// Load some localized labels
+			// Load some localized labels, plus the field's id
 		$fObj->additionalJS_pre[] = '
 			var TX_DATAQUERY = {
+				fieldId : "' . $fieldAttributes['id'] . '",
 				labels : {
 					"debugTab" : "' . $GLOBALS['LANG']->sL('LLL:EXT:dataquery/locallang.xml:wizard.check.debugTab') . '",
-					"previewTab" : "' . $GLOBALS['LANG']->sL('LLL:EXT:dataquery/locallang.xml:wizard.check.previewTab') . '"
+					"previewTab" : "' . $GLOBALS['LANG']->sL('LLL:EXT:dataquery/locallang.xml:wizard.check.previewTab') . '",
+					"validateButton" : "' . $GLOBALS['LANG']->sL('LLL:EXT:dataquery/locallang.xml:wizard.check.validateButton') . '"
 				}
 			};
 		';
 			// First of all render the button that will show/hide the rest of the wizard
 		$wizard = '';
 			// Assemble the base HTML for the wizard
-		$wizard .= '<div id="tx_dataquery_wizardContainer">';
-		$wizard .= '<div id="queryDebug">';
-		$wizard .= '<p><input type="button" name="debugButton" value="' . $GLOBALS['LANG']->sL('LLL:EXT:dataquery/locallang.xml:wizard.check.debugQuery') . '" /></p>';
-		$wizard .= '</div>';
-		$wizard .= '<div id="queryPreview">';
-		$wizard .= '<p><input type="button" name="previewButton" value="' . $GLOBALS['LANG']->sL('LLL:EXT:dataquery/locallang.xml:wizard.check.previewQuery') . '" /></p>';
-		$wizard .= '</div>';
-		$wizard .= '</div>';
+		$wizard .= '<div id="tx_dataquery_wizardContainer"></div>';
 		return $wizard;
 	}
 }

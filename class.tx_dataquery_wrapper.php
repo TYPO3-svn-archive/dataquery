@@ -109,9 +109,17 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 			}
 
 				// Build the complete query
-			$query = $this->sqlParser->buildQuery();
-			if ($this->configuration['debug'] || TYPO3_DLOG) {
-				t3lib_div::devLog($query, $this->extKey);
+				// TODO: the exception handling should be part of a global error handling mechanism
+			try {
+				$query = $this->sqlParser->buildQuery();
+				if ($this->configuration['debug'] || TYPO3_DLOG) {
+					t3lib_div::devLog($query, $this->extKey, -1);
+				}
+			}
+			catch (Exception $e) {
+				if ($this->configuration['debug'] || TYPO3_DLOG) {
+					t3lib_div::devLog($e->getMessage(), $this->extKey, 3);
+				}
 			}
 
 				// Execute the query
