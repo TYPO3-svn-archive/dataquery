@@ -6,7 +6,7 @@
 	</meta>
 	<data type="array">
 		<languageKey index="default" type="array">
-			<label index="tx_dataquery_queries">Data Queries</label>
+			<label index="tx_dataquery_queries">Data Query</label>
 			<label index="tx_dataquery_queries.tab.advanced">Advanced</label>
 			<label index="tx_dataquery_queries.title">Title</label>
 			<label index="tx_dataquery_queries.description">Description</label>
@@ -21,7 +21,7 @@
 			<label index="sql">SQL</label>
 		</languageKey>
 		<languageKey index="fr" type="array">
-			<label index="tx_dataquery_queries">Requêtes</label>
+			<label index="tx_dataquery_queries">Requête</label>
 			<label index="tx_dataquery_queries.tab.advanced">Avancé</label>
 			<label index="tx_dataquery_queries.title">Titre</label>
 			<label index="tx_dataquery_queries.description">Description</label>
