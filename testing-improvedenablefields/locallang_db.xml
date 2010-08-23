@@ -17,9 +17,9 @@
 			<label index="tx_dataquery_queries.ignore_enable_fields.I.0">Don't ignore any fields - with method enableFields</label>
 			<label index="tx_dataquery_queries.ignore_enable_fields.I.1">Ignore any fields - without method enableFields</label>
 			<label index="tx_dataquery_queries.ignore_enable_fields.I.2">Ignore certain fields - with method enableFields customized</label>
-			<label index="tx_dataquery_queries.ignore_starttime_endtime_tablename">Tables to have "start time" and "end time" skipped</label>
-			<label index="tx_dataquery_queries.ignore_disabled_tablename">Tables to have "hidden" skipped</label>
-			<label index="tx_dataquery_queries.ignore_fegroup_tablename">Tables to have "access" skipped</label>
+			<label index="tx_dataquery_queries.ignore_starttime_endtime_tablename">Tables having "start time" and "end time" skipped</label>
+			<label index="tx_dataquery_queries.ignore_disabled_tablename">Tables having "hidden" skipped</label>
+			<label index="tx_dataquery_queries.ignore_fegroup_tablename">Tables having "access" skipped</label>
 			<label index="tx_dataquery_queries.ignore_language_handling">Language handling</label>
 			<label index="tx_dataquery_queries.ignore_language_handling.I.0">Ignore language handling (show records from all languages)</label>
 			<label index="wizards.add_dataquery">Add a new Data Query</label>
