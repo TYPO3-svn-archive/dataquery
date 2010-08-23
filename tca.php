@@ -119,11 +119,10 @@ $TCA['tx_dataquery_queries'] = array(
 	'types' => array(
 		'0' => array('showitem' => 'hidden;;;;1-1-1, title;;1;;2-2-2, sql_query;;;;3-3-3,
 									--div--;LLL:EXT:dataquery/locallang_db.xml:tx_dataquery_queries.tab.advanced, cache_duration;;;;1-1-1, ignore_enable_fields;;2;;2-2-2 , ignore_language_handling')
-//									--div--;LLL:EXT:dataquery/locallang_db.xml:tx_dataquery_queries.tab.advanced, cache_duration;;;;1-1-1, ignore_enable_fields;;;;2-2-2, ignore_starttime_endtime_tablename;;;;3-3-3, ignore_disabled_tablename;;;;4-4-4, ignore_fegroup_tablename;;;;5-5-5, ignore_language_handling')
 	),
 	'palettes' => array(
 		'1' => array('showitem' => 'description'),
-		'2' => array('showitem' => 'ignore_starttime_endtime_tablename,--linebreak--, ignore_disabled_tablename, --linebreak--, ignore_fegroup_tablename'),
+		'2' => array('showitem' => 'ignore_starttime_endtime_tablename, --linebreak--, ignore_disabled_tablename, --linebreak--, ignore_fegroup_tablename'),
 	)
 );
 
