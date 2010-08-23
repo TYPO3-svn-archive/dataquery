@@ -22,8 +22,6 @@
 *  This copyright notice MUST APPEAR in all copies of the script!
 ***************************************************************/
 
-require_once(t3lib_extMgm::extPath('dataquery', 'class.tx_dataquery_sqlparser.php'));
-
 /**
  * Testcase for the Data Query SQL parser
  *

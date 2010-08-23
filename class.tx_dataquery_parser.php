@@ -23,8 +23,6 @@
 ***************************************************************/
 
 require_once(t3lib_extMgm::extPath('overlays', 'class.tx_overlays.php'));
-require_once(t3lib_extMgm::extPath('dataquery', 'class.tx_dataquery_sqlparser.php'));
-require_once(t3lib_extMgm::extPath('dataquery', 'class.tx_dataquery_queryobject.php'));
 
 /**
  * This class is used to parse a SELECT SQL query into a structured array
