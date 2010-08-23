@@ -6,14 +6,20 @@
 	</meta>
 	<data type="array">
 		<languageKey index="default" type="array">
-			<label index="tx_dataquery_queries">Data Query</label>
+			<label index="tx_dataquery_queries">Data Queries</label>
 			<label index="tx_dataquery_queries.tab.advanced">Advanced</label>
 			<label index="tx_dataquery_queries.title">Title</label>
 			<label index="tx_dataquery_queries.description">Description</label>
 			<label index="tx_dataquery_queries.sql_query">SQL Query</label>
 			<label index="tx_dataquery_queries.cache_duration">Cache duration (in seconds)</label>
 			<label index="tx_dataquery_queries.ignore_enable_fields">Ignore enable fields</label>
-			<label index="tx_dataquery_queries.ignore_enable_fields.I.0">Ignore all fields like deleted, hidden, starttime, endtime and access</label>
+			<!--<label index="tx_dataquery_queries.ignore_enable_fields.I.0">Ignore all fields like deleted, hidden, starttime, endtime and access</label>-->
+			<label index="tx_dataquery_queries.ignore_enable_fields.I.0">Don't ignore any fields - with method enableFields</label>
+			<label index="tx_dataquery_queries.ignore_enable_fields.I.1">Ignore any fields - without method enableFields</label>
+			<label index="tx_dataquery_queries.ignore_enable_fields.I.2">Ignore certain fields - with method enableFields customized</label>
+			<label index="tx_dataquery_queries.ignore_starttime_endtime_tablename">Tables to have "start time" and "end time" skipped</label>
+			<label index="tx_dataquery_queries.ignore_disabled_tablename">Tables to have "hidden" skipped</label>
+			<label index="tx_dataquery_queries.ignore_fegroup_tablename">Tables to have "access" skipped</label>
 			<label index="tx_dataquery_queries.ignore_language_handling">Language handling</label>
 			<label index="tx_dataquery_queries.ignore_language_handling.I.0">Ignore language handling (show records from all languages)</label>
 			<label index="wizards.add_dataquery">Add a new Data Query</label>
@@ -21,14 +27,20 @@
 			<label index="sql">SQL</label>
 		</languageKey>
 		<languageKey index="fr" type="array">
-			<label index="tx_dataquery_queries">Requête</label>
+			<label index="tx_dataquery_queries">Requêtes</label>
 			<label index="tx_dataquery_queries.tab.advanced">Avancé</label>
 			<label index="tx_dataquery_queries.title">Titre</label>
 			<label index="tx_dataquery_queries.description">Description</label>
 			<label index="tx_dataquery_queries.sql_query">Requête SQL</label>
 			<label index="tx_dataquery_queries.cache_duration">Durée du cache (en secondes)</label>
 			<label index="tx_dataquery_queries.ignore_enable_fields">Ignorer les champs d'activation</label>
-			<label index="tx_dataquery_queries.ignore_enable_fields.I.0">Ignorer tous les champs tels que deleted, hidden, starttime, endtime et access</label>
+			<!--<label index="tx_dataquery_queries.ignore_enable_fields.I.0">Ignorer tous les champs tels que deleted, hidden, starttime, endtime et access</label>-->
+			<label index="tx_dataquery_queries.ignore_enable_fields.I.0">Ne pas ignorer les champs - avec méthode enableFields</label>
+			<label index="tx_dataquery_queries.ignore_enable_fields.I.1">Ignorer tous les champs - sans méthode enableFields</label>
+			<label index="tx_dataquery_queries.ignore_enable_fields.I.2">Ignorer certains champs - avec méthode enableFields personnalisée</label>
+			<label index="tx_dataquery_queries.ignore_starttime_endtime_tablename">Tables qui ont le champ "start time" et "end time" ignoré</label>
+			<label index="tx_dataquery_queries.ignore_disabled_tablename">Tables qui ont le champ "hidden" ignoré</label>
+			<label index="tx_dataquery_queries.ignore_fegroup_tablename">Tables qui ont le champ "access" ignoré</label>
 			<label index="tx_dataquery_queries.ignore_language_handling">Ignorer les langues</label>
 			<label index="tx_dataquery_queries.ignore_language_handling.I.0">Ne pas considérer les critères de langue (afficher les enregistrements de toutes les langues)</label>
 			<label index="wizards.add_dataquery">Ajouter une nouvelle requête</label>

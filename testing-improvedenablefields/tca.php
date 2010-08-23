@@ -68,11 +68,40 @@ $TCA['tx_dataquery_queries'] = array(
 			'exclude' => 1,		
 			'label' => 'LLL:EXT:dataquery/locallang_db.xml:tx_dataquery_queries.ignore_enable_fields',		
 			'config' => array(
-				'type' => 'check',
+				'type' => 'radio',
 				'default' => 0,
 				'items' => array(
-					array('LLL:EXT:dataquery/locallang_db.xml:tx_dataquery_queries.ignore_enable_fields.I.0', ''),
+					array('LLL:EXT:dataquery/locallang_db.xml:tx_dataquery_queries.ignore_enable_fields.I.0', '0'), # don't ignore
+					array('LLL:EXT:dataquery/locallang_db.xml:tx_dataquery_queries.ignore_enable_fields.I.1', '1'), # ignore everything
+					array('LLL:EXT:dataquery/locallang_db.xml:tx_dataquery_queries.ignore_enable_fields.I.2', '2'), # ignore partially
 				),
+			)
+		),
+		'ignore_starttime_endtime_tablename' => array(
+			'exclude' => 1,
+			'label' => 'LLL:EXT:dataquery/locallang_db.xml:tx_dataquery_queries.ignore_starttime_endtime_tablename',
+			'config' => array(
+				'type' => 'input',
+				'size' => 255,
+				'default' => '*',
+			)
+		),
+		'ignore_disabled_tablename' => array(
+			'exclude' => 1,
+			'label' => 'LLL:EXT:dataquery/locallang_db.xml:tx_dataquery_queries.ignore_disabled_tablename',
+			'config' => array(
+				'type' => 'input',
+				'size' => 255,
+				'default' => '*',
+			)
+		),
+		'ignore_fegroup_tablename' => array(
+			'exclude' => 1,
+			'label' => 'LLL:EXT:dataquery/locallang_db.xml:tx_dataquery_queries.ignore_fegroup_tablename',
+			'config' => array(
+				'type' => 'input',
+				'size' => 255,
+				'default' => '*',
 			)
 		),
 		'ignore_language_handling' => array(		
@@ -88,10 +117,13 @@ $TCA['tx_dataquery_queries'] = array(
 		),
 	),
 	'types' => array(
-		'0' => array('showitem' => 'hidden;;;;1-1-1, title;;1;;2-2-2, sql_query;;;;3-3-3,--div--;LLL:EXT:dataquery/locallang_db.xml:tx_dataquery_queries.tab.advanced, cache_duration;;;;1-1-1, ignore_enable_fields;;;;2-2-2, ignore_language_handling')
+		'0' => array('showitem' => 'hidden;;;;1-1-1, title;;1;;2-2-2, sql_query;;;;3-3-3,
+									--div--;LLL:EXT:dataquery/locallang_db.xml:tx_dataquery_queries.tab.advanced, cache_duration;;;;1-1-1, ignore_enable_fields;;2;;2-2-2 , ignore_language_handling')
+//									--div--;LLL:EXT:dataquery/locallang_db.xml:tx_dataquery_queries.tab.advanced, cache_duration;;;;1-1-1, ignore_enable_fields;;;;2-2-2, ignore_starttime_endtime_tablename;;;;3-3-3, ignore_disabled_tablename;;;;4-4-4, ignore_fegroup_tablename;;;;5-5-5, ignore_language_handling')
 	),
 	'palettes' => array(
 		'1' => array('showitem' => 'description'),
+		'2' => array('showitem' => 'ignore_starttime_endtime_tablename,--linebreak--, ignore_disabled_tablename, --linebreak--, ignore_fegroup_tablename'),
 	)
 );
 
