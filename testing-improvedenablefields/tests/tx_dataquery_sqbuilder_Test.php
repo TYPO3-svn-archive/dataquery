@@ -34,7 +34,168 @@ require_once(t3lib_extMgm::extPath('dataquery', 'class.tx_dataquery_parser.php')
  * $Id$
  */
 class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
-	protected static $baseConditionForTTContent = 'WHERE tt_content.deleted=0 AND tt_content.t3ver_state<=0 AND tt_content.hidden=0 AND tt_content.starttime<=###NOW### AND (tt_content.endtime=0 OR tt_content.endtime>###NOW###) AND (tt_content.fe_group=\'\' OR tt_content.fe_group IS NULL OR tt_content.fe_group=\'0\' OR (tt_content.fe_group LIKE \'%,0,%\' OR  tt_content.fe_group LIKE \'0,%\' OR tt_content.fe_group LIKE \'%,0\' OR tt_content.fe_group=\'0\') OR (tt_content.fe_group LIKE \'%,-1,%\' OR  tt_content.fe_group LIKE \'-1,%\' OR tt_content.fe_group LIKE \'%,-1\' OR tt_content.fe_group=\'-1\')) AND (tt_content.sys_language_uid IN (0,-1)) AND tt_content.t3ver_oid = \'0\' ';
+
+	/**
+	 * @var string SQL clause to be tested
+	 */
+	protected static $baseConditionForTTContent;
+
+	/**
+	 * @var boolean the minimum version. Currently the 4.5.0
+	 */
+	protected $isMinimumVersion;
+
+	/**
+	 * @var array some default data configuration from the record
+	 */
+	protected $settings;
+
+	public function setUp() {
+		$this->isMinimumVersion = t3lib_div::int_from_ver(TYPO3_version) >= t3lib_div::int_from_ver('4.5.0');
+		if ($this->isMinimumVersion) {
+			self::$baseConditionForTTContent = 'WHERE tt_content.deleted=0 AND tt_content.t3ver_state<=0 AND tt_content.hidden=0 AND tt_content.starttime<=###NOW### AND (tt_content.endtime=0 OR tt_content.endtime>###NOW###) AND (tt_content.fe_group=\'\' OR tt_content.fe_group IS NULL OR tt_content.fe_group=\'0\' OR FIND_IN_SET(\'0\',tt_content.fe_group)) AND (tt_content.sys_language_uid IN (0,-1)) AND tt_content.t3ver_oid = \'0\' ';
+		}
+		else {
+			self::$baseConditionForTTContent = 'WHERE tt_content.deleted=0 AND tt_content.t3ver_state<=0 AND tt_content.hidden=0 AND tt_content.starttime<=###NOW### AND (tt_content.endtime=0 OR tt_content.endtime>###NOW###) AND (tt_content.fe_group=\'\' OR tt_content.fe_group IS NULL OR tt_content.fe_group=\'0\' OR (tt_content.fe_group LIKE \'%,0,%\' OR  tt_content.fe_group LIKE \'0,%\' OR tt_content.fe_group LIKE \'%,0\' OR tt_content.fe_group=\'0\') OR (tt_content.fe_group LIKE \'%,-1,%\' OR  tt_content.fe_group LIKE \'-1,%\' OR tt_content.fe_group LIKE \'%,-1\' OR tt_content.fe_group=\'-1\')) AND (tt_content.sys_language_uid IN (0,-1)) AND tt_content.t3ver_oid = \'0\' ';
+		}
+
+		$this->settings = array(
+			'ignore_language_handling' => FALSE,
+			'ignore_enable_fields' => 0,
+			'ignore_starttime_endtime_tablename' => '*',
+			'ignore_disabled_tablename' => '*',
+			'ignore_fegroup_tablename' => '*',
+		);
+	}
+
+	/**
+	 * Parse and rebuild a simple SELECT query and test value of ignore_enable_fields set to 0
+	 *
+	 * @test
+	 */
+	public function addTypo3MechanismsWithIngoreEnableFieldSetToZero() {
+		if (! $this->isMinimumVersion) {
+			return;
+		}
+		$condition = str_replace('###NOW###', $GLOBALS['SIM_ACCESS_TIME'], self::$baseConditionForTTContent);
+		$expectedResult = 'SELECT tt_content.uid, tt_content.header, tt_content.pid AS tt_content$pid, tt_content.sys_language_uid AS tt_content$sys_language_uid FROM tt_content AS tt_content ' . $condition;
+			/**
+			 * @var tx_dataquery_parser	$parser
+			 */
+		$parser = t3lib_div::makeInstance('tx_dataquery_parser');
+		$query = 'SELECT uid,header FROM tt_content';
+			// Replace time marker by time used for starttime and endtime enable fields
+		$parser->parseQuery($query);
+		$settings = $this->settings;
+		$settings['ignore_enable_fields'] = 0;
+		$settings['ignore_starttime_endtime_tablename'] = '';
+		$settings['ignore_disabled_tablename'] = 'pages';
+		$settings['ignore_fegroup_tablename'] = 'tt_content';
+
+		$parser->addTypo3Mechanisms($settings);
+		$actualResult = $parser->buildQuery();
+			// Check if the "structure" part if correct
+		$this->assertEquals($expectedResult, $actualResult);
+	}
+
+	/**
+	 * Parse and rebuild a simple SELECT query and test value of ignore_enable_fields set to 1
+	 *
+	 * @test
+	 */
+	public function addTypo3MechanismsWithIngoreEnableFieldSetToOne() {
+		if (! $this->isMinimumVersion) {
+			return;
+		}
+		$condition = "WHERE (tt_content.sys_language_uid IN (0,-1)) AND tt_content.t3ver_oid = '0' ";
+		$expectedResult = 'SELECT tt_content.uid, tt_content.header, tt_content.pid AS tt_content$pid, tt_content.sys_language_uid AS tt_content$sys_language_uid FROM tt_content AS tt_content ' . $condition;
+			/**
+			 * @var tx_dataquery_parser	$parser
+			 */
+		$parser = t3lib_div::makeInstance('tx_dataquery_parser');
+		$query = 'SELECT uid,header FROM tt_content';
+			// Replace time marker by time used for starttime and endtime enable fields
+		$parser->parseQuery($query);
+		$settings = $this->settings;
+		$settings['ignore_enable_fields'] = 1;
+		$settings['ignore_starttime_endtime_tablename'] = '';
+		$settings['ignore_disabled_tablename'] = 'pages';
+		$settings['ignore_fegroup_tablename'] = 'tt_content';
+		
+		$parser->addTypo3Mechanisms($settings);
+		$actualResult = $parser->buildQuery();
+			// Check if the "structure" part if correct
+		$this->assertEquals($expectedResult, $actualResult);
+	}
+
+	/**
+	 * Parse and rebuild a simple SELECT query and test value of ignore_enable_fields set to 2
+	 *
+	 * @test
+	 */
+	public function addTypo3MechanismsWithIngoreEnableFieldSetToTwo() {
+		if (! $this->isMinimumVersion) {
+			return;
+		}
+		$expectedResult = 'SELECT tt_content.uid, tt_content.header, tt_content.pid AS tt_content$pid, tt_content.sys_language_uid AS tt_content$sys_language_uid FROM tt_content AS tt_content ';
+
+		//////////////////////
+		// First assertion
+		//////////////////////
+		$settings = $this->settings;
+		$settings['ignore_enable_fields'] = 2;
+		$settings['ignore_starttime_endtime_tablename'] = '*';
+		$settings['ignore_disabled_tablename'] = '*';
+		$settings['ignore_fegroup_tablename'] = '*';
+
+			/**
+			 * @var tx_dataquery_parser	$parser
+			 */
+		$parser = t3lib_div::makeInstance('tx_dataquery_parser');
+		$query = 'SELECT uid,header FROM tt_content';
+		$parser->parseQuery($query);
+		$parser->addTypo3Mechanisms($settings);
+		$actualResult = $parser->buildQuery();
+
+			// Check if the "structure" part if correct
+		$condition = "WHERE tt_content.deleted=0 AND tt_content.t3ver_state<=0 AND (tt_content.sys_language_uid IN (0,-1)) AND tt_content.t3ver_oid = '0' ";
+		$this->assertEquals($expectedResult . $condition, $actualResult);
+
+		//////////////////////
+		// Second assertion
+		//////////////////////
+		$settings = $this->settings;
+		$settings['ignore_enable_fields'] = 2;
+		$settings['ignore_starttime_endtime_tablename'] = '';
+		$settings['ignore_disabled_tablename'] = 'tt_content';
+		$settings['ignore_fegroup_tablename'] = '';
+
+		$parser = t3lib_div::makeInstance('tx_dataquery_parser');
+		$parser->parseQuery($query);
+		$parser->addTypo3Mechanisms($settings);
+		$actualResult = $parser->buildQuery();
+
+			// Check if the "structure" part if correct
+		$this->assertEquals($expectedResult . $condition, $actualResult);
+
+		//////////////////////
+		// Third assertion
+		//////////////////////
+		$settings = $this->settings;
+		$settings['ignore_enable_fields'] = 2;
+		$settings['ignore_starttime_endtime_tablename'] = '';
+		$settings['ignore_disabled_tablename'] = 'pages,tt_content';
+		$settings['ignore_fegroup_tablename'] = 'pages';
+
+		$parser = t3lib_div::makeInstance('tx_dataquery_parser');
+		$parser->parseQuery($query);
+		$parser->addTypo3Mechanisms($settings);
+		$actualResult = $parser->buildQuery();
+
+			// Check if the "structure" part if correct
+		$condition = "WHERE tt_content.deleted=0 AND tt_content.t3ver_state<=0 AND tt_content.hidden=0 AND (tt_content.fe_group='' OR tt_content.fe_group IS NULL OR tt_content.fe_group='0' OR FIND_IN_SET('0',tt_content.fe_group)) AND (tt_content.sys_language_uid IN (0,-1)) AND tt_content.t3ver_oid = '0' ";
+		$this->assertEquals($expectedResult . $condition, $actualResult);
+	}
 
 	/**
 	 * Parse and rebuild a simple SELECT query
@@ -51,11 +212,7 @@ class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 		$query = 'SELECT uid,header FROM tt_content';
 			// Replace time marker by time used for starttime and endtime enable fields
 		$parser->parseQuery($query);
-		$settings = array(
-			'ignore_enable_fields' => FALSE,
-			'ignore_language_handling' => FALSE
-		);
-		$parser->addTypo3Mechanisms($settings);
+		$parser->addTypo3Mechanisms($this->settings);
 		$actualResult = $parser->buildQuery();
 			// Check if the "structure" part if correct
 		$this->assertEquals($expectedResult, $actualResult);
