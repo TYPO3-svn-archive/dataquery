@@ -1,0 +1,12 @@
+08-12-02 Francois Suter (Cobweb) <typo3@cobweb.ch>
+
+	* Corrected use of fields aliases
+	* Cleaned up getLocalizedLabels() method
+
+08-11-19 Francois Suter (Cobweb) <typo3@cobweb.ch>
+
+	* Changed cache expiry field name to "expires"
+
+07-07-06 Francois Suter (Cobweb) <typo3@cobweb.ch>
+
+	* Initial release
