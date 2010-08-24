@@ -77,27 +77,27 @@ $TCA['tx_dataquery_queries'] = array(
 				),
 			)
 		),
-		'ignore_starttime_endtime_tablename' => array(
+		'ignore_time_for_tables' => array(
 			'exclude' => 1,
-			'label' => 'LLL:EXT:dataquery/locallang_db.xml:tx_dataquery_queries.ignore_starttime_endtime_tablename',
+			'label' => 'LLL:EXT:dataquery/locallang_db.xml:tx_dataquery_queries.ignore_time_for_tables',
 			'config' => array(
 				'type' => 'input',
 				'size' => 255,
 				'default' => '*',
 			)
 		),
-		'ignore_disabled_tablename' => array(
+		'ignore_disabled_for_tables' => array(
 			'exclude' => 1,
-			'label' => 'LLL:EXT:dataquery/locallang_db.xml:tx_dataquery_queries.ignore_disabled_tablename',
+			'label' => 'LLL:EXT:dataquery/locallang_db.xml:tx_dataquery_queries.ignore_disabled_for_tables',
 			'config' => array(
 				'type' => 'input',
 				'size' => 255,
 				'default' => '*',
 			)
 		),
-		'ignore_fegroup_tablename' => array(
+		'ignore_fegroup_for_tables' => array(
 			'exclude' => 1,
-			'label' => 'LLL:EXT:dataquery/locallang_db.xml:tx_dataquery_queries.ignore_fegroup_tablename',
+			'label' => 'LLL:EXT:dataquery/locallang_db.xml:tx_dataquery_queries.ignore_fegroup_for_tables',
 			'config' => array(
 				'type' => 'input',
 				'size' => 255,
@@ -122,7 +122,7 @@ $TCA['tx_dataquery_queries'] = array(
 	),
 	'palettes' => array(
 		'1' => array('showitem' => 'description'),
-		'2' => array('showitem' => 'ignore_starttime_endtime_tablename, --linebreak--, ignore_disabled_tablename, --linebreak--, ignore_fegroup_tablename'),
+		'2' => array('showitem' => 'ignore_time_for_tables, --linebreak--, ignore_disabled_for_tables, --linebreak--, ignore_fegroup_for_tables'),
 	)
 );
 
