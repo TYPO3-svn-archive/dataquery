@@ -12,7 +12,7 @@
 
 $EM_CONF[$_EXTKEY] = array(
 	'title' => 'Data Query (SQL-based Data Provider)',
-	'description' => 'Assembles a query on data stored in the TYPO3 local database, automatically enforcing criteria like languages and versioning, and returns a standardised data set. Acts as a Data Provider for the Display Controller.',
+	'description' => 'Assembles a query on data stored in the TYPO3 local database, automatically enforcing criteria like languages and versioning, and returns a standardised data set. Acts as a Data Provider for the Tesseract framework.',
 	'category' => 'misc',
 	'author' => 'Francois Suter (Cobweb)',
 	'author_email' => 'typo3@cobweb.ch',
@@ -20,7 +20,7 @@ $EM_CONF[$_EXTKEY] = array(
 	'dependencies' => '',
 	'conflicts' => '',
 	'priority' => '',
-	'module' => 'tx_dataquery_queries_sql_query',
+	'module' => '',
 	'state' => 'alpha',
 	'internal' => '',
 	'uploadfolder' => 0,
@@ -29,12 +29,13 @@ $EM_CONF[$_EXTKEY] = array(
 	'clearCacheOnLoad' => 0,
 	'lockType' => '',
 	'author_company' => '',
-	'version' => '0.18.0',
+	'version' => '0.19.0',
 	'constraints' => array(
 		'depends' => array(
 			'tesseract' => '0.5.0-0.0.0',
 			'datafilter' => '0.13.0-0.0.0',
-			'overlays' => '0.2.0-0.0.0',
+			'overlays' => '0.3.0-0.0.0',
+			'typo3' => '4.3.0-0-0.0.0',
 		),
 		'conflicts' => array(
 		),

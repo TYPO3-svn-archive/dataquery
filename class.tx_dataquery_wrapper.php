@@ -22,7 +22,6 @@
 *  This copyright notice MUST APPEAR in all copies of the script!
 ***************************************************************/
 
-require_once(t3lib_extMgm::extPath('dataquery', 'class.tx_dataquery_parser.php'));
 require_once(t3lib_extMgm::extPath('tesseract', 'services/class.tx_tesseract_providerbase.php'));
 require_once(t3lib_extMgm::extPath('tesseract', 'lib/class.tx_tesseract_utilities.php'));
 
@@ -95,8 +94,11 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 		if (!$hasStructure) {
 			$this->loadQuery();
 
+				// Pass provider data to the parser
+			$this->sqlParser->setProviderData($this->providerData);
+
 				// Add the SQL conditions for the selected TYPO3 mechanisms
-			$this->sqlParser->addTypo3Mechanisms($this->providerData);
+			$this->sqlParser->addTypo3Mechanisms();
 
 				// Assemble filters, if defined
 			if (is_array($this->filter) && count($this->filter) > 0) {

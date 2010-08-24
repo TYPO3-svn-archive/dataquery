@@ -42,7 +42,36 @@
 				Refer to the manual for more details about caching.
 			</label>
 			<label index="ignore_enable_fields.alttitle">Ignore enable fields</label>
-			<label index="ignore_enable_fields.description">Checking this box disables the automatic use of all fields defined as "enable fields" in the TCA configuration.</label>
+			<label index="ignore_enable_fields.description">Choose a behavior with regards to the handling of enable fields.</label>
+			<label index="ignore_enable_fields.details">
+				Enables fields are those defined as such in the TCA of each table. They are generally the hidden or disabled field, the start and end time and the fe_groups access rights.
+				By default Data Query automatically respects all these fields and adds the corresponding conditions to the SQL query. However it is possible to disable this behavior.
+				Check the "Ignore all fields" radio button to totally disable this behavior for all tables. On the other hand you can check the "Ignore some fields for some tables" button and define exactly which enable fields should be ignored for which table in the three text fields that follow. Enter comma-separated table names to exclude one or more tables. Use "*" to ignore all of them. Leave blank to ignore none.
+			</label>
+			<label index="ignore_time_for_tables.description">List tables for which the start and end time condition should not apply.</label>
+			<label index="ignore_time_for_tables.syntax">
+				Enter a comma-separated list of table names, e.g.
+
+				pages,tt_content
+
+				Use "*" to skip the condition for all tables. On the contrary, leave blank for the condition to apply to all tables.
+			</label>
+			<label index="ignore_disabled_for_tables.description">List tables for which the hidden or disabled condition should not apply.</label>
+			<label index="ignore_disabled_for_tables.syntax">
+				Enter a comma-separated list of table names, e.g.
+
+				pages,tt_content
+
+				Use "*" to skip the condition for all tables. On the contrary, leave blank for the condition to apply to all tables.
+			</label>
+			<label index="ignore_fegroup_for_tables.description">List tables for which the access rights condition should not apply.</label>
+			<label index="ignore_fegroup_for_tables.syntax">
+				Enter a comma-separated list of table names, e.g.
+
+				pages,tt_content
+
+				Use "*" to skip the condition for all tables. On the contrary, leave blank for the condition to apply to all tables.
+			</label>
 			<label index="ignore_language_handling.alttitle">Translation handling</label>
 			<label index="ignore_language_handling.description">Checking this box disables the automatic use of all fields related to translation handling, as defined in the TCA.</label>
 			<label index="ignore_language_handling.details">

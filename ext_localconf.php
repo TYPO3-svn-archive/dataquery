@@ -1,7 +1,7 @@
 <?php
 if (!defined ('TYPO3_MODE')) 	die ('Access denied.');
 
-	// Active save and new button
+	// Activate save and new button
 t3lib_extMgm::addUserTSConfig('
 	options.saveDocNew.tx_dataquery_queries=1
 ');

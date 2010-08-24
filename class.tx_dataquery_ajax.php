@@ -24,8 +24,6 @@
 * $Id$
 ***************************************************************/
 
-require_once(t3lib_extMgm::extPath('dataquery', 'class.tx_dataquery_parser.php'));
-
 /**
  * This class answers to AJAX calls from the 'dataquery' extension
  *

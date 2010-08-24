@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<!-- $Id: $-->
 <T3locallang>
 	<meta type="array">
 		<type>database</type>
@@ -13,7 +14,12 @@
 			<label index="tx_dataquery_queries.sql_query">SQL Query</label>
 			<label index="tx_dataquery_queries.cache_duration">Cache duration (in seconds)</label>
 			<label index="tx_dataquery_queries.ignore_enable_fields">Ignore enable fields</label>
-			<label index="tx_dataquery_queries.ignore_enable_fields.I.0">Ignore all fields like deleted, hidden, starttime, endtime and access</label>
+			<label index="tx_dataquery_queries.ignore_enable_fields.I.0">Don't ignore any fields</label>
+			<label index="tx_dataquery_queries.ignore_enable_fields.I.1">Ignore all fields</label>
+			<label index="tx_dataquery_queries.ignore_enable_fields.I.2">Ignore some fields for some tables (defined below)</label>
+			<label index="tx_dataquery_queries.ignore_time_for_tables">Ignore start time and end time condition for tables:</label>
+			<label index="tx_dataquery_queries.ignore_disabled_for_tables">Ignore "hidden" field for tables:</label>
+			<label index="tx_dataquery_queries.ignore_fegroup_for_tables">Ignore access rights for table:</label>
 			<label index="tx_dataquery_queries.ignore_language_handling">Language handling</label>
 			<label index="tx_dataquery_queries.ignore_language_handling.I.0">Ignore language handling (show records from all languages)</label>
 			<label index="wizards.add_dataquery">Add a new Data Query</label>
@@ -28,7 +34,12 @@
 			<label index="tx_dataquery_queries.sql_query">Requête SQL</label>
 			<label index="tx_dataquery_queries.cache_duration">Durée du cache (en secondes)</label>
 			<label index="tx_dataquery_queries.ignore_enable_fields">Ignorer les champs d'activation</label>
-			<label index="tx_dataquery_queries.ignore_enable_fields.I.0">Ignorer tous les champs tels que deleted, hidden, starttime, endtime et access</label>
+			<label index="tx_dataquery_queries.ignore_enable_fields.I.0">Ne pas ignorer les champs</label>
+			<label index="tx_dataquery_queries.ignore_enable_fields.I.1">Ignorer tous les champs</label>
+			<label index="tx_dataquery_queries.ignore_enable_fields.I.2">Ignorer certains champs pour certaines tables (à définir ci-dessous)</label>
+			<label index="tx_dataquery_queries.ignore_time_for_tables">Ignorer les dates de début et de fin pour les tables:</label>
+			<label index="tx_dataquery_queries.ignore_disabled_for_tables">Ignorer le champ "Caché" pour les tables:</label>
+			<label index="tx_dataquery_queries.ignore_fegroup_for_tables">Ignorer les droits d'accès pour les tables:</label>
 			<label index="tx_dataquery_queries.ignore_language_handling">Ignorer les langues</label>
 			<label index="tx_dataquery_queries.ignore_language_handling.I.0">Ne pas considérer les critères de langue (afficher les enregistrements de toutes les langues)</label>
 			<label index="wizards.add_dataquery">Ajouter une nouvelle requête</label>

@@ -23,8 +23,6 @@
 ***************************************************************/
 
 require_once(t3lib_extMgm::extPath('overlays', 'class.tx_overlays.php'));
-require_once(t3lib_extMgm::extPath('dataquery', 'class.tx_dataquery_sqlparser.php'));
-require_once(t3lib_extMgm::extPath('dataquery', 'class.tx_dataquery_queryobject.php'));
 
 /**
  * This class is used to parse a SELECT SQL query into a structured array
@@ -74,6 +72,11 @@ class tx_dataquery_parser {
 		 */
 	protected $processOrderBy = TRUE;
 	protected $isMergedResult = FALSE;
+
+		/**
+		 * @var array $data: database record corresponding to the current Data Query
+		 */
+	protected $providerData;
 
 	/**
 	 * This method is used to parse a SELECT SQL query.
@@ -321,31 +324,99 @@ class tx_dataquery_parser {
     }
 
 	/**
+	 * Set data
+	 *
+	 * @param	array		$data: database record corresponding to the current Data Query
+	 * @return	void
+	 */
+	public function setProviderData($providerData) {
+		$this->providerData = $providerData;
+	}
+
+	/**
+	 * This method returns an associative array containing information for method enableFields.
+	 * enableFields() will skip each enable field condition from the returned array.
+	 *
+	 * @param	string		$tableName: the name of the table
+	 * @return	array		the array containing the keys to be ignored
+	 */
+	protected function getIgnoreArray($tableName) {
+		$ignoreArray = array();
+			// Handle case when some fields should be partially excluded from enableFields()
+		if ($this->providerData['ignore_enable_fields'] == '2') {
+
+				// starttime / endtime field
+			if (in_array($tableName, $this->providerData['ignore_time_for_tables_exploded']) ||
+					$this->providerData['ignore_time_for_tables'] == '*') {
+				$ignoreArray['starttime'] = TRUE;
+				$ignoreArray['endtime'] = TRUE;
+			}
+
+				// disabled field
+			if (in_array($tableName, $this->providerData['ignore_disabled_for_tables_exploded']) ||
+					$this->providerData['ignore_disabled_for_tables'] == '*') {
+				$ignoreArray['disabled'] = TRUE;
+			}
+
+				// fe_group field
+			if (in_array($tableName, $this->providerData['ignore_fegroup_for_tables_exploded']) ||
+					$this->providerData['ignore_fegroup_for_tables'] == '*') {
+				$ignoreArray['fe_group'] = TRUE;
+			}
+		}
+		return $ignoreArray;
+	}
+
+	/**
+	 * This method initialize ignore enable fields.
+	 * Basically, it explodes string value from the field into an array.
+	 *
+	 * @return	void
+	 */
+	protected function initializeIgnoreEnableFields() {
+		$this->providerData['ignore_time_for_tables_exploded'] = t3lib_div::trimExplode(',', $this->providerData['ignore_time_for_tables']);
+		$this->providerData['ignore_disabled_for_tables_exploded'] = t3lib_div::trimExplode(',', $this->providerData['ignore_disabled_for_tables']);
+		$this->providerData['ignore_fegroup_for_tables_exploded'] = t3lib_div::trimExplode(',', $this->providerData['ignore_fegroup_for_tables']);
+	}
+
+	/**
 	 * This method adds where clause elements related to typical TYPO3 control parameters:
 	 *
 	 * 	- the enable fields
 	 * 	- the language handling
 	 * 	- the versioning system
 	 *
-	 * @param	array		$settings: database record corresponding to the current Data Query
-	 * 						(this may contain flags *disabling* the use of enable fields or language overlays)
 	 * @return	void
 	 */
-	public function addTypo3Mechanisms($settings) {
-
+	public function addTypo3Mechanisms() {
+		
 			// Add the enable fields, first to the main table
-		if (empty($settings['ignore_enable_fields'])) {
-			$enableClause = tx_overlays::getEnableFieldsCondition($this->queryObject->aliases[$this->queryObject->mainTable]);
-			if ($this->queryObject->mainTable != $this->queryObject->aliases[$this->queryObject->mainTable]) {
-				$enableClause = str_replace($this->queryObject->aliases[$this->queryObject->mainTable], $this->queryObject->mainTable, $enableClause);
+		if ($this->providerData['ignore_enable_fields'] == '0' || $this->providerData['ignore_enable_fields'] == '2') {
+
+			$this->initializeIgnoreEnableFields();
+
+				// Define parameters for enable fields condition
+			$trueTableName = $this->queryObject->aliases[$this->queryObject->mainTable];
+			$showHidden = ($trueTableName == 'pages') ? $GLOBALS['TSFE']->showHiddenPage : $GLOBALS['TSFE']->showHiddenRecords;
+			$ignoreArray = $this->getIgnoreArray($this->queryObject->mainTable);
+
+			$enableClause = tx_overlays::getEnableFieldsCondition($trueTableName, $showHidden, $ignoreArray);
+				// Replace the true table name by its alias if necessary
+			if ($this->queryObject->mainTable != $trueTableName) {
+				$enableClause = str_replace($trueTableName, $this->queryObject->mainTable, $enableClause);
 			}
 			$this->addWhereClause($enableClause);
 
 				// Add enable fields to JOINed tables
 			if (isset($this->queryObject->structure['JOIN']) && is_array($this->queryObject->structure['JOIN'])) {
 				foreach ($this->queryObject->structure['JOIN'] as $tableIndex => $joinData) {
+
+						// Define parameters for enable fields condition
 					$table = $joinData['table'];
-					$enableClause = tx_overlays::getEnableFieldsCondition($table);
+					$showHidden = ($table == 'pages') ? $GLOBALS['TSFE']->showHiddenPage : $GLOBALS['TSFE']->showHiddenRecords;
+					$ignoreArray = $this->getIgnoreArray($joinData['alias']);
+
+					$enableClause = tx_overlays::getEnableFieldsCondition($table, $showHidden, $ignoreArray);
 					if (!empty($enableClause)) {
 						if ($table != $joinData['alias']) {
 							$enableClause = str_replace($table, $joinData['alias'], $enableClause);
@@ -360,7 +431,7 @@ class tx_dataquery_parser {
 		}
 
 			// Add the language condition, if necessary
-		if (empty($settings['ignore_language_handling']) && !$this->queryObject->structure['DISTINCT']) {
+		if (empty($this->providerData['ignore_language_handling']) && !$this->queryObject->structure['DISTINCT']) {
 
 				// Add the DB fields and the SQL conditions necessary for having everything ready to handle overlays
 				// as per the standard TYPO3 mechanism
