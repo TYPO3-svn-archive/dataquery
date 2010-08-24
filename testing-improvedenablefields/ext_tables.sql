@@ -23,9 +23,9 @@ CREATE TABLE tx_dataquery_queries (
 	sql_query text NOT NULL,
 	cache_duration int(11) DEFAULT '86400' NOT NULL,
 	ignore_enable_fields tinyint(4) DEFAULT '0' NOT NULL,
-	ignore_starttime_endtime_tablename varchar(255) DEFAULT '' NOT NULL,
-	ignore_disabled_tablename varchar(255) DEFAULT '' NOT NULL,
-	ignore_fegroup_tablename varchar(255) DEFAULT '' NOT NULL,
+	ignore_time_for_tables varchar(255) DEFAULT '' NOT NULL,
+	ignore_disabled_for_tables varchar(255) DEFAULT '' NOT NULL,
+	ignore_fegroup_for_tables varchar(255) DEFAULT '' NOT NULL,
 	ignore_language_handling tinyint(4) DEFAULT '0' NOT NULL,
 	
 	PRIMARY KEY (uid),

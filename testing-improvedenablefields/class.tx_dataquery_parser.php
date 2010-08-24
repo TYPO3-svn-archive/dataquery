@@ -73,6 +73,11 @@ class tx_dataquery_parser {
 	protected $processOrderBy = TRUE;
 	protected $isMergedResult = FALSE;
 
+		/**
+		 * @var array $data: database record corresponding to the current Data Query
+		 */
+	protected $providerData;
+
 	/**
 	 * This method is used to parse a SELECT SQL query.
 	 * It is a simple parser and no way generic. It expects queries to be written a certain way.
@@ -319,48 +324,62 @@ class tx_dataquery_parser {
     }
 
 	/**
+	 * Set data
+	 *
+	 * @param	array		$data: database record corresponding to the current Data Query
+	 * @return	void
+	 */
+	public function setProviderData($providerData) {
+		$this->providerData = $providerData;
+	}
+
+	/**
 	 * This method returns an associative array containing information for method enableFields.
 	 * enableFields() will skipped each fields from the returned array.
 	 *
-	 * @param	array		$settings: database record corresponding to the current Data Query
-	 * 						(this may contain flags *disabling* the use of enable fields or language overlays)
 	 * @param	string		$tableName: the name of the table
 	 * @return	array		the array containing the keys to be ignored
 	 */
-	protected function getIgnoreArray($settings, $tableName) {
+	protected function getIgnoreArray($tableName) {
 		$ignore_array = array();
 			// Handle case when some fields should be partially excluded from enableFields()
-		if ($settings['ignore_enable_fields'] == '2') {
+		if ($this->providerData['ignore_enable_fields'] == '2') {
 
 				// starttime / endtime field
-			$tableNames = explode(',', $settings['ignore_starttime_endtime_tablename']);
-			array_map('trim', $tableNames);
-			if (in_array($tableName, $tableNames) ||
-					$settings['ignore_starttime_endtime_tablename'] == '' ||
-					$settings['ignore_starttime_endtime_tablename'] == '*') {
+			if (in_array($tableName, $this->providerData['ignore_time_for_tables_exploded']) ||
+					$this->providerData['ignore_time_for_tables'] == '' ||
+					$this->providerData['ignore_time_for_tables'] == '*') {
 				$ignore_array['starttime'] = TRUE;
 				$ignore_array['endtime'] = TRUE;
 			}
 
 				// disabled field
-			$tableNames = explode(',', $settings['ignore_disabled_tablename']);
-			array_map('trim', $tableNames);
-			if ($settings['ignore_disabled_tablename'] == $tableName ||
-					$settings['ignore_disabled_tablename'] == '' ||
-					$settings['ignore_disabled_tablename'] == '*') {
+			if (in_array($tableName, $this->providerData['ignore_disabled_for_tables_exploded']) ||
+					$this->providerData['ignore_disabled_for_tables'] == '' ||
+					$this->providerData['ignore_disabled_for_tables'] == '*') {
 				$ignore_array['disabled'] = TRUE;
 			}
 
 				// fe_group field
-			$tableNames = explode(',', $settings['ignore_fegroup_tablename']);
-			array_map('trim', $tableNames);
-			if ($settings['ignore_fegroup_tablename'] == $tableName ||
-					$settings['ignore_fegroup_tablename'] == '' ||
-					$settings['ignore_fegroup_tablename'] == '*') {
+			if (in_array($tableName, $this->providerData['ignore_fegroup_for_tables_exploded']) ||
+					$this->providerData['ignore_fegroup_for_tables'] == '' ||
+					$this->providerData['ignore_fegroup_for_tables'] == '*') {
 				$ignore_array['fe_group'] = TRUE;
 			}
 		}
 		return $ignore_array;
+	}
+
+	/**
+	 * This method initialize ignore enable fields.
+	 * Basically, it explodes string value from the field into an array.
+	 *
+	 * @return	void
+	 */
+	protected function initializeIgnoreEnableFields() {
+		$this->providerData['ignore_time_for_tables_exploded'] = t3lib_div::trimExplode(',', $this->providerData['ignore_time_for_tables']);
+		$this->providerData['ignore_disabled_for_tables_exploded'] = t3lib_div::trimExplode(',', $this->providerData['ignore_disabled_for_tables']);
+		$this->providerData['ignore_fegroup_for_tables_exploded'] = t3lib_div::trimExplode(',', $this->providerData['ignore_fegroup_for_tables']);
 	}
 
 	/**
@@ -370,19 +389,19 @@ class tx_dataquery_parser {
 	 * 	- the language handling
 	 * 	- the versioning system
 	 *
-	 * @param	array		$settings: database record corresponding to the current Data Query
-	 * 						(this may contain flags *disabling* the use of enable fields or language overlays)
 	 * @return	void
 	 */
-	public function addTypo3Mechanisms($settings) {
-
+	public function addTypo3Mechanisms() {
+		
 			// Add the enable fields, first to the main table
-		if ($settings['ignore_enable_fields'] == '0' || $settings['ignore_enable_fields'] == '2') {
-			
+		if ($this->providerData['ignore_enable_fields'] == '0' || $this->providerData['ignore_enable_fields'] == '2') {
+
+			$this->initializeIgnoreEnableFields();
+
 				// Defines variables for this part
 			$table = $this->queryObject->aliases[$this->queryObject->mainTable];
 			$showHidden = $table == 'pages' ? $GLOBALS['TSFE']->showHiddenPage : $GLOBALS['TSFE']->showHiddenRecords;
-			$ignore_array = $this->getIgnoreArray($settings, $table);
+			$ignore_array = $this->getIgnoreArray($table);
 
 			$enableClause = tx_overlays::getEnableFieldsCondition($this->queryObject->aliases[$this->queryObject->mainTable], $showHidden, $ignore_array);
 			if ($this->queryObject->mainTable != $this->queryObject->aliases[$this->queryObject->mainTable]) {
@@ -397,7 +416,7 @@ class tx_dataquery_parser {
 					// Defines variables for this part
 					$table = $joinData['table'];
 					$showHidden = $table == 'pages' ? $GLOBALS['TSFE']->showHiddenPage : $GLOBALS['TSFE']->showHiddenRecords;
-					$ignore_array = $this->getIgnoreArray($settings, $table);
+					$ignore_array = $this->getIgnoreArray($table);
 
 					$enableClause = tx_overlays::getEnableFieldsCondition($table, $showHidden, $ignore_array);
 					if (!empty($enableClause)) {
@@ -414,7 +433,7 @@ class tx_dataquery_parser {
 		}
 
 			// Add the language condition, if necessary
-		if (empty($settings['ignore_language_handling']) && !$this->queryObject->structure['DISTINCT']) {
+		if (empty($this->providerData['ignore_language_handling']) && !$this->queryObject->structure['DISTINCT']) {
 
 				// Add the DB fields and the SQL conditions necessary for having everything ready to handle overlays
 				// as per the standard TYPO3 mechanism

@@ -94,8 +94,10 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 		if (!$hasStructure) {
 			$this->loadQuery();
 
+			$this->sqlParser->setProviderData($this->providerData);
+
 				// Add the SQL conditions for the selected TYPO3 mechanisms
-			$this->sqlParser->addTypo3Mechanisms($this->providerData);
+			$this->sqlParser->addTypo3Mechanisms();
 
 				// Assemble filters, if defined
 			if (is_array($this->filter) && count($this->filter) > 0) {
