@@ -53,16 +53,24 @@ class tx_dataquery_Ajax {
 		try {
 				// Get the query to parse from the GET/POST parameters
 			$query = t3lib_div::_GP('query');
-				// Create an instance of the parser, parse and build
+				// Create an instance of the parser
 			$parser = t3lib_div::makeInstance('tx_dataquery_parser');
+				// Clean up and prepare the query string
+			$query = $parser->prepareQueryString($query);
+				// Parse the query
+				// NOTE: if the parsing fails, an exception will be received, which is handled further down
 			$parser->parseQuery($query);
+				// Build the query
 			$parsedQuery = $parser->buildQuery();
 				// The query building completed, issue success message
 			$parsingTitle = $GLOBALS['LANG']->sL('LLL:EXT:dataquery/locallang.xml:query.success');
 			$parsingMessage = $parsedQuery;
+
 				// Force a LIMIT to 1 and try executing the query
 			$parser->getSQLObject()->structure['LIMIT'] = 1;
+				// Rebuild the query with the new limit
 			$executionQuery = $parser->buildQuery();
+				// Execute query and report outcome
 			$res = $GLOBALS['TYPO3_DB']->sql_query($executionQuery);
 			if ($res === FALSE) {
 				$executionSeverity = t3lib_FlashMessage::ERROR;

@@ -86,18 +86,8 @@ class tx_dataquery_parser {
 	 * @return	void
 	 */
 	public function parseQuery($query) {
-			// Put the query through the field parser to filter out commented lines
-		$queryLines = tx_tesseract_utilities::parseConfigurationField($query);
-			// Put the query into a single string
-		$query = implode(' ', $queryLines);
-			// Strip backquotes
-		$query = str_replace('`', '', $query);
-			// Strip trailing semi-colon if any
-		if (strrpos($query, ';') == strlen($query) - 1) {
-			$query = substr($query, 0, -1);
-		}
-			// Parse query for subexpressions
-		$query = tx_expressions_parser::evaluateString($query, FALSE);
+			// Clean up and prepare the query string
+		$query = $this->prepareQueryString($query);
 
 			// Parse the SQL query
 			/**
@@ -231,6 +221,30 @@ class tx_dataquery_parser {
 //t3lib_div::debug($this->fieldTrueNames, 'Field true names');
 //t3lib_div::debug($this->queryFields, 'Query fields');
 //t3lib_div::debug($this->queryObject->structure, 'Structure');
+	}
+
+	/**
+	 * This method performs a number of operations on a given string,
+	 * supposed to be a SQL query
+	 * It is meant to be called before the query is actually parsed
+	 * 
+	 * @param	string	$string: a SQL query
+	 * @return	string	Cleaned up SQL query
+	 */
+	public function prepareQueryString($string) {
+			// Put the query through the field parser to filter out commented lines
+		$queryLines = tx_tesseract_utilities::parseConfigurationField($string);
+			// Put the query into a single string
+		$query = implode(' ', $queryLines);
+			// Strip backquotes
+		$query = str_replace('`', '', $query);
+			// Strip trailing semi-colon if any
+		if (strrpos($query, ';') == strlen($query) - 1) {
+			$query = substr($query, 0, -1);
+		}
+			// Parse query for subexpressions
+		$query = tx_expressions_parser::evaluateString($query, FALSE);
+		return $query;
 	}
 
 	/**
