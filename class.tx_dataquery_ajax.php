@@ -43,9 +43,11 @@ class tx_dataquery_Ajax {
 	 * @return	void
 	 */
 	public function validate($params, TYPO3AJAX $ajaxObj) {
-		$severity = t3lib_FlashMessage::OK;
-		$message = '';
-		$title = '';
+		$parsingSeverity = t3lib_FlashMessage::OK;
+		$executionSeverity = t3lib_FlashMessage::OK;
+		$parsingMessage = '';
+		$executionMessage = '';
+		$parsingTitle = '';
 
 			// Try parsing and building the query
 		try {
@@ -56,23 +58,45 @@ class tx_dataquery_Ajax {
 			$parser->parseQuery($query);
 			$parsedQuery = $parser->buildQuery();
 				// The query building completed, issue success message
-			$title = $GLOBALS['LANG']->sL('LLL:EXT:dataquery/locallang.xml:query.success');
-			$message = $parsedQuery;
+			$parsingTitle = $GLOBALS['LANG']->sL('LLL:EXT:dataquery/locallang.xml:query.success');
+			$parsingMessage = $parsedQuery;
+				// Force a LIMIT to 1 and try executing the query
+			$parser->getSQLObject()->structure['LIMIT'] = 1;
+			$executionQuery = $parser->buildQuery();
+			$res = $GLOBALS['TYPO3_DB']->sql_query($executionQuery);
+			if ($res === FALSE) {
+				$executionSeverity = t3lib_FlashMessage::ERROR;
+				$errorMessage = $GLOBALS['TYPO3_DB']->sql_error();
+				$executionMessage = sprintf($GLOBALS['LANG']->sL('LLL:EXT:dataquery/locallang.xml:query.executionFailed'), $errorMessage);
+			} else {
+				$executionMessage = $GLOBALS['LANG']->sL('LLL:EXT:dataquery/locallang.xml:query.executionSuccessful');
+			}
 		}
 		catch(Exception $e) {
 				// The query parsing failed, issue error message
-			$severity = t3lib_FlashMessage::ERROR;
-			$title = $GLOBALS['LANG']->sL('LLL:EXT:dataquery/locallang.xml:query.failure');
-			$message = $e->getMessage();
+			$parsingSeverity = t3lib_FlashMessage::ERROR;
+			$parsingTitle = $GLOBALS['LANG']->sL('LLL:EXT:dataquery/locallang.xml:query.failure');
+			$parsingMessage = $e->getMessage();
 		}
-			// Render result as flash message
+			// Render parsing result as flash message
 		$flashMessage = t3lib_div::makeInstance(
 			't3lib_FlashMessage',
-			$message,
-			$title,
-			$severity
+			$parsingMessage,
+			$parsingTitle,
+			$parsingSeverity
 		);
-		$ajaxObj->addContent('dataquery', $flashMessage->render());
+		$content = $flashMessage->render();
+			// If the query was also executed, render execution result
+		if (!empty($executionMessage)) {
+			$flashMessage = t3lib_div::makeInstance(
+				't3lib_FlashMessage',
+				$executionMessage,
+				'',
+				$executionSeverity
+			);
+			$content .= $flashMessage->render();
+		}
+		$ajaxObj->addContent('dataquery', $content);
 	}
 }
 

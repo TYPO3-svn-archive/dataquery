@@ -12,6 +12,8 @@
             <label index="limits">Limits</label>
             <label index="query.success">The query was parsed successfully</label>
             <label index="query.failure">The query is not valid</label>
+            <label index="query.executionSuccessful">The query was executed successfully</label>
+            <label index="query.executionFailed">The query execution failed with the following error: %s</label>
             <label index="wizard.check.debugTab">Validate</label>
             <label index="wizard.check.previewTab">Preview</label>
             <label index="wizard.check.debugQuery">Validate the query</label>

@@ -1042,6 +1042,10 @@ t3lib_div::debug($this->queryObject->structure['SELECT'], 'Updated select struct
 		return $this->queryObject->orderFields;
 	}
 
+	public function getSQLObject() {
+		return $this->queryObject;
+	}
+
 	/**
 	 * This method returns the value of the isMergedResult flag
 	 *
