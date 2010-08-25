@@ -228,10 +228,10 @@ class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 			// Second assertion
 			//////////////////////
 		$settings = $this->settings;
-		$settings['ignore_enable_fields'] = 2;
-		$settings['ignore_time_for_tables'] = '';
+		$settings['ignore_enable_fields'] = '2';
+		$settings['ignore_time_for_tables'] = 'tt_content';
 		$settings['ignore_disabled_for_tables'] = 'tt_content';
-		$settings['ignore_fegroup_for_tables'] = '';
+		$settings['ignore_fegroup_for_tables'] = 'tt_content';
 
 		$parser = t3lib_div::makeInstance('tx_dataquery_parser');
 		$parser->parseQuery($query);
@@ -246,8 +246,8 @@ class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 			// Third assertion
 			//////////////////////
 		$settings = $this->settings;
-		$settings['ignore_enable_fields'] = 2;
-		$settings['ignore_time_for_tables'] = '';
+		$settings['ignore_enable_fields'] = '2';
+		$settings['ignore_time_for_tables'] = '*';
 		$settings['ignore_disabled_for_tables'] = ' , tt_content '; # weird value
 		$settings['ignore_fegroup_for_tables'] = 'pages';
 
@@ -259,6 +259,27 @@ class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 
 			// Check if the "structure" part is correct
 		$condition = "WHERE tt_content.deleted=0 AND tt_content.t3ver_state<=0 AND (tt_content.fe_group='' OR tt_content.fe_group IS NULL OR tt_content.fe_group='0' OR FIND_IN_SET('0',tt_content.fe_group)) AND (tt_content.sys_language_uid IN (0,-1)) AND tt_content.t3ver_oid = '0' ";
+		$this->assertEquals($expectedResult . $condition, $actualResult);
+
+			//////////////////////
+			// Fourth assertion
+			//////////////////////
+		$settings = $this->settings;
+		$settings['ignore_enable_fields'] = '2';
+		$settings['ignore_time_for_tables'] = '';
+		$settings['ignore_disabled_for_tables'] = '';
+		$settings['ignore_fegroup_for_tables'] = '';
+
+		$parser = t3lib_div::makeInstance('tx_dataquery_parser');
+		$parser->parseQuery($query);
+		$parser->setProviderData($settings);
+		$parser->addTypo3Mechanisms();
+		$actualResult = $parser->buildQuery();
+
+		$condition = str_replace('###NOW###', $GLOBALS['SIM_ACCESS_TIME'], self::$baseConditionForTTContent);
+		$expectedResult = 'SELECT tt_content.uid, tt_content.header, tt_content.pid AS tt_content$pid, tt_content.sys_language_uid AS tt_content$sys_language_uid FROM tt_content AS tt_content ';
+
+			// Check if the "structure" part is correct
 		$this->assertEquals($expectedResult . $condition, $actualResult);
 	}
 
