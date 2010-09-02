@@ -592,7 +592,12 @@ class tx_dataquery_parser {
 						// Some operators require a bit more handling
 						// "in" values just need to be put within brackets
 					if ($conditionData['operator'] == 'in') {
-						$condition .= $fullField . ' IN (' . $conditionData['value'] . ')';
+						$conditionParts = t3lib_div::trimExplode(',', $conditionData['value'], TRUE);
+						$escapedParts = array();
+						foreach ($conditionParts as $value) {
+							$escapedParts[] = $GLOBALS['TYPO3_DB']->fullQuoteStr($value, $table);
+						}
+						$condition .= $fullField . ' IN (' . implode(',', $escapedParts) . ')';
 
 						// "andgroup" and "orgroup" requires more handling
 						// The associated value is a list of comma-separated values and each of these values must be handled separately
