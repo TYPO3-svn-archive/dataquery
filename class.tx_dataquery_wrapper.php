@@ -22,9 +22,6 @@
 *  This copyright notice MUST APPEAR in all copies of the script!
 ***************************************************************/
 
-require_once(t3lib_extMgm::extPath('tesseract', 'services/class.tx_tesseract_providerbase.php'));
-require_once(t3lib_extMgm::extPath('tesseract', 'lib/class.tx_tesseract_utilities.php'));
-
 /**
  * Wrapper for data query
  * This class is used to get the results of a specific data query

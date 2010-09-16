@@ -41,7 +41,7 @@ class tx_dataquery_cache {
 	 * @return	void
 	 */
 	public function clearCache($parameters, $pObj) {
-		// Clear the dataquery cache for all the pages passed to this method
+			// Clear the dataquery cache for all the pages passed to this method
 		if (isset($parameters['pageIdArray']) && count($parameters['pageIdArray']) > 0) {
 			$GLOBALS['TYPO3_DB']->exec_DELETEquery('tx_dataquery_cache', 'page_id IN (' . implode(',', $parameters['pageIdArray']) . ')');
 		}

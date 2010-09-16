@@ -22,8 +22,6 @@
 *  This copyright notice MUST APPEAR in all copies of the script!
 ***************************************************************/
 
-require_once(t3lib_extMgm::extPath('datafilter', 'interfaces/interface.tx_datafilter_postprocessfilter.php'));
-
 /**
  * Class for hooking into datafilter to handle the tx_dataquery_sql field
  *

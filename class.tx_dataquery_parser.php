@@ -22,8 +22,6 @@
 *  This copyright notice MUST APPEAR in all copies of the script!
 ***************************************************************/
 
-require_once(t3lib_extMgm::extPath('overlays', 'class.tx_overlays.php'));
-
 /**
  * This class is used to parse a SELECT SQL query into a structured array
  * It rebuilds the query aferwards, automatically handling a number of TYPO3 constructs,
