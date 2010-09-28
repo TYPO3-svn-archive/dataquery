@@ -1,3 +1,7 @@
 2010-09-27 Francois Suter (Cobweb) <typo3@cobweb.ch>
 
+	* Corrected support for array-type filter values
+
+2010-09-27 Francois Suter (Cobweb) <typo3@cobweb.ch>
+
 	* First public release

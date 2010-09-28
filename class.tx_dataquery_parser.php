@@ -590,7 +590,12 @@ class tx_dataquery_parser {
 						// Some operators require a bit more handling
 						// "in" values just need to be put within brackets
 					if ($conditionData['operator'] == 'in') {
-						$conditionParts = t3lib_div::trimExplode(',', $conditionData['value'], TRUE);
+							// If the condition value is an array, use it as is
+							// Otherwise assume a comma-separated list of values and explode it
+						$conditionParts = $conditionData['value'];
+						if (!is_array($conditionParts)) {
+							$conditionParts = t3lib_div::trimExplode(',', $conditionData['value'], TRUE);
+						}
 						$escapedParts = array();
 						foreach ($conditionParts as $value) {
 							$escapedParts[] = $GLOBALS['TYPO3_DB']->fullQuoteStr($value, $table);
@@ -601,7 +606,12 @@ class tx_dataquery_parser {
 						// The associated value is a list of comma-separated values and each of these values must be handled separately
 						// Furthermore each value will be tested against a comma-separated list of values too, so the test is not so simple
 					} elseif ($conditionData['operator'] == 'andgroup' || $conditionData['operator'] == 'orgroup') {
-						$values = explode(',', $conditionData['value']);
+							// If the condition value is an array, use it as is
+							// Otherwise assume a comma-separated list of values and explode it
+						$values = $conditionData['value'];
+						if (!is_array($values)) {
+							$values = t3lib_div::trimExplode(',', $conditionData['value'], TRUE);
+						}
 						$localCondition = '';
 						$localOperator = 'OR';
 						if ($conditionData['operator'] == 'andgroup') {
@@ -617,15 +627,29 @@ class tx_dataquery_parser {
 
 						// If the operator is "like", "start" or "end", the SQL operator is always LIKE, but different wildcards are used
 					} elseif ($conditionData['operator'] == 'like' || $conditionData['operator'] == 'start' || $conditionData['operator'] == 'end') {
-						$value = '';
-						if ($conditionData['operator'] == 'start') {
-							$value = $conditionData['value'] . '%';
-						} elseif ($conditionData['operator'] == 'end') {
-							$value = '%' . $conditionData['value'];
-						} else {
-							$value = '%' . $conditionData['value'] . '%';
+							// Make sure values are an array
+						$values = $conditionData['value'];
+						if (!is_array($values)) {
+							$values = array($conditionData['value']);
 						}
-						$condition .= $fullField . ' LIKE ' . $GLOBALS['TYPO3_DB']->fullQuoteStr($value, $table);
+							// Loop on each value and assemble condition
+						$localCondition = '';
+						foreach ($values as $aValue) {
+							$aValue = $GLOBALS['TYPO3_DB']->escapeStrForLike($aValue, $table);
+							if (!empty($localCondition)) {
+								$localCondition .= ' OR ';
+							}
+							$value = '';
+							if ($conditionData['operator'] == 'start') {
+								$value = $aValue . '%';
+							} elseif ($conditionData['operator'] == 'end') {
+								$value = '%' . $aValue;
+							} else {
+								$value = '%' . $aValue . '%';
+							}
+							$localCondition .= $fullField . ' LIKE ' . $GLOBALS['TYPO3_DB']->fullQuoteStr($value, $table);
+						}
+						$condition .= '(' . $localCondition . ')';
 
 						// Other operators are handled simply
 						// We just need to take care of special values: "\empty", "\null" and "\all"
@@ -635,24 +659,37 @@ class tx_dataquery_parser {
 							// If the value is special value "\all", all values must be taken,
 							// so the condition is simply ignored
 						if ($conditionData['value'] != '\all') {
-								// Special value "\empty" means evaluation against empty string
-							if ($conditionData['value'] == '\empty') {
-								$quotedValue = "''";
-
-								// Special value "\null" means evaluation against IS NULL or IS NOT NULL
-							} elseif ($conditionData['value'] == '\null') {
-								if ($operator == '=') {
-									$operator = 'IS';
-								} else {
-									$operator = 'IS NOT';
-								}
-								$quotedValue = 'NULL';
-
-								// Normal value
-							} else {
-								$quotedValue = $GLOBALS['TYPO3_DB']->fullQuoteStr($conditionData['value'], $table);
+								// Make sure values are an array
+							$values = $conditionData['value'];
+							if (!is_array($values)) {
+								$values = array($conditionData['value']);
 							}
-							$condition .= $fullField . ' ' . $operator . ' ' . $quotedValue;
+								// Loop on each value and assemble condition
+							$localCondition = '';
+							foreach ($values as $aValue) {
+								if (!empty($localCondition)) {
+									$localCondition .= ' OR ';
+								}
+									// Special value "\empty" means evaluation against empty string
+								if ($conditionData['value'] == '\empty') {
+									$quotedValue = "''";
+
+									// Special value "\null" means evaluation against IS NULL or IS NOT NULL
+								} elseif ($conditionData['value'] == '\null') {
+									if ($operator == '=') {
+										$operator = 'IS';
+									} else {
+										$operator = 'IS NOT';
+									}
+									$quotedValue = 'NULL';
+
+									// Normal value
+								} else {
+									$quotedValue = $GLOBALS['TYPO3_DB']->fullQuoteStr($aValue, $table);
+								}
+								$localCondition .= $fullField . ' ' . $operator . ' ' . $quotedValue;
+							}
+							$condition .= '(' . $localCondition . ')';
 						}
 					}
 				}

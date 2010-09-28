@@ -289,7 +289,7 @@ class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 	 * @test
 	 */
 	public function selectQueryWithFilter() {
-		$expectedResult = 'SELECT tt_content.uid, tt_content.header, FROM_UNIXTIME(tstamp, \'%Y\') AS year FROM tt_content AS tt_content WHERE (tt_content.uid > \'10\' AND tt_content.uid <= \'50\') AND (tt_content.header LIKE \'%foo%\') AND (tt_content.image IS NOT NULL) AND (tt_content.header = \'\') AND (FROM_UNIXTIME(tstamp, \'%Y\') = \'2010\') ORDER BY tt_content.crdate desc ';
+		$expectedResult = 'SELECT tt_content.uid, tt_content.header, FROM_UNIXTIME(tstamp, \'%Y\') AS year FROM tt_content AS tt_content WHERE ((tt_content.uid > \'10\') AND (tt_content.uid <= \'50\')) AND ((tt_content.header LIKE \'%foo%\' OR tt_content.header LIKE \'%bar%\')) AND ((tt_content.image IS NOT NULL)) AND ((tt_content.header = \'\')) AND ((FROM_UNIXTIME(tstamp, \'%Y\') = \'2010\')) ORDER BY tt_content.crdate desc ';
 			/**
 			 * @var tx_dataquery_parser	$parser
 			 */
@@ -319,7 +319,10 @@ class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 					'conditions' => array(
 						0 => array(
 							'operator' => 'like',
-							'value' => 'foo'
+							'value' => array(
+								'foo',
+								'bar'
+							)
 						)
 					)
 				),
