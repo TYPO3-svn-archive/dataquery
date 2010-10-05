@@ -225,7 +225,7 @@ class tx_dataquery_parser {
 	 * This method performs a number of operations on a given string,
 	 * supposed to be a SQL query
 	 * It is meant to be called before the query is actually parsed
-	 * 
+	 *
 	 * @param	string	$string: a SQL query
 	 * @return	string	Cleaned up SQL query
 	 */
@@ -401,7 +401,7 @@ class tx_dataquery_parser {
 	 * @return	void
 	 */
 	public function addTypo3Mechanisms() {
-		
+
 			// Add the enable fields, first to the main table
 		if ($this->providerData['ignore_enable_fields'] == '0' || $this->providerData['ignore_enable_fields'] == '2') {
 
@@ -602,7 +602,7 @@ class tx_dataquery_parser {
 						}
 						$condition .= $fullField . ' IN (' . implode(',', $escapedParts) . ')';
 
-						// "andgroup" and "orgroup" requires more handling
+						// "andgroup" and "orgroup" require more handling
 						// The associated value is a list of comma-separated values and each of these values must be handled separately
 						// Furthermore each value will be tested against a comma-separated list of values too, so the test is not so simple
 					} elseif ($conditionData['operator'] == 'andgroup' || $conditionData['operator'] == 'orgroup') {
@@ -713,7 +713,7 @@ class tx_dataquery_parser {
 					$this->queryObject->structure['JOIN'][$table]['on'] .= $whereClause;
 				}
 			}
-				// Free some mempory
+				// Free some memory
 			unset($completeFilters);
 		}
 			// Add the eventual raw SQL in the filter
@@ -1019,7 +1019,7 @@ t3lib_div::debug($this->queryObject->structure['SELECT'], 'Updated select struct
 	 * This method returns the structure of the parsed query
 	 * There should be little real-life uses for this, but it is used by the
 	 * test case to get the parsed structure
-	 * 
+	 *
 	 * @return	array	The parsed query
 	 */
 	public function getQueryStructure() {
@@ -1089,7 +1089,7 @@ t3lib_div::debug($this->queryObject->structure['SELECT'], 'Updated select struct
 
 	/**
 	 * This method returns the list of fields defined for ordering the data
-	 * 
+	 *
 	 * @return	array	Fields for ordering (and sort order)
 	 */
 	public function getOrderByFields() {
@@ -1123,7 +1123,7 @@ t3lib_div::debug($this->queryObject->structure['SELECT'], 'Updated select struct
 	/**
 	 * This method returns whether the ordering of the records was done in the SQL query
 	 * or not
-	 * 
+	 *
 	 * @return	boolean	true if SQL was used, false otherwise
 	 */
 	public function isSqlUsedForOrdering() {
