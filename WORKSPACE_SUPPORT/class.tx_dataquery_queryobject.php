@@ -59,10 +59,10 @@ class tx_dataquery_QueryObject {
 	public $aliases = array();
 
 		/**
-		 * For each table, set to true if the uid field is part of the SELECT query, false otherwise
-		 * @var	array	$hasUidField
+		 * For each table, record with boolean values whether it has some base fields or not
+		 * @var	array	$hasBaseFields
 		 */
-	public $hasUidField = array();
+	public $hasBaseFields = array();
 
 		/**
 		 * Array with all information of the fields used to order data

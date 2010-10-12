@@ -322,16 +322,18 @@ class tx_dataquery_sqlparser {
 				$table = (isset($this->queryObject->aliases[$fieldParts[0]]) ? $this->queryObject->aliases[$fieldParts[0]] : $fieldParts[0]);
 				$alias = $fieldParts[0];
 			}
-			if (!isset($this->queryObject->hasUidField[$alias])) {
-				$this->queryObject->hasUidField[$alias] = FALSE;
+			if (!isset($this->queryObject->hasBaseFields[$alias])) {
+				$this->queryObject->hasBaseFields[$alias] = array('uid' => FALSE, 'pid' => FALSE);
 			}
 				// Get all fields for the given table
-			$fieldInfo = $GLOBALS['TYPO3_DB']->admin_get_fields($table);
+			$fieldInfo = tx_overlays::getAllFieldsForTable($table);
 			$fields = array_keys($fieldInfo);
 				// Add all fields to the query structure
 			foreach ($fields as $aField) {
 				if ($aField == 'uid') {
-					$this->queryObject->hasUidField[$alias] = TRUE;
+					$this->queryObject->hasBaseFields[$alias]['uid'] = TRUE;
+				} elseif ($aField == 'pid') {
+					$this->queryObject->hasBaseFields[$alias]['pid'] = TRUE;
 				}
 				$this->queryObject->structure['SELECT'][] = array(
 					'table' => $table,
@@ -383,13 +385,15 @@ class tx_dataquery_sqlparser {
 					$field = $fieldString;
 				}
 			}
-				// Set the appropriate flag if the field is uid
+				// Set the appropriate flag if the field is uid or pid
 				// Initialize first, if not yet done
-			if (!isset($this->queryObject->hasUidField[$alias])) {
-				$this->queryObject->hasUidField[$alias] = FALSE;
+			if (!isset($this->queryObject->hasBaseFields[$alias])) {
+				$this->queryObject->hasBaseFields[$alias] = array('uid' => FALSE, 'pid' => FALSE);
 			}
 			if ((empty($fieldAlias) && $field == 'uid') || (!empty($fieldAlias) && $fieldAlias == 'uid')) {
-				$this->queryObject->hasUidField[$alias] = TRUE;
+				$this->queryObject->hasBaseFields[$alias]['uid'] = TRUE;
+			} elseif ((empty($fieldAlias) && $field == 'pid') || (!empty($fieldAlias) && $fieldAlias == 'pid')) {
+				$this->queryObject->hasBaseFields[$alias]['pid'] = TRUE;
 			}
 				// Add field's information to query structure
 			$this->queryObject->structure['SELECT'][] = array(

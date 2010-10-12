@@ -73,7 +73,7 @@ class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 	 */
 	public function simpleSelectQuery() {
 		$condition = str_replace('###NOW###', $GLOBALS['SIM_ACCESS_TIME'], self::$baseConditionForTTContent);
-		$expectedResult = 'SELECT tt_content.uid, tt_content.header, tt_content.pid AS tt_content$pid, tt_content.sys_language_uid AS tt_content$sys_language_uid FROM tt_content AS tt_content ' . $condition;
+		$expectedResult = 'SELECT tt_content.uid, tt_content.header, tt_content.pid, tt_content.sys_language_uid AS tt_content$sys_language_uid FROM tt_content AS tt_content ' . $condition;
 			/**
 			 * @var tx_dataquery_parser	$parser
 			 */
@@ -94,7 +94,7 @@ class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 	 * @test
 	 */
 	public function selectQueryWithIdList() {
-		$expectedResult = 'SELECT tt_content.uid, tt_content.header FROM tt_content AS tt_content WHERE tt_content.uid IN (1,12) ';
+		$expectedResult = 'SELECT tt_content.uid, tt_content.header, tt_content.pid FROM tt_content AS tt_content WHERE tt_content.uid IN (1,12) ';
 			/**
 			 * @var tx_dataquery_parser	$parser
 			 */
@@ -136,7 +136,7 @@ class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 			return;
 		}
 		$condition = str_replace('###NOW###', $GLOBALS['SIM_ACCESS_TIME'], self::$baseConditionForTTContent);
-		$expectedResult = 'SELECT tt_content.uid, tt_content.header, tt_content.pid AS tt_content$pid, tt_content.sys_language_uid AS tt_content$sys_language_uid FROM tt_content AS tt_content ' . $condition;
+		$expectedResult = 'SELECT tt_content.uid, tt_content.header, tt_content.pid, tt_content.sys_language_uid AS tt_content$sys_language_uid FROM tt_content AS tt_content ' . $condition;
 			/**
 			 * @var tx_dataquery_parser	$parser
 			 */
@@ -168,7 +168,7 @@ class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 			return;
 		}
 		$condition = "WHERE (tt_content.sys_language_uid IN (0,-1)) AND tt_content.t3ver_oid = '0' ";
-		$expectedResult = 'SELECT tt_content.uid, tt_content.header, tt_content.pid AS tt_content$pid, tt_content.sys_language_uid AS tt_content$sys_language_uid FROM tt_content AS tt_content ' . $condition;
+		$expectedResult = 'SELECT tt_content.uid, tt_content.header, tt_content.pid, tt_content.sys_language_uid AS tt_content$sys_language_uid FROM tt_content AS tt_content ' . $condition;
 			/**
 			 * @var tx_dataquery_parser	$parser
 			 */
@@ -199,7 +199,7 @@ class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 		if (!$this->isMinimumVersion) {
 			return;
 		}
-		$expectedResult = 'SELECT tt_content.uid, tt_content.header, tt_content.pid AS tt_content$pid, tt_content.sys_language_uid AS tt_content$sys_language_uid FROM tt_content AS tt_content ';
+		$expectedResult = 'SELECT tt_content.uid, tt_content.header, tt_content.pid, tt_content.sys_language_uid AS tt_content$sys_language_uid FROM tt_content AS tt_content ';
 
 			//////////////////////
 			// First assertion
@@ -289,7 +289,7 @@ class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 	 * @test
 	 */
 	public function selectQueryWithFilter() {
-		$expectedResult = 'SELECT tt_content.uid, tt_content.header, FROM_UNIXTIME(tstamp, \'%Y\') AS year FROM tt_content AS tt_content WHERE ((tt_content.uid > \'10\') AND (tt_content.uid <= \'50\')) AND ((tt_content.header LIKE \'%foo%\' OR tt_content.header LIKE \'%bar%\')) AND ((tt_content.image IS NOT NULL)) AND ((tt_content.header = \'\')) AND ((FROM_UNIXTIME(tstamp, \'%Y\') = \'2010\')) ORDER BY tt_content.crdate desc ';
+		$expectedResult = 'SELECT tt_content.uid, tt_content.header, FROM_UNIXTIME(tstamp, \'%Y\') AS year, tt_content.pid FROM tt_content AS tt_content WHERE ((tt_content.uid > \'10\') AND (tt_content.uid <= \'50\')) AND ((tt_content.header LIKE \'%foo%\' OR tt_content.header LIKE \'%bar%\')) AND ((tt_content.image IS NOT NULL)) AND ((tt_content.header = \'\')) AND ((FROM_UNIXTIME(tstamp, \'%Y\') = \'2010\')) ORDER BY tt_content.crdate desc ';
 			/**
 			 * @var tx_dataquery_parser	$parser
 			 */
@@ -394,7 +394,7 @@ class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 	 * @test
 	 */
 	public function selectQueryWithJoin() {
-		$expectedResult = 'SELECT tt_content.uid, tt_content.header, pages.title AS tt_content$title, pages.uid AS pages$uid FROM tt_content AS tt_content INNER JOIN pages AS pages ON pages.uid = tt_content.pid ';
+		$expectedResult = 'SELECT tt_content.uid, tt_content.header, pages.title AS tt_content$title, tt_content.pid, pages.uid AS pages$uid, pages.pid AS pages$pid FROM tt_content AS tt_content INNER JOIN pages AS pages ON pages.uid = tt_content.pid ';
 			/**
 			 * @var tx_dataquery_parser	$parser
 			 */
