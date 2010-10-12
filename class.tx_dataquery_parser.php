@@ -496,13 +496,7 @@ class tx_dataquery_parser {
 						}
 							// For each table, make sure that the fields necessary for handling the language overlay are included in the list of selected fields
 						try {
-							$fieldsForOverlay = tx_overlays::selectOverlayFields($table, implode(',', $fields));
-							$fieldsForOverlayArray = t3lib_div::trimExplode(',', $fieldsForOverlay);
-								// Strip the "[table name]." prefix
-							$numFields = count($fieldsForOverlayArray);
-							for ($i = 0; $i < $numFields; $i++) {
-								$fieldsForOverlayArray[$i] = str_replace($table . '.', '', $fieldsForOverlayArray[$i]);
-							}
+							$fieldsForOverlayArray = tx_overlays::selectOverlayFieldsArray($table, implode(',', $fields));
 								// Extract which fields were added and add them to the list of fields to select
 							$addedFields = array_diff($fieldsForOverlayArray, $fields);
 							if (count($addedFields) > 0) {
