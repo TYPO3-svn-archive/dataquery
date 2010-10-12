@@ -89,6 +89,41 @@ class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 	}
 
 	/**
+	 * Parse and rebuild a simple SELECT query
+	 *
+	 * @test
+	 */
+	public function simpleSelectQueryInWorkspaces() {
+		$GLOBALS['TSFE']->sys_page->versioningPreview = TRUE;
+		$saveWorkspaceValue = $GLOBALS['BE_USER']->workspace;
+		$GLOBALS['BE_USER']->workspace = -1;
+			// The additional condition is very different in this test, because the versioning preview
+			// deactivates most of the enable fields check
+		$condition = 'WHERE tt_content.deleted=0 AND (tt_content.sys_language_uid IN (0,-1))';
+			// Add workspace condition, assuming Draft workspace (= -1)
+			// TODO: note the double space just after the "AND" below. Check where it comes from and try to avoid it.
+		$condition .= ' AND  (tt_content.t3ver_state <= 0 AND tt_content.t3ver_oid = 0) OR (tt_content.t3ver_state = 1 AND tt_content.t3ver_wsid = -1) OR (tt_content.t3ver_state = 3 AND tt_content.t3ver_wsid = -1) ';
+		$expectedResult = 'SELECT tt_content.uid, tt_content.header, tt_content.pid, tt_content.sys_language_uid, tt_content.t3ver_state FROM tt_content AS tt_content ' . $condition;
+			/**
+			 * @var tx_dataquery_parser	$parser
+			 */
+		$parser = t3lib_div::makeInstance('tx_dataquery_parser');
+		$query = 'SELECT uid,header FROM tt_content';
+		$parser->parseQuery($query);
+		$parser->setProviderData($this->settings);
+		$parser->addTypo3Mechanisms();
+		$actualResult = $parser->buildQuery();
+		$GLOBALS['TSFE']->sys_page->versioningPreview = FALSE;
+		$GLOBALS['BE_USER']->workspace = $saveWorkspaceValue;
+		$result = array();
+		for ($i = 0; $i < 401; $i++) {
+			$result[$i] = array($i, $actualResult[$i], $expectedResult[$i]);
+		}
+			// Check if the "structure" part is correct
+		$this->assertEquals($expectedResult, $actualResult);
+	}
+
+	/**
 	 * Parse and rebuild a simple SELECT query with an alias for the table name
 	 *
 	 * @test
