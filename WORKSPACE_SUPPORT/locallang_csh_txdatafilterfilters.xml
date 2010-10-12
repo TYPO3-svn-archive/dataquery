@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<!-- $Id$-->
+<T3locallang>
+	<meta type="array">
+		<description>Contents of dataquery csh for additional fields in datafilter</description>
+		<type>CSH</type>
+		<csh_table>tx_datafilter_filters</csh_table>
+		<fileId>EXT:dataquery/locallang_csh_txdatafilterfilters.xml</fileId>
+		<labelContext type="array">
+		</labelContext>
+	</meta>
+	<data type="array">
+		<languageKey index="default" type="array">
+			<label index="tx_dataquery_sql.alttitle">SQL WHERE</label>
+			<label index="tx_dataquery_sql.description">Additional SQL statements that will be added to the WHERE clause.</label>
+			<label index="tx_dataquery_sql.details">
+				This field works in relation with the dataquery extension.
+				Any SQL entered here will be added to the WHERE clause of the SQL query assembled by dataquery. Do not add the keyword "WHERE" yourself.
+				Expressions can be used inside these statements, but don't forget to use the fullQuoteStr function to guard against SQL injection!
+			</label>
+		</languageKey>
+	</data>
+</T3locallang>
