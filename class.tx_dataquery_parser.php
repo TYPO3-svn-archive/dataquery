@@ -95,7 +95,54 @@ class tx_dataquery_parser {
 			// NOTE: the following call may throw exceptions,
 			// but we let them bubble up
 		$this->queryObject = $sqlParser->parseSQL($query);
+			// Perform some further analysis on the query components
+		$this->analyzeQuery();
+			// Make sure the list of selected fields contains base fields
+			// like uid and pid (if available)
+			// Don't do this for queries using the DISTINCT keyword, as it may mess it up
+		if (!$this->queryObject->structure['DISTINCT']) {
+			$this->addBaseFields();
+		}
 
+//t3lib_div::debug($this->queryObject->aliases, 'Table aliases');
+//t3lib_div::debug($this->fieldAliases, 'Field aliases');
+//t3lib_div::debug($this->fieldTrueNames, 'Field true names');
+//t3lib_div::debug($this->queryFields, 'Query fields');
+//t3lib_div::debug($this->queryObject->structure, 'Structure');
+	}
+
+	/**
+	 * This method performs a number of operations on a given string,
+	 * supposed to be a SQL query
+	 * It is meant to be called before the query is actually parsed
+	 *
+	 * @param	string	$string: a SQL query
+	 * @return	string	Cleaned up SQL query
+	 */
+	public function prepareQueryString($string) {
+			// Put the query through the field parser to filter out commented lines
+		$queryLines = tx_tesseract_utilities::parseConfigurationField($string);
+			// Put the query into a single string
+		$query = implode(' ', $queryLines);
+			// Strip backquotes
+		$query = str_replace('`', '', $query);
+			// Strip trailing semi-colon if any
+		if (strrpos($query, ';') == strlen($query) - 1) {
+			$query = substr($query, 0, -1);
+		}
+			// Parse query for subexpressions
+		$query = tx_expressions_parser::evaluateString($query, FALSE);
+		return $query;
+	}
+
+	/**
+	 * This method further analyzes the query
+	 * Im particular, it loop on all SELECT field and makes sure every field
+	 * has a proper alias
+	 *
+	 * @return	void
+	 */
+	protected function analyzeQuery() {
 			// Loop on all query fields to assemble additional information structures
 		foreach ($this->queryObject->structure['SELECT'] as $index => $fieldInfo) {
 				// Assemble list of fields per table
@@ -188,42 +235,6 @@ class tx_dataquery_parser {
 												);
 			$this->queryObject->structure['SELECT'][$index] = $fullField;
         }
-			// Make sure the list of selected fields contains base fields
-			// like uid and pid (if available)
-			// Don't do this for queries using the DISTINCT keyword, as it may mess it up
-		if (!$this->queryObject->structure['DISTINCT']) {
-			$this->addBaseFields();
-		}
-
-//t3lib_div::debug($this->queryObject->aliases, 'Table aliases');
-//t3lib_div::debug($this->fieldAliases, 'Field aliases');
-//t3lib_div::debug($this->fieldTrueNames, 'Field true names');
-//t3lib_div::debug($this->queryFields, 'Query fields');
-//t3lib_div::debug($this->queryObject->structure, 'Structure');
-	}
-
-	/**
-	 * This method performs a number of operations on a given string,
-	 * supposed to be a SQL query
-	 * It is meant to be called before the query is actually parsed
-	 *
-	 * @param	string	$string: a SQL query
-	 * @return	string	Cleaned up SQL query
-	 */
-	public function prepareQueryString($string) {
-			// Put the query through the field parser to filter out commented lines
-		$queryLines = tx_tesseract_utilities::parseConfigurationField($string);
-			// Put the query into a single string
-		$query = implode(' ', $queryLines);
-			// Strip backquotes
-		$query = str_replace('`', '', $query);
-			// Strip trailing semi-colon if any
-		if (strrpos($query, ';') == strlen($query) - 1) {
-			$query = substr($query, 0, -1);
-		}
-			// Parse query for subexpressions
-		$query = tx_expressions_parser::evaluateString($query, FALSE);
-		return $query;
 	}
 
 	/**
