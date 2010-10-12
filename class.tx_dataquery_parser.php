@@ -188,32 +188,13 @@ class tx_dataquery_parser {
 												);
 			$this->queryObject->structure['SELECT'][$index] = $fullField;
         }
+			// Make sure the list of selected fields contains base fields
+			// like uid and pid (if available)
+			// Don't do this for queries using the DISTINCT keyword, as it may mess it up
+		if (!$this->queryObject->structure['DISTINCT']) {
+			$this->addBaseFields();
+		}
 
-			// Add the uid field to tables that don't have it yet
-        foreach ($this->queryObject->hasUidField as $alias => $flag) {
-        	if (!$flag) {
-					// Get all fields for the given table
-				$fieldsInfo = $GLOBALS['TYPO3_DB']->admin_get_fields($this->queryObject->aliases[$alias]);
-					// Add the uid field only if it exists
-				if (isset($fieldsInfo['uid'])) {
-					$fullField = $alias . '.uid';
-					$theField = 'uid';
-					$fieldAlias = 'uid';
-					if ($alias != $this->queryObject->mainTable) {
-						$fieldAlias = $alias . '$uid';
-						$fullField .= ' AS ' . $fieldAlias;
-					}
-					$this->fieldTrueNames[$fieldAlias] = array(
-															'table' => $this->getTrueTableName($alias),
-															'aliasTable' => $alias,
-															'field' => $theField,
-															'mapping' => array('table' => $alias, 'field' => $theField)
-														);
-					$this->queryObject->structure['SELECT'][] = $fullField;
-					$this->queryFields[$alias]['fields'][] = array('name' => 'uid', 'function' => FALSE);
-				}
-        	}
-        }
 //t3lib_div::debug($this->queryObject->aliases, 'Table aliases');
 //t3lib_div::debug($this->fieldAliases, 'Field aliases');
 //t3lib_div::debug($this->fieldTrueNames, 'Field true names');
@@ -243,6 +224,42 @@ class tx_dataquery_parser {
 			// Parse query for subexpressions
 		$query = tx_expressions_parser::evaluateString($query, FALSE);
 		return $query;
+	}
+
+	/**
+	 * This method checks every table that doesn't have a uid or pid field and tries to add it
+	 * to the list of fields to select
+	 *
+	 * @return	void
+	 */
+	protected function addBaseFields() {
+			// Loop on the tables that don't have a uid field
+        foreach ($this->queryObject->hasBaseFields as $alias => $listOfFields) {
+				// Get all fields for the given table
+			$fieldsInfo = tx_overlays::getAllFieldsForTable($this->queryObject->aliases[$alias]);
+			foreach ($listOfFields as $baseField => $flag) {
+				if (!$flag) {
+						// Add the uid field only if it exists
+					if (isset($fieldsInfo[$baseField])) {
+						$fullField = $alias . '.' . $baseField;
+						$theField = $baseField;
+						$fieldAlias = $baseField;
+						if ($alias != $this->queryObject->mainTable) {
+							$fieldAlias = $alias . '$' . $baseField;
+							$fullField .= ' AS ' . $fieldAlias;
+						}
+						$this->fieldTrueNames[$fieldAlias] = array(
+																'table' => $this->getTrueTableName($alias),
+																'aliasTable' => $alias,
+																'field' => $theField,
+																'mapping' => array('table' => $alias, 'field' => $theField)
+															);
+						$this->queryObject->structure['SELECT'][] = $fullField;
+						$this->queryFields[$alias]['fields'][] = array('name' => $baseField, 'function' => FALSE);
+					}
+				}
+			}
+        }
 	}
 
 	/**
