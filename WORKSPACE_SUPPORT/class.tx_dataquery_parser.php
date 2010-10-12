@@ -252,21 +252,7 @@ class tx_dataquery_parser {
 				if (!$flag) {
 						// Add the uid field only if it exists
 					if (isset($fieldsInfo[$baseField])) {
-						$fullField = $alias . '.' . $baseField;
-						$theField = $baseField;
-						$fieldAlias = $baseField;
-						if ($alias != $this->queryObject->mainTable) {
-							$fieldAlias = $alias . '$' . $baseField;
-							$fullField .= ' AS ' . $fieldAlias;
-						}
-						$this->fieldTrueNames[$fieldAlias] = array(
-																'table' => $this->getTrueTableName($alias),
-																'aliasTable' => $alias,
-																'field' => $theField,
-																'mapping' => array('table' => $alias, 'field' => $theField)
-															);
-						$this->queryObject->structure['SELECT'][] = $fullField;
-						$this->queryFields[$alias]['fields'][] = array('name' => $baseField, 'function' => FALSE);
+						$this->addExtraField($baseField, $alias, $this->getTrueTableName($alias));
 					}
 				}
 			}
@@ -501,16 +487,7 @@ class tx_dataquery_parser {
 							$addedFields = array_diff($fieldsForOverlayArray, $fields);
 							if (count($addedFields) > 0) {
 								foreach ($addedFields as $aField) {
-									$newFieldName = $alias . '.' . $aField;
-									$newFieldAlias = $alias . '$' . $aField;
-									$this->queryObject->structure['SELECT'][] = $newFieldName . ' AS ' . $newFieldAlias;
-									$this->queryFields[$table]['fields'][] = array('name' => $aField, 'function' => FALSE);
-									$this->fieldTrueNames[$newFieldAlias] = array(
-																				'table' => $table,
-																				'aliasTable' => $alias,
-																				'field' => $aField,
-																				'mapping' => array('table' => $alias, 'field' => $aField)
-																			);
+									$this->addExtraField($aField, $alias, $table);
 								}
 							}
 							$this->doOverlays[$table] = true;
@@ -1021,6 +998,32 @@ t3lib_div::debug($this->queryObject->structure['SELECT'], 'Updated select struct
 			}
 		}
 		return $isAQueryField;
+	}
+
+	/**
+	 * This method is used to add an extra field to be SELECTed
+	 * It must be added to the SELECT list, to the list of fields being queried
+	 * and to the registry of true names
+	 * 
+	 * @param	string	$field: name of the field to add
+	 * @param	string	$tableAlias: alias of the table to add the field to
+	 * @param	string	$table: true name of the table to add the field to
+	 */
+	protected function addExtraField($field, $tableAlias, $table) {
+		$newFieldName = $tableAlias . '.' . $field;
+		$newFieldAlias = $field;
+		if ($tableAlias != $this->queryObject->mainTable) {
+			$newFieldAlias = $tableAlias . '$' . $field;
+			$newFieldName .= ' AS ' . $newFieldAlias;
+		}
+		$this->queryObject->structure['SELECT'][] = $newFieldName;
+		$this->queryFields[$tableAlias]['fields'][] = array('name' => $field, 'function' => FALSE);
+		$this->fieldTrueNames[$newFieldAlias] = array(
+													'table' => $table,
+													'aliasTable' => $tableAlias,
+													'field' => $field,
+													'mapping' => array('table' => $tableAlias, 'field' => $field)
+												);
 	}
 
 // Setters and getters

@@ -73,7 +73,7 @@ class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 	 */
 	public function simpleSelectQuery() {
 		$condition = str_replace('###NOW###', $GLOBALS['SIM_ACCESS_TIME'], self::$baseConditionForTTContent);
-		$expectedResult = 'SELECT tt_content.uid, tt_content.header, tt_content.pid, tt_content.sys_language_uid AS tt_content$sys_language_uid FROM tt_content AS tt_content ' . $condition;
+		$expectedResult = 'SELECT tt_content.uid, tt_content.header, tt_content.pid, tt_content.sys_language_uid FROM tt_content AS tt_content ' . $condition;
 			/**
 			 * @var tx_dataquery_parser	$parser
 			 */
@@ -84,7 +84,7 @@ class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 		$parser->setProviderData($this->settings);
 		$parser->addTypo3Mechanisms();
 		$actualResult = $parser->buildQuery();
-			// Check if the "structure" part if correct
+			// Check if the "structure" part is correct
 		$this->assertEquals($expectedResult, $actualResult);
 	}
 
@@ -103,7 +103,7 @@ class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 		$parser->parseQuery($query);
 		$parser->addIdList('1,tt_content_12');
 		$actualResult = $parser->buildQuery();
-			// Check if the "structure" part if correct
+			// Check if the "structure" part is correct
 		$this->assertEquals($expectedResult, $actualResult);
 	}
 
@@ -121,7 +121,7 @@ class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 		$query = 'SELECT DISTINCT CType AS uid FROM tt_content';
 		$parser->parseQuery($query);
 		$actualResult = $parser->buildQuery();
-			// Check if the "structure" part if correct
+			// Check if the "structure" part is correct
 		$this->assertEquals($expectedResult, $actualResult);
 	}
 
@@ -136,7 +136,7 @@ class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 			return;
 		}
 		$condition = str_replace('###NOW###', $GLOBALS['SIM_ACCESS_TIME'], self::$baseConditionForTTContent);
-		$expectedResult = 'SELECT tt_content.uid, tt_content.header, tt_content.pid, tt_content.sys_language_uid AS tt_content$sys_language_uid FROM tt_content AS tt_content ' . $condition;
+		$expectedResult = 'SELECT tt_content.uid, tt_content.header, tt_content.pid, tt_content.sys_language_uid FROM tt_content AS tt_content ' . $condition;
 			/**
 			 * @var tx_dataquery_parser	$parser
 			 */
@@ -153,7 +153,7 @@ class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 		$parser->setProviderData($settings);
 		$parser->addTypo3Mechanisms();
 		$actualResult = $parser->buildQuery();
-			// Check if the "structure" part if correct
+			// Check if the "structure" part is correct
 		$this->assertEquals($expectedResult, $actualResult);
 	}
 
@@ -168,7 +168,7 @@ class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 			return;
 		}
 		$condition = "WHERE (tt_content.sys_language_uid IN (0,-1)) AND tt_content.t3ver_oid = '0' ";
-		$expectedResult = 'SELECT tt_content.uid, tt_content.header, tt_content.pid, tt_content.sys_language_uid AS tt_content$sys_language_uid FROM tt_content AS tt_content ' . $condition;
+		$expectedResult = 'SELECT tt_content.uid, tt_content.header, tt_content.pid, tt_content.sys_language_uid FROM tt_content AS tt_content ' . $condition;
 			/**
 			 * @var tx_dataquery_parser	$parser
 			 */
@@ -185,7 +185,7 @@ class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 		$parser->setProviderData($settings);
 		$parser->addTypo3Mechanisms();
 		$actualResult = $parser->buildQuery();
-			// Check if the "structure" part if correct
+			// Check if the "structure" part is correct
 		$this->assertEquals($expectedResult, $actualResult);
 	}
 
@@ -199,7 +199,7 @@ class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 		if (!$this->isMinimumVersion) {
 			return;
 		}
-		$expectedResult = 'SELECT tt_content.uid, tt_content.header, tt_content.pid, tt_content.sys_language_uid AS tt_content$sys_language_uid FROM tt_content AS tt_content ';
+		$expectedResult = 'SELECT tt_content.uid, tt_content.header, tt_content.pid, tt_content.sys_language_uid FROM tt_content AS tt_content ';
 
 			//////////////////////
 			// First assertion
@@ -384,7 +384,7 @@ class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 		);
 		$parser->addFilter($filter);
 		$actualResult = $parser->buildQuery();
-			// Check if the "structure" part if correct
+			// Check if the "structure" part is correct
 		$this->assertEquals($expectedResult, $actualResult);
 	}
 
@@ -402,7 +402,7 @@ class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 		$query = 'SELECT uid,header,pages.title AS tt_content.title FROM tt_content INNER JOIN pages ON pages.uid = tt_content.pid';
 		$parser->parseQuery($query);
 		$actualResult = $parser->buildQuery();
-			// Check if the "structure" part if correct
+			// Check if the "structure" part is correct
 		$this->assertEquals($expectedResult, $actualResult);
 	}
 }
