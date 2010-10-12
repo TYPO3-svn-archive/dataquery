@@ -72,6 +72,7 @@ class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 	 * @test
 	 */
 	public function simpleSelectQuery() {
+			// Replace time marker by time used for starttime and endtime enable fields
 		$condition = str_replace('###NOW###', $GLOBALS['SIM_ACCESS_TIME'], self::$baseConditionForTTContent);
 		$expectedResult = 'SELECT tt_content.uid, tt_content.header, tt_content.pid, tt_content.sys_language_uid FROM tt_content AS tt_content ' . $condition;
 			/**
@@ -79,7 +80,30 @@ class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 			 */
 		$parser = t3lib_div::makeInstance('tx_dataquery_parser');
 		$query = 'SELECT uid,header FROM tt_content';
+		$parser->parseQuery($query);
+		$parser->setProviderData($this->settings);
+		$parser->addTypo3Mechanisms();
+		$actualResult = $parser->buildQuery();
+			// Check if the "structure" part is correct
+		$this->assertEquals($expectedResult, $actualResult);
+	}
+
+	/**
+	 * Parse and rebuild a simple SELECT query with an alias for the table name
+	 *
+	 * @test
+	 */
+	public function simpleSelectQueryWithTableAlias() {
 			// Replace time marker by time used for starttime and endtime enable fields
+		$condition = str_replace('###NOW###', $GLOBALS['SIM_ACCESS_TIME'], self::$baseConditionForTTContent);
+			// Replace table name by its alias
+		$condition = str_replace('tt_content', 'c', $condition);
+		$expectedResult = 'SELECT c.uid, c.header, c.pid, c.sys_language_uid FROM tt_content AS c ' . $condition;
+			/**
+			 * @var tx_dataquery_parser	$parser
+			 */
+		$parser = t3lib_div::makeInstance('tx_dataquery_parser');
+		$query = 'SELECT uid,header FROM tt_content AS c';
 		$parser->parseQuery($query);
 		$parser->setProviderData($this->settings);
 		$parser->addTypo3Mechanisms();

@@ -65,6 +65,12 @@ class tx_dataquery_parser {
 	protected $doOverlays = array();
 
 		/**
+		 * Flag for each table whether to perform versioning overlays or not
+		 * @var	array
+		 */
+	protected $doVersioning = array();
+
+		/**
 		 * True if order by is processed using SQL, false otherwise (see preprocessOrderByFields())
 		 * @var	boolean
 		 */
@@ -193,7 +199,7 @@ class tx_dataquery_parser {
 					$theAlias = $theField;
 				} else {
 					$fullField .= ' AS ';
-					if (strpos($fieldInfo['fieldAlias'], '.') === false) {
+					if (strpos($fieldInfo['fieldAlias'], '.') === FALSE) {
 						$theAlias = $fieldInfo['fieldAlias'];
 						$mappedTable = $fieldInfo['tableAlias'];
 						$mappedField = $fieldInfo['fieldAlias'];
@@ -212,7 +218,7 @@ class tx_dataquery_parser {
 				}
 				else {
 						// Case 4b
-					if (strpos($fieldInfo['fieldAlias'], '.') === false) {
+					if (strpos($fieldInfo['fieldAlias'], '.') === FALSE) {
 						$theAlias = $fieldInfo['tableAlias'] . '$' . $fieldInfo['fieldAlias'];
 					}
 						// Case 4b-2
@@ -415,12 +421,40 @@ class tx_dataquery_parser {
 	 * @return	void
 	 */
 	public function addTypo3Mechanisms() {
+			// Add enable fields conditions
+		$this->addEnableFieldsCondition();
+			// Assemble a list of all currently selected fields for each table,
+			// skipping function calls (which can't be overlayed anyway)
+			// This is used by the next two methods, which may add some necessary fields,
+			// if not present already
+		$fieldsPerTable = array();
+		foreach ($this->queryFields as $alias => $tableData) {
+			$fieldsPerTable[$alias] = array();
+			foreach ($tableData['fields'] as $fieldData) {
+				if (!$fieldData['function']) {
+					$fieldsPerTable[$alias][] = $fieldData['name'];
+				}
+			}
+		}
+			// Add language-related conditions
+		$this->addLanguageCondition($fieldsPerTable);
+			// Add versioning-related conditions
+		$this->addVersioningCondition($fieldsPerTable);
+	}
 
-			// Add the enable fields, first to the main table
+	/**
+	 * This method adds all SQL conditions needed to enforce the enable fields for
+	 * all tables involved
+	 *
+	 * @return	void
+	 */
+	protected function addEnableFieldsCondition() {
+			// First check if enable fields must really be added or should be ignored
 		if ($this->providerData['ignore_enable_fields'] == '0' || $this->providerData['ignore_enable_fields'] == '2') {
 
 			$this->initializeIgnoreEnableFields();
 
+				// Start with main table
 				// Define parameters for enable fields condition
 			$trueTableName = $this->queryObject->aliases[$this->queryObject->mainTable];
 			$showHidden = ($trueTableName == 'pages') ? $GLOBALS['TSFE']->showHiddenPage : $GLOBALS['TSFE']->showHiddenRecords;
@@ -428,8 +462,12 @@ class tx_dataquery_parser {
 
 			$enableClause = tx_overlays::getEnableFieldsCondition($trueTableName, $showHidden, $ignoreArray);
 				// Replace the true table name by its alias if necessary
+				// NOTE: there's a risk that a field containing the table name might be modified abusively
+				// There's no real way around it except changing tx_overlays::getEnableFieldsCondition()
+				// to reimplement a better t3lib_page::enableFields()
+				// Adding the "." in the replacement reduces the risks
 			if ($this->queryObject->mainTable != $trueTableName) {
-				$enableClause = str_replace($trueTableName, $this->queryObject->mainTable, $enableClause);
+				$enableClause = str_replace($trueTableName . '.', $this->queryObject->mainTable . '.', $enableClause);
 			}
 			$this->addWhereClause($enableClause);
 
@@ -445,7 +483,7 @@ class tx_dataquery_parser {
 					$enableClause = tx_overlays::getEnableFieldsCondition($table, $showHidden, $ignoreArray);
 					if (!empty($enableClause)) {
 						if ($table != $joinData['alias']) {
-							$enableClause = str_replace($table, $joinData['alias'], $enableClause);
+							$enableClause = str_replace($table . '.', $joinData['alias'] . '.', $enableClause);
 						}
 						if (!empty($this->queryObject->structure['JOIN'][$tableIndex]['on'])) {
 							$this->queryObject->structure['JOIN'][$tableIndex]['on'] .= ' AND ';
@@ -455,7 +493,17 @@ class tx_dataquery_parser {
 				}
 			}
 		}
+	}
 
+	/**
+	 * Add SQL conditions related to language handling
+	 * Also add the necessary fields to the list of SELECTed fields
+	 *
+	 * @param	array	$fieldsPerTable: List of all fields already SELECTed, per table
+	 *
+	 * @return	void
+	 */
+	protected function addLanguageCondition($fieldsPerTable) {
 			// Add the language condition, if necessary
 		if (empty($this->providerData['ignore_language_handling']) && !$this->queryObject->structure['DISTINCT']) {
 
@@ -463,7 +511,7 @@ class tx_dataquery_parser {
 				// as per the standard TYPO3 mechanism
 				// Loop on all tables involved
 			foreach ($this->queryFields as $alias => $tableData) {
-				$table = $tableData['table'];
+				$table = $tableData['name'];
 
 					// First check which handling applies, based on existing TCA structure
 					// The table must at least have a language field or point to a foreign table for translation
@@ -472,31 +520,20 @@ class tx_dataquery_parser {
 						// The table uses translations in the same table (transOrigPointerField) or in a foreign table (transForeignTable)
 						// Prepare for overlays
 					if (isset($GLOBALS['TCA'][$table]['ctrl']['transOrigPointerField']) || isset($GLOBALS['TCA'][$table]['ctrl']['transForeignTable'])) {
-							// Assemble a list of all fields for the table,
-							// skipping function calls (which can't be overlayed anyway)
-						$fields = array();
-						foreach ($tableData['fields'] as $fieldData) {
-							if (!$fieldData['function']) {
-								$fields[] = $fieldData['name'];
-							}
-						}
 							// For each table, make sure that the fields necessary for handling the language overlay are included in the list of selected fields
 						try {
-							$fieldsForOverlayArray = tx_overlays::selectOverlayFieldsArray($table, implode(',', $fields));
+							$fieldsForOverlayArray = tx_overlays::selectOverlayFieldsArray($table, implode(',', $fieldsPerTable[$alias]));
 								// Extract which fields were added and add them to the list of fields to select
-							$addedFields = array_diff($fieldsForOverlayArray, $fields);
+							$addedFields = array_diff($fieldsForOverlayArray, $fieldsPerTable[$alias]);
 							if (count($addedFields) > 0) {
 								foreach ($addedFields as $aField) {
 									$this->addExtraField($aField, $alias, $table);
 								}
 							}
-							$this->doOverlays[$table] = true;
+							$this->doOverlays[$table] = TRUE;
 								// Add the language condition for the given table (only for tables containing their own translations)
 							if (isset($GLOBALS['TCA'][$table]['ctrl']['transOrigPointerField'])) {
-								$languageCondition = '(' . tx_overlays::getLanguageCondition($table) . ')';
-								if ($table != $alias) {
-									$languageCondition = str_replace($table, $alias, $languageCondition);
-								}
+								$languageCondition = '(' . tx_overlays::getLanguageCondition($table, $alias) . ')';
 								if ($alias == $this->queryObject->mainTable) {
 									$this->addWhereClause($languageCondition);
 								} else {
@@ -508,7 +545,7 @@ class tx_dataquery_parser {
 							}
 						}
 						catch (Exception $e) {
-							$this->doOverlays[$table] = false;
+							$this->doOverlays[$table] = FALSE;
 						}
 					}
 
@@ -531,13 +568,48 @@ class tx_dataquery_parser {
 				}
 			}
 		}
-			// Add workspace condition (always)
-			// Make sure to take only records from live workspace
-			// NOTE: Other workspaces are not handled, preview will not work
+//t3lib_div::debug($this->doOverlays);
+	}
+
+	/**
+	 * Add SQL conditions related version handling
+	 * Also add the necessary fields to the list of SELECTed fields
+	 * Contrary to the other conditions, versioning conditions are always added,
+	 * if only to make sure that only LIVE records are selected
+	 *
+	 * @param	array	$fieldsPerTable: List of all fields already SELECTed, per table
+	 *
+	 * @return	void
+	 */
+	protected function addVersioningCondition($fieldsPerTable) {
 		foreach ($this->queryFields as $alias => $tableData) {
-			$table = $tableData['table'];
+			$table = $tableData['name'];
+			$this->doVersioning[$table] = FALSE;
+
+				// Continue if table indeed supports versioning
 			if (!empty($GLOBALS['TCA'][$table]['ctrl']['versioningWS'])) {
+					// By default make sure to take only LIVE version
 				$workspaceCondition = $alias . ".t3ver_oid = '0'";
+					// If in preview mode, assemble condition according to current workspace
+				if ($GLOBALS['TSFE']->sys_page->versioningPreview) {
+						// For each table, make sure that the fields necessary for handling the language overlay are included in the list of selected fields
+					try {
+						$fieldsForOverlayArray = tx_overlays::selectVersioningFieldsArray($table, implode(',', $fieldsPerTable[$alias]));
+							// Extract which fields were added and add them to the list of fields to select
+						$addedFields = array_diff($fieldsForOverlayArray, $fieldsPerTable[$alias]);
+						if (count($addedFields) > 0) {
+							foreach ($addedFields as $aField) {
+								$this->addExtraField($aField, $alias, $table);
+							}
+						}
+						$this->doVersioning[$table] = TRUE;
+						$workspaceCondition = tx_overlays::getVersioningCondition($table, $alias);
+					}
+					catch (Exception $e) {
+						$this->doVersioning[$table] = FALSE;
+							// TODO: this should be logged to indicated that we are falling back to LIVE records
+					}
+				}
 				if ($alias == $this->queryObject->mainTable) {
 					$this->addWhereClause($workspaceCondition);
 				} else {
@@ -548,7 +620,7 @@ class tx_dataquery_parser {
 				}
 			}
 		}
-//t3lib_div::debug($this->doOverlays);
+//t3lib_div::debug($this->doVersioning);
 	}
 
 	/**
