@@ -42,13 +42,6 @@ class tx_dataquery_sqlbuilder_Workspace_Test extends tx_dataquery_sqlbuilder_Tes
 	 */
 	public function setUp() {
 		parent::setUp();
-			// The base conditions is different in the case of workspaces, because
-			// versioning preview deactivates most of the enable fields check
-		$condition = 'WHERE tt_content.deleted=0 AND (tt_content.sys_language_uid IN (0,-1))';
-			// Add workspace condition, assuming Draft workspace (= -1)
-			// TODO: note the double space just after the "AND" below. Check where it comes from and try to avoid it.
-		$condition .= ' AND  (tt_content.t3ver_state <= 0 AND tt_content.t3ver_oid = 0) OR (tt_content.t3ver_state = 1 AND tt_content.t3ver_wsid = -1) OR (tt_content.t3ver_state = 3 AND tt_content.t3ver_wsid = -1) ';
-		self::$baseConditionForTTContent = $condition;
 
 			// Add version state to the SELECT fields
 		$this->additionalFields[] = 't3ver_state';
@@ -58,6 +51,16 @@ class tx_dataquery_sqlbuilder_Workspace_Test extends tx_dataquery_sqlbuilder_Tes
 			// Save current workspace (should the LIVE one really) and switch to Draft
 		$this->saveWorkspaceValue = $GLOBALS['BE_USER']->workspace;
 		$GLOBALS['BE_USER']->workspace = -1;
+
+			// The base condition is different in the case of workspaces, because
+			// versioning preview deactivates most of the enable fields check
+		self::$baseConditionForTTContent = 'WHERE tt_content.deleted=0 ';
+			// Reset language condition which might have been altered by language unit test
+		self::$baseLanguageConditionForTTContent = 'AND (tt_content.sys_language_uid IN (0,-1)) ';
+			// Add workspace condition, assuming Draft workspace (= -1)
+			// TODO: note the double space just after the "AND" below. Check where it comes from and try to avoid it.
+		self::$baseWorkspaceConditionForTTContent = 'AND  (tt_content.t3ver_state <= 0 AND tt_content.t3ver_oid = 0) OR (tt_content.t3ver_state = 1 AND tt_content.t3ver_wsid = -1) OR (tt_content.t3ver_state = 3 AND tt_content.t3ver_wsid = -1) ';
+		self::$fullConditionForTTContent = self::$baseConditionForTTContent . self::$baseLanguageConditionForTTContent . self::$baseWorkspaceConditionForTTContent;
 	}
 
 	/**

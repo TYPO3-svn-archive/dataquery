@@ -34,43 +34,6 @@
 class tx_dataquery_sqlbuilder_Default_Test extends tx_dataquery_sqlbuilder_Test {
 
 	/**
-	 * Parse and rebuild a SELECT query with an id list
-	 *
-	 * @test
-	 */
-	public function selectQueryWithIdList() {
-		$expectedResult = 'SELECT tt_content.uid, tt_content.header, tt_content.pid FROM tt_content AS tt_content WHERE tt_content.uid IN (1,12) ';
-			/**
-			 * @var tx_dataquery_parser	$parser
-			 */
-		$parser = t3lib_div::makeInstance('tx_dataquery_parser');
-		$query = 'SELECT uid,header FROM tt_content';
-		$parser->parseQuery($query);
-		$parser->addIdList('1,tt_content_12');
-		$actualResult = $parser->buildQuery();
-			// Check if the "structure" part is correct
-		$this->assertEquals($expectedResult, $actualResult);
-	}
-
-	/**
-	 * Parse and rebuild a SELECT query with an id list
-	 *
-	 * @test
-	 */
-	public function selectQueryWithUidAsAlias() {
-		$expectedResult = 'SELECT DISTINCT tt_content.CType AS uid FROM tt_content AS tt_content ';
-			/**
-			 * @var tx_dataquery_parser	$parser
-			 */
-		$parser = t3lib_div::makeInstance('tx_dataquery_parser');
-		$query = 'SELECT DISTINCT CType AS uid FROM tt_content';
-		$parser->parseQuery($query);
-		$actualResult = $parser->buildQuery();
-			// Check if the "structure" part is correct
-		$this->assertEquals($expectedResult, $actualResult);
-	}
-
-	/**
 	 * Parse and rebuild a simple SELECT query and test value of ignore_enable_fields set to 0,
 	 * i.e. enable fields are not ignored at all
 	 *
