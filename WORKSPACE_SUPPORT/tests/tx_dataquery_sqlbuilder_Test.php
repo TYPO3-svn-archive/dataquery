@@ -156,7 +156,9 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 		$parser->parseQuery($query);
 		$parser->setProviderData($this->settings);
 		$parser->addTypo3Mechanisms();
-		$parser->addIdList('1,tt_content_12');
+			// Add the id list
+			// NOTE: "pages_3" is expected to be ignored, as the "pages" table is not being queried
+		$parser->addIdList('1,tt_content_12,pages_3');
 		$actualResult = $parser->buildQuery();
 			// Check if the "structure" part is correct
 		$this->assertEquals($expectedResult, $actualResult);
