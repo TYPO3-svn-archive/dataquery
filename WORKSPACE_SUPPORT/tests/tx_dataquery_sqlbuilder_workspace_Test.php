@@ -23,7 +23,7 @@
 ***************************************************************/
 
 /**
- * Testcase for the Data Query query builder
+ * Testcase for the Data Query query builder in the Draft workspace
  *
  * @author		Francois Suter <typo3@cobweb.ch>
  * @package		TYPO3
