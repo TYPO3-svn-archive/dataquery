@@ -58,8 +58,7 @@ class tx_dataquery_sqlbuilder_Workspace_Test extends tx_dataquery_sqlbuilder_Tes
 			// Reset language condition which might have been altered by language unit test
 		self::$baseLanguageConditionForTTContent = 'AND (tt_content.sys_language_uid IN (0,-1)) ';
 			// Add workspace condition, assuming Draft workspace (= -1)
-			// TODO: note the double space just after the "AND" below. Check where it comes from and try to avoid it.
-		self::$baseWorkspaceConditionForTTContent = 'AND  (tt_content.t3ver_state <= 0 AND tt_content.t3ver_oid = 0) OR (tt_content.t3ver_state = 1 AND tt_content.t3ver_wsid = -1) OR (tt_content.t3ver_state = 3 AND tt_content.t3ver_wsid = -1) ';
+		self::$baseWorkspaceConditionForTTContent = 'AND (tt_content.t3ver_state <= 0 AND tt_content.t3ver_oid = 0) OR (tt_content.t3ver_state = 1 AND tt_content.t3ver_wsid = -1) OR (tt_content.t3ver_state = 3 AND tt_content.t3ver_wsid = -1) ';
 		self::$fullConditionForTTContent = self::$baseConditionForTTContent . self::$baseLanguageConditionForTTContent . self::$baseWorkspaceConditionForTTContent;
 	}
 
