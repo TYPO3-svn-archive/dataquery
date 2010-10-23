@@ -209,9 +209,9 @@ class tx_dataquery_sqlparser {
 			// First, check if the select string starts with "DISTINCT"
 			// If yes, remove that and set the distinct flag to true
 		$distinctPosition = strpos($select, 'DISTINCT');
-		if ($distinctPosition !== FALSE) {
+		if ($distinctPosition === 0) {
 			$this->queryObject->structure['DISTINCT'] = TRUE;
-			$croppedString = substr($select, $distinctPosition + 8);
+			$croppedString = substr($select, 8);
 			$select = trim($croppedString);
 		}
 			// Next, parse the rest of the string character by character

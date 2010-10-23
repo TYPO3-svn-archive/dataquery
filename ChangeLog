@@ -1,4 +1,8 @@
-2010-09-27 Francois Suter (Cobweb) <typo3@cobweb.ch>
+2010-10-23 Francois Suter (Cobweb) <typo3@cobweb.ch>
+
+	* Corrected detection of DISTINCT keyword in SQL parser, resolves #10318
+
+2010-09-28 Francois Suter (Cobweb) <typo3@cobweb.ch>
 
 	* Corrected support for array-type filter values
 
