@@ -1076,7 +1076,7 @@ t3lib_div::debug($this->queryObject->structure['SELECT'], 'Updated select struct
 	 * This method is used to add an extra field to be SELECTed
 	 * It must be added to the SELECT list, to the list of fields being queried
 	 * and to the registry of true names
-	 * 
+	 *
 	 * @param	string	$field: name of the field to add
 	 * @param	string	$tableAlias: alias of the table to add the field to
 	 * @param	string	$table: true name of the table to add the field to
@@ -1215,6 +1215,17 @@ t3lib_div::debug($this->queryObject->structure['SELECT'], 'Updated select struct
 	 */
 	public function mustHandleLanguageOverlay($table) {
 		return (isset($this->doOverlays[$table])) ? $this->doOverlays[$table] : FALSE;
+	}
+
+	/**
+	 * This method indicates whether the language overlay mechanism must/can be handled for a given table
+	 *
+	 * @param	string		$table: true name of the table to handle
+	 * @return	boolean		true if language overlay must and can be performed, false otherwise
+	 * @see tx_dataquery_parser::addTypo3Mechanisms()
+	 */
+	public function mustHandleVersioningOverlay($table) {
+		return (isset($this->doVersioning[$table])) ? $this->doVersioning[$table] : FALSE;
 	}
 
 	/**
