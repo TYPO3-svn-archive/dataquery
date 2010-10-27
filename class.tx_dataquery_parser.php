@@ -485,10 +485,7 @@ class tx_dataquery_parser {
 						if ($table != $joinData['alias']) {
 							$enableClause = str_replace($table . '.', $joinData['alias'] . '.', $enableClause);
 						}
-						if (!empty($this->queryObject->structure['JOIN'][$tableIndex]['on'])) {
-							$this->queryObject->structure['JOIN'][$tableIndex]['on'] .= ' AND ';
-						}
-						$this->queryObject->structure['JOIN'][$tableIndex]['on'] .= '('.$enableClause.')';
+						$this->addOnClause($enableClause, $table);
 					}
 				}
 			}
@@ -533,14 +530,11 @@ class tx_dataquery_parser {
 							$this->doOverlays[$table] = TRUE;
 								// Add the language condition for the given table (only for tables containing their own translations)
 							if (isset($GLOBALS['TCA'][$table]['ctrl']['transOrigPointerField'])) {
-								$languageCondition = '(' . tx_overlays::getLanguageCondition($table, $alias) . ')';
+								$languageCondition = tx_overlays::getLanguageCondition($table, $alias);
 								if ($alias == $this->queryObject->mainTable) {
 									$this->addWhereClause($languageCondition);
 								} else {
-									if (!empty($this->queryObject->structure['JOIN'][$alias]['on'])) {
-										$this->queryObject->structure['JOIN'][$alias]['on'] .= ' AND ';
-									}
-									$this->queryObject->structure['JOIN'][$alias]['on'] .= $languageCondition;
+									$this->addOnClause($languageCondition, $alias);
 								}
 							}
 						}
@@ -559,10 +553,7 @@ class tx_dataquery_parser {
 						if ($alias == $this->queryObject->mainTable) {
 							$this->addWhereClause($languageCondition);
 						} else {
-							if (!empty($this->queryObject->structure['JOIN'][$alias]['on'])) {
-								$this->queryObject->structure['JOIN'][$alias]['on'] .= ' AND ';
-							}
-							$this->queryObject->structure['JOIN'][$alias]['on'] .= '(' . $languageCondition . ')';
+							$this->addOnClause($languageCondition, $alias);
 						}
 					}
 				}
@@ -613,10 +604,7 @@ class tx_dataquery_parser {
 				if ($alias == $this->queryObject->mainTable) {
 					$this->addWhereClause($workspaceCondition);
 				} else {
-					if (!empty($this->queryObject->structure['JOIN'][$alias]['on'])) {
-						$this->queryObject->structure['JOIN'][$alias]['on'] .= ' AND ';
-					}
-					$this->queryObject->structure['JOIN'][$alias]['on'] .= '(' . $workspaceCondition . ')';
+					$this->addOnClause($workspaceCondition, $alias);
 				}
 			}
 		}
@@ -888,7 +876,7 @@ class tx_dataquery_parser {
 				if (!empty($whereClause)) {
 					$whereClause .= ' AND ';
 				}
-				$whereClause .= $clause;
+				$whereClause .= '(' . $clause . ')';
 			}
 			$query .= 'WHERE ' . $whereClause . ' ';
 		}
@@ -1110,6 +1098,20 @@ t3lib_div::debug($this->queryObject->structure['SELECT'], 'Updated select struct
 		if (!empty($clause)) {
 			$this->queryObject->structure['WHERE'][] = $clause;
 		}
+	}
+
+	/**
+	 * Add a condition to the ON clause of a given table
+	 *
+	 * @param	string	$clause: SQL to add to the ON clause
+	 * @param	string	$alias: alias of the table to the statement to
+	 * @return	void
+	 */
+	public function addOnClause($clause, $alias) {
+		if (!empty($this->queryObject->structure['JOIN'][$alias]['on'])) {
+			$this->queryObject->structure['JOIN'][$alias]['on'] .= ' AND ';
+		}
+		$this->queryObject->structure['JOIN'][$alias]['on'] .= '(' . $clause . ')';
 	}
 
 	/**
