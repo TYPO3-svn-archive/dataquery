@@ -54,11 +54,11 @@ class tx_dataquery_sqlbuilder_Workspace_Test extends tx_dataquery_sqlbuilder_Tes
 
 			// The base condition is different in the case of workspaces, because
 			// versioning preview deactivates most of the enable fields check
-		self::$baseConditionForTTContent = 'WHERE tt_content.deleted=0 ';
+		self::$baseConditionForTTContent = 'WHERE (tt_content.deleted=0) ';
 			// Reset language condition which might have been altered by language unit test
 		self::$baseLanguageConditionForTTContent = 'AND (tt_content.sys_language_uid IN (0,-1)) ';
 			// Add workspace condition, assuming Draft workspace (= -1)
-		self::$baseWorkspaceConditionForTTContent = 'AND (tt_content.t3ver_state <= 0 AND tt_content.t3ver_oid = 0) OR (tt_content.t3ver_state = 1 AND tt_content.t3ver_wsid = -1) OR (tt_content.t3ver_state = 3 AND tt_content.t3ver_wsid = -1) ';
+		self::$baseWorkspaceConditionForTTContent = 'AND ((tt_content.t3ver_state <= 0 AND tt_content.t3ver_oid = 0) OR (tt_content.t3ver_state = 1 AND tt_content.t3ver_wsid = -1) OR (tt_content.t3ver_state = 3 AND tt_content.t3ver_wsid = -1)) ';
 		self::$fullConditionForTTContent = self::$baseConditionForTTContent . self::$baseLanguageConditionForTTContent . self::$baseWorkspaceConditionForTTContent;
 	}
 
