@@ -78,6 +78,22 @@
 				Checking this box generally makes sense only in a site with a single language.
 				It can also be used in special situations when the language selection is written in the SQL query itself, or when querying tables that may not follow the usual TYPO3 language handling pattern.
 			</label>
+			<label index="get_versions_directly.description">List tables for which to get the version overlays straightaway rather than the placeholder records.</label>
+			<label index="get_versions_directly.details">
+				By default Data Query will get the placeholders for new or modified records and then overlay these with the appropriate workspace version.
+
+				However if your query contains JOINs between versioned records, the chances are that the relations between those records is found only in the workspace version of the record and not the placeholder. In such a case, the workspace version should be selected directly be entering the relevant table names in that field.
+
+				NOTE: this feature should be considered as still experimental. It has been tested successfully in some situations, but some other scenarios may not be covered.
+			</label>
+			<label index="get_versions_directly.seeAlso">TYPO3 Core API | http://typo3.org/documentation/document-library/core-documentation/doc_core_api/current/</label>
+			<label index="get_versions_directly.syntax">
+				Enter a comma-separated list of table names, e.g.
+
+				pages,tt_content
+
+				Use "*" to apply this parameter all tables. On the contrary, leave blank for applying it to none.
+			</label>
 		</languageKey>
 	</data>
 </T3locallang>

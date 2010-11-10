@@ -19,9 +19,10 @@
 			<label index="tx_dataquery_queries.ignore_enable_fields.I.2">Ignore some fields for some tables (defined below)</label>
 			<label index="tx_dataquery_queries.ignore_time_for_tables">Ignore start time and end time condition for tables:</label>
 			<label index="tx_dataquery_queries.ignore_disabled_for_tables">Ignore "hidden" field for tables:</label>
-			<label index="tx_dataquery_queries.ignore_fegroup_for_tables">Ignore access rights for table:</label>
+			<label index="tx_dataquery_queries.ignore_fegroup_for_tables">Ignore access rights for tables:</label>
 			<label index="tx_dataquery_queries.ignore_language_handling">Language handling</label>
 			<label index="tx_dataquery_queries.ignore_language_handling.I.0">Ignore language handling (show records from all languages)</label>
+			<label index="tx_dataquery_queries.get_versions_directly">Directly get version overlays for tables:</label>
 			<label index="wizards.add_dataquery">Add a new Data Query</label>
 			<label index="tx_datafilter_filters.tx_dataquery_sql">Additional SQL WHERE clause</label>
 			<label index="sql">SQL</label>
@@ -42,6 +43,7 @@
 			<label index="tx_dataquery_queries.ignore_fegroup_for_tables">Ignorer les droits d'accès pour les tables:</label>
 			<label index="tx_dataquery_queries.ignore_language_handling">Ignorer les langues</label>
 			<label index="tx_dataquery_queries.ignore_language_handling.I.0">Ne pas considérer les critères de langue (afficher les enregistrements de toutes les langues)</label>
+			<label index="tx_dataquery_queries.get_versions_directly">Sélectionner directement les versions de travail pour les tables:</label>
 			<label index="wizards.add_dataquery">Ajouter une nouvelle requête</label>
 			<label index="tx_datafilter_filters.tx_dataquery_sql">Clause SQL WHERE additionnelle</label>
 			<label index="sql">SQL</label>

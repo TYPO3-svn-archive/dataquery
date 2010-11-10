@@ -356,13 +356,19 @@ class tx_dataquery_parser {
     }
 
 	/**
-	 * Set data
+	 * Set the data coming from the Data Provider class
 	 *
-	 * @param	array		$data: database record corresponding to the current Data Query
+	 * @param	array		$data: database record corresponding to the current Data Query record
 	 * @return	void
 	 */
 	public function setProviderData($providerData) {
 		$this->providerData = $providerData;
+			// Perform some processing on some fields
+			// Mostly this is about turning into arrays the fields containing comma-separated values
+		$this->providerData['ignore_time_for_tables_exploded'] = t3lib_div::trimExplode(',', $this->providerData['ignore_time_for_tables']);
+		$this->providerData['ignore_disabled_for_tables_exploded'] = t3lib_div::trimExplode(',', $this->providerData['ignore_disabled_for_tables']);
+		$this->providerData['ignore_fegroup_for_tables_exploded'] = t3lib_div::trimExplode(',', $this->providerData['ignore_fegroup_for_tables']);
+		$this->providerData['get_versions_directly_exploded'] = t3lib_div::trimExplode(',', $this->providerData['get_versions_directly']);
 	}
 
 	/**
@@ -405,10 +411,7 @@ class tx_dataquery_parser {
 	 *
 	 * @return	void
 	 */
-	protected function initializeIgnoreEnableFields() {
-		$this->providerData['ignore_time_for_tables_exploded'] = t3lib_div::trimExplode(',', $this->providerData['ignore_time_for_tables']);
-		$this->providerData['ignore_disabled_for_tables_exploded'] = t3lib_div::trimExplode(',', $this->providerData['ignore_disabled_for_tables']);
-		$this->providerData['ignore_fegroup_for_tables_exploded'] = t3lib_div::trimExplode(',', $this->providerData['ignore_fegroup_for_tables']);
+	protected function preprocessProviderData() {
 	}
 
 	/**
@@ -451,8 +454,6 @@ class tx_dataquery_parser {
 	protected function addEnableFieldsCondition() {
 			// First check if enable fields must really be added or should be ignored
 		if ($this->providerData['ignore_enable_fields'] == '0' || $this->providerData['ignore_enable_fields'] == '2') {
-
-			$this->initializeIgnoreEnableFields();
 
 				// Start with main table
 				// Define parameters for enable fields condition
@@ -594,7 +595,11 @@ class tx_dataquery_parser {
 							}
 						}
 						$this->doVersioning[$table] = TRUE;
-						$workspaceCondition = tx_overlays::getVersioningCondition($table, $alias);
+						$getVersionsDirectly = FALSE;
+						if ($this->providerData['get_versions_directly'] == '*' || in_array($alias, $this->providerData['get_versions_directly_exploded'])) {
+							$getVersionsDirectly = TRUE;
+						}
+						$workspaceCondition = tx_overlays::getVersioningCondition($table, $alias, $getVersionsDirectly);
 					}
 					catch (Exception $e) {
 						$this->doVersioning[$table] = FALSE;
