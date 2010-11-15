@@ -1,3 +1,8 @@
+2010-11-15 Francois Suter (Cobweb) <typo3@cobweb.ch>
+
+	* Improved messages from query validation, resolves #10482
+	* Corrected data structure building when primary keys are not continuous, resolves #10641
+
 2010-10-23 Francois Suter (Cobweb) <typo3@cobweb.ch>
 
 	* Corrected detection of DISTINCT keyword in SQL parser, resolves #10318

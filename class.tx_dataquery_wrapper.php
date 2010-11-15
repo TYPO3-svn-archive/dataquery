@@ -447,10 +447,11 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 				// This is necessary for such operations as overlays. When overlays are done, tables will be joined again
 				// but within the format of Standardised Data Structure
 			$oldUID = 0;
+			$handledUids = array();
 			foreach ($finalRecordset as $row) {
 				$currentUID = $row['uid'];
-					// If we're not handling the same main record as before, perform some initialisations
-				if ($currentUID !== $oldUID) {
+					// If we're handling a record we haven't handled before, perform some initialisations
+				if (!array_key_exists($currentUID, $handledUids)) {
 					if ($numSubtables > 0) {
 						foreach ($subtables as $table) {
 							$rows[$table][$currentUID] = array();
@@ -485,10 +486,10 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 						}
 					}
 				}
-					// If we're not handling the same main record as before, store the current information for the main table
-				if ($currentUID !== $oldUID) {
+					// If we're handling a record we haven't handled before, store the current information for the main table
+				if (!array_key_exists($currentUID, $handledUids)) {
 					$rows[$this->mainTable][0][] = $recordsPerTable[$this->mainTable];
-					$oldUID = $currentUID;
+					$handledUids[$currentUID] = $currentUID;
 				}
 					// Store information for each subtable
 				if ($numSubtables > 0) {
