@@ -84,7 +84,8 @@ class tx_dataquery_Ajax {
 				// The query parsing failed, issue error message
 			$parsingSeverity = t3lib_FlashMessage::ERROR;
 			$parsingTitle = $GLOBALS['LANG']->sL('LLL:EXT:dataquery/locallang.xml:query.failure');
-			$parsingMessage = $e->getMessage();
+			$exceptionCode = $e->getCode();
+			$parsingMessage = $GLOBALS['LANG']->sL('LLL:EXT:dataquery/locallang.xml:query.exception-' . $exceptionCode);
 		}
 			// Render parsing result as flash message
 		$flashMessage = t3lib_div::makeInstance(
