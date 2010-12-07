@@ -36,7 +36,7 @@ class tx_dataquery_Ajax {
 	/**
 	 * This method returns the parsed query through dataquery parser
 	 * or error messages from exceptions should any have been thrown
-	 * during query parsin
+	 * during query parsing
 	 *
 	 * @param	array		$params: empty array (yes, that's weird but true)
 	 * @param	TYPO3AJAX	$ajaxObj: back-reference to the calling object
