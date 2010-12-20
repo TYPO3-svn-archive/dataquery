@@ -34,11 +34,19 @@
  * $Id$
  */
 class tx_dataquery_parser {
+	static public $extKey = 'dataquery';
+
 		/**
 		 * List of eval types which indicate non-text fields
 		 * @var	array	$notTextTypes
 		 */
 	static protected $notTextTypes = array('date', 'datetime', 'time', 'timesec', 'year', 'num', 'md5', 'int', 'double2');
+
+		/**
+		 * Unserialized extension configuration
+		 * @var array	$configuration
+		 */
+	protected $configuration;
 
 		/**
 		 * Structured type containing the parts of the parsed query
@@ -72,9 +80,19 @@ class tx_dataquery_parser {
 	protected $isMergedResult = FALSE;
 
 		/**
+		 * Cache array to store table name matches (@see matchAliasOrTableNeme())
+		 * @var array
+		 */
+	protected $tableMatches = array();
+
+		/**
 		 * @var array $data: database record corresponding to the current Data Query
 		 */
 	protected $providerData;
+
+	public function  __construct() {
+		$this->configuration = unserialize($GLOBALS['TYPO3_CONF_VARS']['EXT']['extConf']['dataquery']);
+	}
 
 	/**
 	 * This method is used to parse a SELECT SQL query.
@@ -215,7 +233,7 @@ class tx_dataquery_parser {
         	}
         }
 //t3lib_div::debug($this->queryObject->aliases, 'Table aliases');
-//t3lib_div::debug($this->fieldAliases, 'Field aliases');
+//t3lib_div::debug($this->queryObject->fieldAliases, 'Field aliases');
 //t3lib_div::debug($this->fieldTrueNames, 'Field true names');
 //t3lib_div::debug($this->queryFields, 'Query fields');
 //t3lib_div::debug($this->queryObject->structure, 'Structure');
@@ -563,102 +581,80 @@ class tx_dataquery_parser {
 		$completeFilters = array();
 		$logicalOperator = (empty($filter['logicalOperator'])) ? 'AND' : $filter['logicalOperator'];
 		if (isset($filter['filters']) && is_array($filter['filters'])) {
-			foreach ($filter['filters'] as $filterData) {
+			foreach ($filter['filters'] as $index => $filterData) {
+				$ignoreCondition = FALSE;
 				$table = (empty($filterData['table'])) ? $this->queryObject->mainTable : $filterData['table'];
-				$field = $filterData['field'];
-				$fullField = $table . '.' . $field;
-					// If the field is an alias, override full field definition
-					// to whatever the alias is mapped to
-				if (isset($this->queryObject->fieldAliasMappings[$field])) {
-					$fullField = $this->queryObject->fieldAliasMappings[$field];
+					// Check if the table is available in the query
+				try {
+					$table = $this->matchAliasOrTableName($table, 'Filter - ' . ((empty($filterData['string'])) ? $index : $filterData['string']));
 				}
-				$condition = '';
-					// Define table on which to apply the condition
-					// Conditions will normally be applied in the WHERE clause
-					// if the table is the main one, otherwise it is applied
-					// in the ON clause of the relevant JOIN statement
-					// However the application of the condition may be forced to be in the WHERE clause,
-					// no matter which table it targets
-				$tableForApplication = $table;
-				if ($filterData['main']) {
-					$tableForApplication = $this->queryObject->mainTable;
+				catch (tx_tesseract_exception $e) {
+					$ignoreCondition = TRUE;
 				}
-				foreach ($filterData['conditions'] as $conditionData) {
-					if (!empty($condition)) {
-						$condition .= ' AND ';
+					// If the table is not in the query, ignore the condition
+				if (!$ignoreCondition) {
+					$field = $filterData['field'];
+					$fullField = $table . '.' . $field;
+						// If the field is an alias, override full field definition
+						// to whatever the alias is mapped to
+					if (isset($this->queryObject->fieldAliasMappings[$field])) {
+						$fullField = $this->queryObject->fieldAliasMappings[$field];
 					}
-						// Some operators require a bit more handling
-						// "in" values just need to be put within brackets
-					if ($conditionData['operator'] == 'in') {
-							// If the condition value is an array, use it as is
-							// Otherwise assume a comma-separated list of values and explode it
-						$conditionParts = $conditionData['value'];
-						if (!is_array($conditionParts)) {
-							$conditionParts = t3lib_div::trimExplode(',', $conditionData['value'], TRUE);
+					$condition = '';
+						// Define table on which to apply the condition
+						// Conditions will normally be applied in the WHERE clause
+						// if the table is the main one, otherwise it is applied
+						// in the ON clause of the relevant JOIN statement
+						// However the application of the condition may be forced to be in the WHERE clause,
+						// no matter which table it targets
+					$tableForApplication = $table;
+					if ($filterData['main']) {
+						$tableForApplication = $this->queryObject->mainTable;
+					}
+					foreach ($filterData['conditions'] as $conditionData) {
+						if (!empty($condition)) {
+							$condition .= ' AND ';
 						}
-						$escapedParts = array();
-						foreach ($conditionParts as $value) {
-							$escapedParts[] = $GLOBALS['TYPO3_DB']->fullQuoteStr($value, $table);
-						}
-						$condition .= $fullField . ' IN (' . implode(',', $escapedParts) . ')';
-
-						// "andgroup" and "orgroup" require more handling
-						// The associated value is a list of comma-separated values and each of these values must be handled separately
-						// Furthermore each value will be tested against a comma-separated list of values too, so the test is not so simple
-					} elseif ($conditionData['operator'] == 'andgroup' || $conditionData['operator'] == 'orgroup') {
-							// If the condition value is an array, use it as is
-							// Otherwise assume a comma-separated list of values and explode it
-						$values = $conditionData['value'];
-						if (!is_array($values)) {
-							$values = t3lib_div::trimExplode(',', $conditionData['value'], TRUE);
-						}
-						$localCondition = '';
-						$localOperator = 'OR';
-						if ($conditionData['operator'] == 'andgroup') {
-							$localOperator = 'AND';
-						}
-						foreach ($values as $aValue) {
-							if (!empty($localCondition)) {
-								$localCondition .= ' ' . $localOperator . ' ';
+							// Some operators require a bit more handling
+							// "in" values just need to be put within brackets
+						if ($conditionData['operator'] == 'in') {
+								// If the condition value is an array, use it as is
+								// Otherwise assume a comma-separated list of values and explode it
+							$conditionParts = $conditionData['value'];
+							if (!is_array($conditionParts)) {
+								$conditionParts = t3lib_div::trimExplode(',', $conditionData['value'], TRUE);
 							}
-							$localCondition .= $GLOBALS['TYPO3_DB']->listQuery($fullField, $aValue, $table);
-						}
-						$condition .= $localCondition;
-
-						// If the operator is "like", "start" or "end", the SQL operator is always LIKE, but different wildcards are used
-					} elseif ($conditionData['operator'] == 'like' || $conditionData['operator'] == 'start' || $conditionData['operator'] == 'end') {
-							// Make sure values are an array
-						$values = $conditionData['value'];
-						if (!is_array($values)) {
-							$values = array($conditionData['value']);
-						}
-							// Loop on each value and assemble condition
-						$localCondition = '';
-						foreach ($values as $aValue) {
-							$aValue = $GLOBALS['TYPO3_DB']->escapeStrForLike($aValue, $table);
-							if (!empty($localCondition)) {
-								$localCondition .= ' OR ';
+							$escapedParts = array();
+							foreach ($conditionParts as $value) {
+								$escapedParts[] = $GLOBALS['TYPO3_DB']->fullQuoteStr($value, $table);
 							}
-							$value = '';
-							if ($conditionData['operator'] == 'start') {
-								$value = $aValue . '%';
-							} elseif ($conditionData['operator'] == 'end') {
-								$value = '%' . $aValue;
-							} else {
-								$value = '%' . $aValue . '%';
-							}
-							$localCondition .= $fullField . ' LIKE ' . $GLOBALS['TYPO3_DB']->fullQuoteStr($value, $table);
-						}
-						$condition .= '(' . $localCondition . ')';
+							$condition .= $fullField . ' IN (' . implode(',', $escapedParts) . ')';
 
-						// Other operators are handled simply
-						// We just need to take care of special values: "\empty", "\null" and "\all"
-					} else {
-						$operator = $conditionData['operator'];
-						$quotedValue = '';
-							// If the value is special value "\all", all values must be taken,
-							// so the condition is simply ignored
-						if ($conditionData['value'] != '\all') {
+							// "andgroup" and "orgroup" require more handling
+							// The associated value is a list of comma-separated values and each of these values must be handled separately
+							// Furthermore each value will be tested against a comma-separated list of values too, so the test is not so simple
+						} elseif ($conditionData['operator'] == 'andgroup' || $conditionData['operator'] == 'orgroup') {
+								// If the condition value is an array, use it as is
+								// Otherwise assume a comma-separated list of values and explode it
+							$values = $conditionData['value'];
+							if (!is_array($values)) {
+								$values = t3lib_div::trimExplode(',', $conditionData['value'], TRUE);
+							}
+							$localCondition = '';
+							$localOperator = 'OR';
+							if ($conditionData['operator'] == 'andgroup') {
+								$localOperator = 'AND';
+							}
+							foreach ($values as $aValue) {
+								if (!empty($localCondition)) {
+									$localCondition .= ' ' . $localOperator . ' ';
+								}
+								$localCondition .= $GLOBALS['TYPO3_DB']->listQuery($fullField, $aValue, $table);
+							}
+							$condition .= $localCondition;
+
+							// If the operator is "like", "start" or "end", the SQL operator is always LIKE, but different wildcards are used
+						} elseif ($conditionData['operator'] == 'like' || $conditionData['operator'] == 'start' || $conditionData['operator'] == 'end') {
 								// Make sure values are an array
 							$values = $conditionData['value'];
 							if (!is_array($values)) {
@@ -667,40 +663,73 @@ class tx_dataquery_parser {
 								// Loop on each value and assemble condition
 							$localCondition = '';
 							foreach ($values as $aValue) {
+								$aValue = $GLOBALS['TYPO3_DB']->escapeStrForLike($aValue, $table);
 								if (!empty($localCondition)) {
 									$localCondition .= ' OR ';
 								}
-									// Special value "\empty" means evaluation against empty string
-								if ($conditionData['value'] == '\empty') {
-									$quotedValue = "''";
-
-									// Special value "\null" means evaluation against IS NULL or IS NOT NULL
-								} elseif ($conditionData['value'] == '\null') {
-									if ($operator == '=') {
-										$operator = 'IS';
-									} else {
-										$operator = 'IS NOT';
-									}
-									$quotedValue = 'NULL';
-
-									// Normal value
+								$value = '';
+								if ($conditionData['operator'] == 'start') {
+									$value = $aValue . '%';
+								} elseif ($conditionData['operator'] == 'end') {
+									$value = '%' . $aValue;
 								} else {
-									$quotedValue = $GLOBALS['TYPO3_DB']->fullQuoteStr($aValue, $table);
+									$value = '%' . $aValue . '%';
 								}
-								$localCondition .= $fullField . ' ' . $operator . ' ' . $quotedValue;
+								$localCondition .= $fullField . ' LIKE ' . $GLOBALS['TYPO3_DB']->fullQuoteStr($value, $table);
 							}
 							$condition .= '(' . $localCondition . ')';
+
+							// Other operators are handled simply
+							// We just need to take care of special values: "\empty", "\null" and "\all"
+						} else {
+							$operator = $conditionData['operator'];
+							$quotedValue = '';
+								// If the value is special value "\all", all values must be taken,
+								// so the condition is simply ignored
+							if ($conditionData['value'] != '\all') {
+									// Make sure values are an array
+								$values = $conditionData['value'];
+								if (!is_array($values)) {
+									$values = array($conditionData['value']);
+								}
+									// Loop on each value and assemble condition
+								$localCondition = '';
+								foreach ($values as $aValue) {
+									if (!empty($localCondition)) {
+										$localCondition .= ' OR ';
+									}
+										// Special value "\empty" means evaluation against empty string
+									if ($conditionData['value'] == '\empty') {
+										$quotedValue = "''";
+
+										// Special value "\null" means evaluation against IS NULL or IS NOT NULL
+									} elseif ($conditionData['value'] == '\null') {
+										if ($operator == '=') {
+											$operator = 'IS';
+										} else {
+											$operator = 'IS NOT';
+										}
+										$quotedValue = 'NULL';
+
+										// Normal value
+									} else {
+										$quotedValue = $GLOBALS['TYPO3_DB']->fullQuoteStr($aValue, $table);
+									}
+									$localCondition .= $fullField . ' ' . $operator . ' ' . $quotedValue;
+								}
+								$condition .= '(' . $localCondition . ')';
+							}
 						}
 					}
-				}
-					// Add the condition only if it wasn't empty
-				if (!empty($condition)) {
-					if (empty($completeFilters[$tableForApplication])) {
-						$completeFilters[$tableForApplication] = '';
-					} else {
-						$completeFilters[$tableForApplication] .= ' ' . $logicalOperator . ' ';
+						// Add the condition only if it wasn't empty
+					if (!empty($condition)) {
+						if (empty($completeFilters[$tableForApplication])) {
+							$completeFilters[$tableForApplication] = '';
+						} else {
+							$completeFilters[$tableForApplication] .= ' ' . $logicalOperator . ' ';
+						}
+						$completeFilters[$tableForApplication] .= '(' . $condition . ')';
 					}
-					$completeFilters[$tableForApplication] .= '(' . $condition . ')';
 				}
 			}
 			foreach ($completeFilters as $table => $whereClause) {
@@ -724,10 +753,19 @@ class tx_dataquery_parser {
 			// Handle the order by clauses
 		if (count($filter['orderby']) > 0) {
 			foreach ($filter['orderby'] as $orderData) {
-				$completeField = ((empty($orderData['table'])) ? $this->queryObject->mainTable : $orderData['table']) . '.' . $orderData['field'];
-				$orderbyClause = $completeField . ' ' . $orderData['order'];
-				$this->queryObject->structure['ORDER BY'][] = $orderbyClause;
-				$this->queryObject->orderFields[] = array('field' => $completeField, 'order' => $orderData['order']);
+				$table = ((empty($orderData['table'])) ? $this->queryObject->mainTable : $orderData['table']);
+					// Try applying the order clause to an existing table
+				try {
+					$table = $this->matchAliasOrTableName($table, 'Order clause - ' . $table . ' - ' . $orderData['field'] . ' - ' . $orderData['order']);
+					$completeField = $table . '.' . $orderData['field'];
+					$orderbyClause = $completeField . ' ' . $orderData['order'];
+					$this->queryObject->structure['ORDER BY'][] = $orderbyClause;
+					$this->queryObject->orderFields[] = array('field' => $completeField, 'order' => $orderData['order']);
+				}
+					// Table was not matched
+				catch (tx_tesseract_exception $e) {
+					// Nothing to do
+				}
 			}
 		}
 	}
@@ -755,13 +793,24 @@ class tx_dataquery_parser {
 					// If table is not defined, assume it's the main table
 				if (empty($table)) {
 					$table = $this->queryObject->mainTable;
+					if (!isset($idlistsPerTable[$table])) {
+						$idlistsPerTable[$table] = array();
+					}
+					$idlistsPerTable[$table][] = $uid;
 				} else {
 					$table = strrev($table);
+						// Make sure the table name matches one used in the query
+					try {
+						$table = $this->matchAliasOrTableName($table, 'Id list - ' . $item);
+						if (!isset($idlistsPerTable[$table])) {
+							$idlistsPerTable[$table] = array();
+						}
+						$idlistsPerTable[$table][] = $uid;
+					}
+					catch (tx_tesseract_exception $e) {
+						// Nothing to do
+					}
 				}
-				if (!isset($idlistsPerTable[$table])) {
-					$idlistsPerTable[$table] = array();
-				}
-				$idlistsPerTable[$table][] = $uid;
 			}
 				// Loop on all tables and add test on list of uid's, if table is indeed in query
 			foreach ($idlistsPerTable as $table => $uidArray) {
@@ -999,6 +1048,62 @@ t3lib_div::debug($this->queryObject->structure['SELECT'], 'Updated select struct
 			}
 		}
 		return $isAQueryField;
+	}
+
+	/**
+	 * This method tries to match a name to the name or alias of a table used in the query
+	 * If no alias or straight table name is found, it looks for a true table name instead
+	 * If nothing is found, an exception is thrown
+	 *
+	 * Explanations: a table name may come from an outside source, a Data Filter or another provider.
+	 * In order to apply the condition from that other element to the query,
+	 * the table(s) referenced in that other element must match tables used in the query.
+	 * If the query uses aliases and the other element not, dataquery tries
+	 * (using this method) to match the tables from the other element to aliases used
+	 * in the query. This may lead to some kind of guess work in which case a warning is logged.
+	 * 
+	 * @param	string	$name: name to match
+	 * @param	string	$identifier: some key identifying the circumstances in which the call was made (used for logging)
+	 * @return	string	Alias or table name
+	 */
+	protected function matchAliasOrTableName($name, $identifier) {
+		$returnedName = $name;
+
+			// If the name was already match, reuse result
+		if (isset($this->tableMatches[$name])) {
+			$returnedName = $this->tableMatches[$name];
+
+			// If not, perform matching
+		} else {
+				// If the name matches an existing alias, use it as is
+			if (isset($this->queryObject->aliases[$name])) {
+				$this->tableMatches[$name] = $name;
+
+				// If the name is not in the list of aliases, try to match it
+				// to a true table name
+			} else {
+					// Get the relation of true table names to aliases
+					// NOTE: true table names are not necessarily unique
+				$reversedAliasTable = array_flip($this->queryObject->aliases);
+				if (isset($reversedAliasTable[$name])) {
+					$returnedName = $reversedAliasTable[$name];
+					$this->tableMatches[$name] = $reversedAliasTable[$name];
+					if ($this->configuration['debug'] || TYPO3_DLOG) {
+						$message = sprintf('Potentially unreliable match of table %1$s from component %2$s', $name, $identifier);
+						t3lib_div::devLog($message, self::$extKey, 2);
+					}
+
+					// No match found, throw exception
+				} else {
+					if ($this->configuration['debug'] || TYPO3_DLOG) {
+						$message = sprintf('No match found for table %1$s from component %2$s', $name, $identifier);
+						t3lib_div::devLog($message, self::$extKey, 2);
+					}
+					throw new tx_tesseract_exception('Unmatched alias or table name', 1291753564);
+				}
+			}
+		}
+		return $returnedName;
 	}
 
 // Setters and getters
