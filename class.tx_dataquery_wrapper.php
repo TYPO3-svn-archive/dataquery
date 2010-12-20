@@ -845,7 +845,16 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 	 */
 	public function getTablesAndFields($language = '') {
 		$this->loadQuery();
-		return $this->sqlParser->getLocalizedLabels($language);
+		$tablesAndFields = $this->sqlParser->getLocalizedLabels($language);
+
+			// Hook for post-processing the tables and fields information
+		if (is_array($GLOBALS['TYPO3_CONF_VARS']['EXTCONF'][$this->extKey]['postProcessFieldInformation'])) {
+			foreach($GLOBALS['TYPO3_CONF_VARS']['EXTCONF'][$this->extKey]['postProcessFieldInformation'] as $className) {
+				$postProcessor = &t3lib_div::getUserObj($className);
+				$tablesAndFields = $postProcessor->postProcessFieldInformation($tablesAndFields, $this);
+			}
+		}
+		return $tablesAndFields;
     }
 
 // t3lib_svbase methods

@@ -1,6 +1,7 @@
 2010-12-20 Francois Suter (Cobweb) <typo3@cobweb.ch>
 
 	* Added code to help match aliases and true table names coming from external sources, resolves #11196
+	* Added hook to modify result of tx_dataquery_wrapper::getTablesAndFields, resolves #11190
 
 2010-11-15 Francois Suter (Cobweb) <typo3@cobweb.ch>
 
