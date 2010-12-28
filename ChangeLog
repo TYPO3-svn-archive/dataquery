@@ -1,3 +1,7 @@
+2010-12-28 Francois Suter (Cobweb) <typo3@cobweb.ch>
+
+	* Released to TER as version 1.1.0
+
 2010-12-20 Francois Suter (Cobweb) <typo3@cobweb.ch>
 
 	* Added code to help match aliases and true table names coming from external sources, resolves #11196
