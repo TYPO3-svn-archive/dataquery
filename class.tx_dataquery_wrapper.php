@@ -262,12 +262,61 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 //t3lib_div::debug($columnsMappings, 'Columns mappings');
 //t3lib_div::debug($reverseColumnsMappings, 'Reversed columns mappings');
 
+				// Split each row in the recordset into parts for each table in the query
+			$splitRecordset = $this->splitResultIntoSubparts($rawRecordset, $columnsMappings);
+//t3lib_div::debug($splitRecordset, 'Split result');
+
+				// If workspace preview is on, records must be overlaid with appropriate version
+			$versionedRecordset = array();
+			if ($GLOBALS['TSFE']->sys_page->versioningPreview) {
+					// Loop on all recordset rows to overlay them
+				foreach ($splitRecordset as $index => $subParts) {
+					$versionedRecord = array();
+					$skipRecord = FALSE;
+					foreach ($subParts as $alias => $subRow) {
+						$table = $allTablesTrueNames[$alias];
+						$result = $subRow;
+						if ($GLOBALS['TSFE']->sys_page->versioningPreview && $this->sqlParser->mustHandleVersioningOverlay($table)) {
+							$GLOBALS['TSFE']->sys_page->versionOL($table, $result);
+						}
+							// Include result only if it was not unset during overlaying
+						if ($result !== FALSE) {
+							$versionedRecord[$alias] = $result;
+						} else {
+							if ($alias == $this->mainTable) {
+								$skipRecord = TRUE;
+							}
+						}
+					}
+					if (!$skipRecord) {
+						$versionedRecordset[$index] = $versionedRecord;
+					}
+				}
+			} else {
+				$versionedRecordset = $splitRecordset;
+			}
+//t3lib_div::debug($versionedRecordset, 'Versioned split result');
+
 				// Get overlays for each table, if language is not default
 				// Set a general flag about having been through this process or not
 			$hasBeenThroughOverlayProcess = FALSE;
 			$finalRecordset = array();
 			if ($GLOBALS['TSFE']->sys_language_content == 0) {
-				$finalRecordset = $rawRecordset;
+				$finalRecordset = array();
+				foreach ($versionedRecordset as $index => $subParts) {
+						// Reassemble the full record
+					$overlaidRecord = array();
+					foreach ($subParts as $alias => $subRow) {
+						if (isset($subRow)) {
+							foreach ($subRow as $field => $value) {
+								$overlaidRecord[$reverseColumnsMappings[$alias][$field]] = $value;
+							}
+						}
+					}
+					$finalRecordset[] = $overlaidRecord;
+				}
+//t3lib_div::debug($finalRecordset, 'Reassembled versioned result');
+
 					// If no sorting is defined at all, perform fixed order sorting, if defined
 					// Note this will work only if the secondary provider refers to a single table
 				if (!$this->sqlParser->hasOrdering() && !empty($this->structure['count'])) {
@@ -279,6 +328,7 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 					}
 					unset($fixedOrder);
 //t3lib_div::debug($finalRecordset, 'Recordset with fixed order');
+
 						// Sort recordset according to fixed order
 					usort($finalRecordset, array('tx_dataquery_wrapper', 'sortUsingFixedOrder'));
 				}
@@ -286,23 +336,25 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 			} else {
 					// First collect all the uid's for each table
 				$allUIDs = array();
-				foreach ($rawRecordset as $row) {
-					foreach ($row as $fieldName => $fieldValue) {
-						$fieldNameParts = t3lib_div::trimExplode('$', $fieldName);
-						$table = '';
-						$field = '';
-						if (count($fieldNameParts) == 1) {
-							$table = $allTablesTrueNames[$this->mainTable];
-							$field = $fieldNameParts[0];
-						} else {
-							$table = $allTablesTrueNames[$fieldNameParts[0]];
-							$field = $fieldNameParts[1];
-						}
-						if ($field == 'uid' && isset($fieldValue)) {
-							if (!isset($allUIDs[$table])) {
-								$allUIDs[$table] = array();
+				foreach ($versionedRecordset as $subParts) {
+					foreach ($subParts as $alias => $subRow) {
+						foreach ($subRow as $fieldName => $fieldValue) {
+							$fieldNameParts = t3lib_div::trimExplode('$', $fieldName);
+							$table = '';
+							$field = '';
+							if (count($fieldNameParts) == 1) {
+								$table = $allTablesTrueNames[$this->mainTable];
+								$field = $fieldNameParts[0];
+							} else {
+								$table = $allTablesTrueNames[$fieldNameParts[0]];
+								$field = $fieldNameParts[1];
 							}
-							$allUIDs[$table][] = $fieldValue;
+							if ($field == 'uid' && isset($fieldValue)) {
+								if (!isset($allUIDs[$table])) {
+									$allUIDs[$table] = array();
+								}
+								$allUIDs[$table][] = $fieldValue;
+							}
 						}
 					}
 				}
@@ -315,7 +367,7 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 					$doOverlays[$table] = $this->sqlParser->mustHandleLanguageOverlay($table);
 						// Get overlays only if needed/possible
 					if ($doOverlays[$table] && count($allUIDs[$table]) > 0) {
-						$overlays[$table] = tx_overlays::getOverlayRecords($table, $allUIDs[$table], $GLOBALS['TSFE']->sys_language_content);
+						$overlays[$table] = tx_overlays::getOverlayRecords($table, $allUIDs[$table], $GLOBALS['TSFE']->sys_language_content, $this->sqlParser->mustHandleVersioningOverlay($table));
 							// Set global overlay process flag to true
 						$hasBeenThroughOverlayProcess |= TRUE;
 					}
@@ -325,21 +377,15 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 //t3lib_div::debug($overlays, 'Overlays');
 
 					// Loop on all recordset rows to overlay them
-				foreach ($rawRecordset as $row) {
-					$subParts = array();
-						// Split record into parts related to a single table
-					foreach ($columnsMappings as $columnName => $columnInfo) {
-						if (!isset($subParts[$columnInfo['aliasTable']])) {
-							$subParts[$columnInfo['aliasTable']] = array();
-						}
-						$subParts[$columnInfo['aliasTable']][$columnInfo['field']] = $row[$columnName];
-					}
-//t3lib_div::debug($subParts, 'Raw subparts');
+				foreach ($versionedRecordset as $subParts) {
 						// Overlay each part
 					foreach ($subParts as $alias => $subRow) {
 						$table = $allTablesTrueNames[$alias];
 						$tableCtrl = $GLOBALS['TCA'][$table]['ctrl'];
 						$result = $subRow;
+						if ($GLOBALS['TSFE']->sys_page->versioningPreview && $this->sqlParser->mustHandleVersioningOverlay($table)) {
+							$GLOBALS['TSFE']->sys_page->versionOL($table, $result);
+						}
 						if ($doOverlays[$table] && $subRow[$tableCtrl['languageField']] != $GLOBALS['TSFE']->sys_language_content) {
 								// Overlay with record from foreign table
 							if (isset($tableCtrl['transForeignTable']) && isset($overlays[$table][$subRow['uid']])) {
@@ -366,7 +412,6 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 							unset($subParts[$alias]);
 						}
 					}
-//t3lib_div::debug($subParts, 'Subparts');
 						// Reassemble the full record
 					$overlaidRecord = array();
 					foreach ($subParts as $alias => $subRow) {
@@ -609,6 +654,47 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 	}
 
 	/**
+	 * This method splits the rows in the recordset returned by the database query into several parts,
+	 * one for each (aliased) table in the row
+	 * Example:
+	 * Consider the following query:
+	 *
+	 * SELECT pages.title, tt_content.header FROM pages,tt_content WHERE tt_content.pid = pages.uid
+	 *
+	 * A typical result row might look like:
+	 *
+	 * array('title' => 'foo', 'header' => 'bar');
+	 *
+	 * This method will turn such an entry into:
+	 *
+	 * array(
+	 * 		'pages' => array('title' => 'foo'),
+	 * 		'tt_content' => array('header' => 'bar'),
+	 * );
+	 *
+	 * This is necessary so that each of these subparts can be overlaid (for language or version) properly
+	 *
+	 * @param	array	$result: raw entry from the DB recordset
+	 * @param	array	$columnsMappings: information about each column in the recordset
+	 * @return	array	The result, split into its constituent tables
+	 */
+	protected function splitResultIntoSubparts(array $result, array $columnsMappings) {
+		$splitResults = array();
+		foreach ($result as $row) {
+			$subParts = array();
+				// Split record into parts related to a single table
+			foreach ($columnsMappings as $columnName => $columnInfo) {
+				if (!isset($subParts[$columnInfo['aliasTable']])) {
+					$subParts[$columnInfo['aliasTable']] = array();
+				}
+				$subParts[$columnInfo['aliasTable']][$columnInfo['field']] = $row[$columnName];
+			}
+			$splitResults[] = $subParts;
+		}
+		return $splitResults;
+	}
+
+	/**
 	 * This method is used to retrieve a data structure stored in cache provided it fits all parameters
 	 * If no appropriate cache is found, it throws an exception
 	 *
@@ -634,7 +720,7 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 	/**
 	 * This method write the standard data structure to cache,
 	 * provided some conditions are met
-	 * 
+	 *
 	 * @param	array	$structure: a standard data structure
 	 * @return	void
 	 */
@@ -718,7 +804,7 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 
 	/**
 	 * This static method is called when performing a special sorting of the recordset
-	 * 
+	 *
 	 * @param	mixed	$a: first element to sort
 	 * @param	mixed	$b: second element to sort
 	 *
@@ -753,7 +839,7 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 
 	/**
 	 * This static method is called when sorting records using a special fixed order value
-	 * 
+	 *
 	 * @param	mixed	$a: first element to sort
 	 * @param	mixed	$b: second element to sort
 	 *
@@ -862,9 +948,9 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 	/**
 	 * This method resets values for a number of properties
 	 * This is necessary because services are managed as singletons
-	 * 
+	 *
 	 * NOTE: If you make your own implementation of reset in your DataProvider class, don't forget to call parent::reset()
-	 * 
+	 *
 	 * @return	void
 	 */
 	public function reset() {

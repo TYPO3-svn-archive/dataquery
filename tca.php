@@ -115,10 +115,18 @@ $TCA['tx_dataquery_queries'] = array(
 				),
 			)
 		),
+		'get_versions_directly' => array(
+			'exclude' => 1,
+			'label' => 'LLL:EXT:dataquery/locallang_db.xml:tx_dataquery_queries.get_versions_directly',
+			'config' => array(
+				'type' => 'input',
+				'size' => 255,
+			)
+		),
 	),
 	'types' => array(
 		'0' => array('showitem' => 'hidden;;;;1-1-1, title;;1;;2-2-2, sql_query;;;;3-3-3,
-									--div--;LLL:EXT:dataquery/locallang_db.xml:tx_dataquery_queries.tab.advanced, cache_duration;;;;1-1-1, ignore_enable_fields;;2;;2-2-2 , ignore_language_handling')
+									--div--;LLL:EXT:dataquery/locallang_db.xml:tx_dataquery_queries.tab.advanced, cache_duration;;;;1-1-1, ignore_enable_fields;;2;;2-2-2 , ignore_language_handling;;;;3-3-3, get_versions_directly')
 	),
 	'palettes' => array(
 		'1' => array('showitem' => 'description'),

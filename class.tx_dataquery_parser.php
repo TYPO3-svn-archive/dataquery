@@ -73,6 +73,12 @@ class tx_dataquery_parser {
 	protected $doOverlays = array();
 
 		/**
+		 * Flag for each table whether to perform versioning overlays or not
+		 * @var	array
+		 */
+	protected $doVersioning = array();
+
+		/**
 		 * True if order by is processed using SQL, false otherwise (see preprocessOrderByFields())
 		 * @var	boolean
 		 */
@@ -113,7 +119,54 @@ class tx_dataquery_parser {
 			// NOTE: the following call may throw exceptions,
 			// but we let them bubble up
 		$this->queryObject = $sqlParser->parseSQL($query);
+			// Perform some further analysis on the query components
+		$this->analyzeQuery();
+			// Make sure the list of selected fields contains base fields
+			// like uid and pid (if available)
+			// Don't do this for queries using the DISTINCT keyword, as it may mess it up
+		if (!$this->queryObject->structure['DISTINCT']) {
+			$this->addBaseFields();
+		}
 
+//t3lib_div::debug($this->queryObject->aliases, 'Table aliases');
+//t3lib_div::debug($this->fieldAliases, 'Field aliases');
+//t3lib_div::debug($this->fieldTrueNames, 'Field true names');
+//t3lib_div::debug($this->queryFields, 'Query fields');
+//t3lib_div::debug($this->queryObject->structure, 'Structure');
+	}
+
+	/**
+	 * This method performs a number of operations on a given string,
+	 * supposed to be a SQL query
+	 * It is meant to be called before the query is actually parsed
+	 *
+	 * @param	string	$string: a SQL query
+	 * @return	string	Cleaned up SQL query
+	 */
+	public function prepareQueryString($string) {
+			// Put the query through the field parser to filter out commented lines
+		$queryLines = tx_tesseract_utilities::parseConfigurationField($string);
+			// Put the query into a single string
+		$query = implode(' ', $queryLines);
+			// Strip backquotes
+		$query = str_replace('`', '', $query);
+			// Strip trailing semi-colon if any
+		if (strrpos($query, ';') == strlen($query) - 1) {
+			$query = substr($query, 0, -1);
+		}
+			// Parse query for subexpressions
+		$query = tx_expressions_parser::evaluateString($query, FALSE);
+		return $query;
+	}
+
+	/**
+	 * This method further analyzes the query
+	 * Im particular, it loop on all SELECT field and makes sure every field
+	 * has a proper alias
+	 *
+	 * @return	void
+	 */
+	protected function analyzeQuery() {
 			// Loop on all query fields to assemble additional information structures
 		foreach ($this->queryObject->structure['SELECT'] as $index => $fieldInfo) {
 				// Assemble list of fields per table
@@ -164,7 +217,7 @@ class tx_dataquery_parser {
 					$theAlias = $theField;
 				} else {
 					$fullField .= ' AS ';
-					if (strpos($fieldInfo['fieldAlias'], '.') === false) {
+					if (strpos($fieldInfo['fieldAlias'], '.') === FALSE) {
 						$theAlias = $fieldInfo['fieldAlias'];
 						$mappedTable = $fieldInfo['tableAlias'];
 						$mappedField = $fieldInfo['fieldAlias'];
@@ -183,7 +236,7 @@ class tx_dataquery_parser {
 				}
 				else {
 						// Case 4b
-					if (strpos($fieldInfo['fieldAlias'], '.') === false) {
+					if (strpos($fieldInfo['fieldAlias'], '.') === FALSE) {
 						$theAlias = $fieldInfo['tableAlias'] . '$' . $fieldInfo['fieldAlias'];
 					}
 						// Case 4b-2
@@ -206,61 +259,28 @@ class tx_dataquery_parser {
 												);
 			$this->queryObject->structure['SELECT'][$index] = $fullField;
         }
-
-			// Add the uid field to tables that don't have it yet
-        foreach ($this->queryObject->hasUidField as $alias => $flag) {
-        	if (!$flag) {
-					// Get all fields for the given table
-				$fieldsInfo = $GLOBALS['TYPO3_DB']->admin_get_fields($this->queryObject->aliases[$alias]);
-					// Add the uid field only if it exists
-				if (isset($fieldsInfo['uid'])) {
-					$fullField = $alias . '.uid';
-					$theField = 'uid';
-					$fieldAlias = 'uid';
-					if ($alias != $this->queryObject->mainTable) {
-						$fieldAlias = $alias . '$uid';
-						$fullField .= ' AS ' . $fieldAlias;
-					}
-					$this->fieldTrueNames[$fieldAlias] = array(
-															'table' => $this->getTrueTableName($alias),
-															'aliasTable' => $alias,
-															'field' => $theField,
-															'mapping' => array('table' => $alias, 'field' => $theField)
-														);
-					$this->queryObject->structure['SELECT'][] = $fullField;
-					$this->queryFields[$alias]['fields'][] = array('name' => 'uid', 'function' => FALSE);
-				}
-        	}
-        }
-//t3lib_div::debug($this->queryObject->aliases, 'Table aliases');
-//t3lib_div::debug($this->queryObject->fieldAliases, 'Field aliases');
-//t3lib_div::debug($this->fieldTrueNames, 'Field true names');
-//t3lib_div::debug($this->queryFields, 'Query fields');
-//t3lib_div::debug($this->queryObject->structure, 'Structure');
 	}
 
 	/**
-	 * This method performs a number of operations on a given string,
-	 * supposed to be a SQL query
-	 * It is meant to be called before the query is actually parsed
+	 * This method checks every table that doesn't have a uid or pid field and tries to add it
+	 * to the list of fields to select
 	 *
-	 * @param	string	$string: a SQL query
-	 * @return	string	Cleaned up SQL query
+	 * @return	void
 	 */
-	public function prepareQueryString($string) {
-			// Put the query through the field parser to filter out commented lines
-		$queryLines = tx_tesseract_utilities::parseConfigurationField($string);
-			// Put the query into a single string
-		$query = implode(' ', $queryLines);
-			// Strip backquotes
-		$query = str_replace('`', '', $query);
-			// Strip trailing semi-colon if any
-		if (strrpos($query, ';') == strlen($query) - 1) {
-			$query = substr($query, 0, -1);
-		}
-			// Parse query for subexpressions
-		$query = tx_expressions_parser::evaluateString($query, FALSE);
-		return $query;
+	protected function addBaseFields() {
+			// Loop on the tables that don't have a uid field
+        foreach ($this->queryObject->hasBaseFields as $alias => $listOfFields) {
+				// Get all fields for the given table
+			$fieldsInfo = tx_overlays::getAllFieldsForTable($this->queryObject->aliases[$alias]);
+			foreach ($listOfFields as $baseField => $flag) {
+				if (!$flag) {
+						// Add the uid field only if it exists
+					if (isset($fieldsInfo[$baseField])) {
+						$this->addExtraField($baseField, $alias, $this->getTrueTableName($alias));
+					}
+				}
+			}
+        }
 	}
 
 	/**
@@ -354,13 +374,19 @@ class tx_dataquery_parser {
     }
 
 	/**
-	 * Set data
+	 * Set the data coming from the Data Provider class
 	 *
-	 * @param	array		$data: database record corresponding to the current Data Query
+	 * @param	array		$data: database record corresponding to the current Data Query record
 	 * @return	void
 	 */
 	public function setProviderData($providerData) {
 		$this->providerData = $providerData;
+			// Perform some processing on some fields
+			// Mostly this is about turning into arrays the fields containing comma-separated values
+		$this->providerData['ignore_time_for_tables_exploded'] = t3lib_div::trimExplode(',', $this->providerData['ignore_time_for_tables']);
+		$this->providerData['ignore_disabled_for_tables_exploded'] = t3lib_div::trimExplode(',', $this->providerData['ignore_disabled_for_tables']);
+		$this->providerData['ignore_fegroup_for_tables_exploded'] = t3lib_div::trimExplode(',', $this->providerData['ignore_fegroup_for_tables']);
+		$this->providerData['get_versions_directly_exploded'] = t3lib_div::trimExplode(',', $this->providerData['get_versions_directly']);
 	}
 
 	/**
@@ -398,18 +424,6 @@ class tx_dataquery_parser {
 	}
 
 	/**
-	 * This method initialize ignore enable fields.
-	 * Basically, it explodes string value from the field into an array.
-	 *
-	 * @return	void
-	 */
-	protected function initializeIgnoreEnableFields() {
-		$this->providerData['ignore_time_for_tables_exploded'] = t3lib_div::trimExplode(',', $this->providerData['ignore_time_for_tables']);
-		$this->providerData['ignore_disabled_for_tables_exploded'] = t3lib_div::trimExplode(',', $this->providerData['ignore_disabled_for_tables']);
-		$this->providerData['ignore_fegroup_for_tables_exploded'] = t3lib_div::trimExplode(',', $this->providerData['ignore_fegroup_for_tables']);
-	}
-
-	/**
 	 * This method adds where clause elements related to typical TYPO3 control parameters:
 	 *
 	 * 	- the enable fields
@@ -419,12 +433,38 @@ class tx_dataquery_parser {
 	 * @return	void
 	 */
 	public function addTypo3Mechanisms() {
+			// Add enable fields conditions
+		$this->addEnableFieldsCondition();
+			// Assemble a list of all currently selected fields for each table,
+			// skipping function calls (which can't be overlayed anyway)
+			// This is used by the next two methods, which may add some necessary fields,
+			// if not present already
+		$fieldsPerTable = array();
+		foreach ($this->queryFields as $alias => $tableData) {
+			$fieldsPerTable[$alias] = array();
+			foreach ($tableData['fields'] as $fieldData) {
+				if (!$fieldData['function']) {
+					$fieldsPerTable[$alias][] = $fieldData['name'];
+				}
+			}
+		}
+			// Add language-related conditions
+		$this->addLanguageCondition($fieldsPerTable);
+			// Add versioning-related conditions
+		$this->addVersioningCondition($fieldsPerTable);
+	}
 
-			// Add the enable fields, first to the main table
+	/**
+	 * This method adds all SQL conditions needed to enforce the enable fields for
+	 * all tables involved
+	 *
+	 * @return	void
+	 */
+	protected function addEnableFieldsCondition() {
+			// First check if enable fields must really be added or should be ignored
 		if ($this->providerData['ignore_enable_fields'] == '0' || $this->providerData['ignore_enable_fields'] == '2') {
 
-			$this->initializeIgnoreEnableFields();
-
+				// Start with main table
 				// Define parameters for enable fields condition
 			$trueTableName = $this->queryObject->aliases[$this->queryObject->mainTable];
 			$showHidden = ($trueTableName == 'pages') ? $GLOBALS['TSFE']->showHiddenPage : $GLOBALS['TSFE']->showHiddenRecords;
@@ -432,8 +472,12 @@ class tx_dataquery_parser {
 
 			$enableClause = tx_overlays::getEnableFieldsCondition($trueTableName, $showHidden, $ignoreArray);
 				// Replace the true table name by its alias if necessary
+				// NOTE: there's a risk that a field containing the table name might be modified abusively
+				// There's no real way around it except changing tx_overlays::getEnableFieldsCondition()
+				// to reimplement a better t3lib_page::enableFields()
+				// Adding the "." in the replacement reduces the risks
 			if ($this->queryObject->mainTable != $trueTableName) {
-				$enableClause = str_replace($trueTableName, $this->queryObject->mainTable, $enableClause);
+				$enableClause = str_replace($trueTableName . '.', $this->queryObject->mainTable . '.', $enableClause);
 			}
 			$this->addWhereClause($enableClause);
 
@@ -449,17 +493,24 @@ class tx_dataquery_parser {
 					$enableClause = tx_overlays::getEnableFieldsCondition($table, $showHidden, $ignoreArray);
 					if (!empty($enableClause)) {
 						if ($table != $joinData['alias']) {
-							$enableClause = str_replace($table, $joinData['alias'], $enableClause);
+							$enableClause = str_replace($table . '.', $joinData['alias'] . '.', $enableClause);
 						}
-						if (!empty($this->queryObject->structure['JOIN'][$tableIndex]['on'])) {
-							$this->queryObject->structure['JOIN'][$tableIndex]['on'] .= ' AND ';
-						}
-						$this->queryObject->structure['JOIN'][$tableIndex]['on'] .= '('.$enableClause.')';
+						$this->addOnClause($enableClause, $table);
 					}
 				}
 			}
 		}
+	}
 
+	/**
+	 * Add SQL conditions related to language handling
+	 * Also add the necessary fields to the list of SELECTed fields
+	 *
+	 * @param	array	$fieldsPerTable: List of all fields already SELECTed, per table
+	 *
+	 * @return	void
+	 */
+	protected function addLanguageCondition($fieldsPerTable) {
 			// Add the language condition, if necessary
 		if (empty($this->providerData['ignore_language_handling']) && !$this->queryObject->structure['DISTINCT']) {
 
@@ -467,7 +518,7 @@ class tx_dataquery_parser {
 				// as per the standard TYPO3 mechanism
 				// Loop on all tables involved
 			foreach ($this->queryFields as $alias => $tableData) {
-				$table = $tableData['table'];
+				$table = $tableData['name'];
 
 					// First check which handling applies, based on existing TCA structure
 					// The table must at least have a language field or point to a foreign table for translation
@@ -476,58 +527,29 @@ class tx_dataquery_parser {
 						// The table uses translations in the same table (transOrigPointerField) or in a foreign table (transForeignTable)
 						// Prepare for overlays
 					if (isset($GLOBALS['TCA'][$table]['ctrl']['transOrigPointerField']) || isset($GLOBALS['TCA'][$table]['ctrl']['transForeignTable'])) {
-							// Assemble a list of all fields for the table,
-							// skipping function calls (which can't be overlayed anyway)
-						$fields = array();
-						foreach ($tableData['fields'] as $fieldData) {
-							if (!$fieldData['function']) {
-								$fields[] = $fieldData['name'];
-							}
-						}
 							// For each table, make sure that the fields necessary for handling the language overlay are included in the list of selected fields
 						try {
-							$fieldsForOverlay = tx_overlays::selectOverlayFields($table, implode(',', $fields));
-							$fieldsForOverlayArray = t3lib_div::trimExplode(',', $fieldsForOverlay);
-								// Strip the "[table name]." prefix
-							$numFields = count($fieldsForOverlayArray);
-							for ($i = 0; $i < $numFields; $i++) {
-								$fieldsForOverlayArray[$i] = str_replace($table . '.', '', $fieldsForOverlayArray[$i]);
-							}
+							$fieldsForOverlayArray = tx_overlays::selectOverlayFieldsArray($table, implode(',', $fieldsPerTable[$alias]));
 								// Extract which fields were added and add them to the list of fields to select
-							$addedFields = array_diff($fieldsForOverlayArray, $fields);
+							$addedFields = array_diff($fieldsForOverlayArray, $fieldsPerTable[$alias]);
 							if (count($addedFields) > 0) {
 								foreach ($addedFields as $aField) {
-									$newFieldName = $alias . '.' . $aField;
-									$newFieldAlias = $alias . '$' . $aField;
-									$this->queryObject->structure['SELECT'][] = $newFieldName . ' AS ' . $newFieldAlias;
-									$this->queryFields[$table]['fields'][] = array('name' => $aField, 'function' => FALSE);
-									$this->fieldTrueNames[$newFieldAlias] = array(
-																				'table' => $table,
-																				'aliasTable' => $alias,
-																				'field' => $aField,
-																				'mapping' => array('table' => $alias, 'field' => $aField)
-																			);
+									$this->addExtraField($aField, $alias, $table);
 								}
 							}
-							$this->doOverlays[$table] = true;
+							$this->doOverlays[$table] = TRUE;
 								// Add the language condition for the given table (only for tables containing their own translations)
 							if (isset($GLOBALS['TCA'][$table]['ctrl']['transOrigPointerField'])) {
-								$languageCondition = '(' . tx_overlays::getLanguageCondition($table) . ')';
-								if ($table != $alias) {
-									$languageCondition = str_replace($table, $alias, $languageCondition);
-								}
+								$languageCondition = tx_overlays::getLanguageCondition($table, $alias);
 								if ($alias == $this->queryObject->mainTable) {
 									$this->addWhereClause($languageCondition);
 								} else {
-									if (!empty($this->queryObject->structure['JOIN'][$alias]['on'])) {
-										$this->queryObject->structure['JOIN'][$alias]['on'] .= ' AND ';
-									}
-									$this->queryObject->structure['JOIN'][$alias]['on'] .= $languageCondition;
+									$this->addOnClause($languageCondition, $alias);
 								}
 							}
 						}
 						catch (Exception $e) {
-							$this->doOverlays[$table] = false;
+							$this->doOverlays[$table] = FALSE;
 						}
 					}
 
@@ -541,33 +563,66 @@ class tx_dataquery_parser {
 						if ($alias == $this->queryObject->mainTable) {
 							$this->addWhereClause($languageCondition);
 						} else {
-							if (!empty($this->queryObject->structure['JOIN'][$alias]['on'])) {
-								$this->queryObject->structure['JOIN'][$alias]['on'] .= ' AND ';
-							}
-							$this->queryObject->structure['JOIN'][$alias]['on'] .= '(' . $languageCondition . ')';
+							$this->addOnClause($languageCondition, $alias);
 						}
 					}
 				}
 			}
 		}
-			// Add workspace condition (always)
-			// Make sure to take only records from live workspace
-			// NOTE: Other workspaces are not handled, preview will not work
+//t3lib_div::debug($this->doOverlays);
+	}
+
+	/**
+	 * Add SQL conditions related version handling
+	 * Also add the necessary fields to the list of SELECTed fields
+	 * Contrary to the other conditions, versioning conditions are always added,
+	 * if only to make sure that only LIVE records are selected
+	 *
+	 * @param	array	$fieldsPerTable: List of all fields already SELECTed, per table
+	 *
+	 * @return	void
+	 */
+	protected function addVersioningCondition($fieldsPerTable) {
 		foreach ($this->queryFields as $alias => $tableData) {
-			$table = $tableData['table'];
+			$table = $tableData['name'];
+			$this->doVersioning[$table] = FALSE;
+
+				// Continue if table indeed supports versioning
 			if (!empty($GLOBALS['TCA'][$table]['ctrl']['versioningWS'])) {
+					// By default make sure to take only LIVE version
 				$workspaceCondition = $alias . ".t3ver_oid = '0'";
+					// If in preview mode, assemble condition according to current workspace
+				if ($GLOBALS['TSFE']->sys_page->versioningPreview) {
+						// For each table, make sure that the fields necessary for handling the language overlay are included in the list of selected fields
+					try {
+						$fieldsForOverlayArray = tx_overlays::selectVersioningFieldsArray($table, implode(',', $fieldsPerTable[$alias]));
+							// Extract which fields were added and add them to the list of fields to select
+						$addedFields = array_diff($fieldsForOverlayArray, $fieldsPerTable[$alias]);
+						if (count($addedFields) > 0) {
+							foreach ($addedFields as $aField) {
+								$this->addExtraField($aField, $alias, $table);
+							}
+						}
+						$this->doVersioning[$table] = TRUE;
+						$getVersionsDirectly = FALSE;
+						if ($this->providerData['get_versions_directly'] == '*' || in_array($alias, $this->providerData['get_versions_directly_exploded'])) {
+							$getVersionsDirectly = TRUE;
+						}
+						$workspaceCondition = tx_overlays::getVersioningCondition($table, $alias, $getVersionsDirectly);
+					}
+					catch (Exception $e) {
+						$this->doVersioning[$table] = FALSE;
+							// TODO: this should be logged to indicated that we are falling back to LIVE records
+					}
+				}
 				if ($alias == $this->queryObject->mainTable) {
 					$this->addWhereClause($workspaceCondition);
 				} else {
-					if (!empty($this->queryObject->structure['JOIN'][$alias]['on'])) {
-						$this->queryObject->structure['JOIN'][$alias]['on'] .= ' AND ';
-					}
-					$this->queryObject->structure['JOIN'][$alias]['on'] .= '(' . $workspaceCondition . ')';
+					$this->addOnClause($workspaceCondition, $alias);
 				}
 			}
 		}
-//t3lib_div::debug($this->doOverlays);
+//t3lib_div::debug($this->doVersioning);
 	}
 
 	/**
@@ -736,10 +791,7 @@ class tx_dataquery_parser {
 				if ($table == $this->queryObject->mainTable) {
 					$this->addWhereClause($whereClause);
 				} elseif (in_array($table, $this->queryObject->subtables)) {
-					if (!empty($this->queryObject->structure['JOIN'][$table]['on'])) {
-						$this->queryObject->structure['JOIN'][$table]['on'] .= ' AND ';
-					}
-					$this->queryObject->structure['JOIN'][$table]['on'] .= $whereClause;
+					$this->addOnClause($whereClause, $table);
 				}
 			}
 				// Free some memory
@@ -866,7 +918,7 @@ class tx_dataquery_parser {
 				if (!empty($whereClause)) {
 					$whereClause .= ' AND ';
 				}
-				$whereClause .= $clause;
+				$whereClause .= '(' . $clause . ')';
 			}
 			$query .= 'WHERE ' . $whereClause . ' ';
 		}
@@ -1061,7 +1113,7 @@ t3lib_div::debug($this->queryObject->structure['SELECT'], 'Updated select struct
 	 * If the query uses aliases and the other element not, dataquery tries
 	 * (using this method) to match the tables from the other element to aliases used
 	 * in the query. This may lead to some kind of guess work in which case a warning is logged.
-	 * 
+	 *
 	 * @param	string	$name: name to match
 	 * @param	string	$identifier: some key identifying the circumstances in which the call was made (used for logging)
 	 * @return	string	Alias or table name
@@ -1106,6 +1158,32 @@ t3lib_div::debug($this->queryObject->structure['SELECT'], 'Updated select struct
 		return $returnedName;
 	}
 
+	/**
+	 * This method is used to add an extra field to be SELECTed
+	 * It must be added to the SELECT list, to the list of fields being queried
+	 * and to the registry of true names
+	 *
+	 * @param	string	$field: name of the field to add
+	 * @param	string	$tableAlias: alias of the table to add the field to
+	 * @param	string	$table: true name of the table to add the field to
+	 */
+	protected function addExtraField($field, $tableAlias, $table) {
+		$newFieldName = $tableAlias . '.' . $field;
+		$newFieldAlias = $field;
+		if ($tableAlias != $this->queryObject->mainTable) {
+			$newFieldAlias = $tableAlias . '$' . $field;
+			$newFieldName .= ' AS ' . $newFieldAlias;
+		}
+		$this->queryObject->structure['SELECT'][] = $newFieldName;
+		$this->queryFields[$tableAlias]['fields'][] = array('name' => $field, 'function' => FALSE);
+		$this->fieldTrueNames[$newFieldAlias] = array(
+													'table' => $table,
+													'aliasTable' => $tableAlias,
+													'field' => $field,
+													'mapping' => array('table' => $tableAlias, 'field' => $field)
+												);
+	}
+
 // Setters and getters
 
 	/**
@@ -1118,6 +1196,20 @@ t3lib_div::debug($this->queryObject->structure['SELECT'], 'Updated select struct
 		if (!empty($clause)) {
 			$this->queryObject->structure['WHERE'][] = $clause;
 		}
+	}
+
+	/**
+	 * Add a condition to the ON clause of a given table
+	 *
+	 * @param	string	$clause: SQL to add to the ON clause
+	 * @param	string	$alias: alias of the table to the statement to
+	 * @return	void
+	 */
+	public function addOnClause($clause, $alias) {
+		if (!empty($this->queryObject->structure['JOIN'][$alias]['on'])) {
+			$this->queryObject->structure['JOIN'][$alias]['on'] .= ' AND ';
+		}
+		$this->queryObject->structure['JOIN'][$alias]['on'] .= '(' . $clause . ')';
 	}
 
 	/**
@@ -1223,6 +1315,17 @@ t3lib_div::debug($this->queryObject->structure['SELECT'], 'Updated select struct
 	 */
 	public function mustHandleLanguageOverlay($table) {
 		return (isset($this->doOverlays[$table])) ? $this->doOverlays[$table] : FALSE;
+	}
+
+	/**
+	 * This method indicates whether the language overlay mechanism must/can be handled for a given table
+	 *
+	 * @param	string		$table: true name of the table to handle
+	 * @return	boolean		true if language overlay must and can be performed, false otherwise
+	 * @see tx_dataquery_parser::addTypo3Mechanisms()
+	 */
+	public function mustHandleVersioningOverlay($table) {
+		return (isset($this->doVersioning[$table])) ? $this->doVersioning[$table] : FALSE;
 	}
 
 	/**
