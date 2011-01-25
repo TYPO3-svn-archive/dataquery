@@ -55,6 +55,9 @@ class tx_dataquery_wizards_Check {
 			}
 			.message-header {
 				margin-bottom: 10px;
+			}
+			#tx_dataquery_wizardContainer {
+				width: 97%;
 			}';
 		$pageRenderer->addCssInlineBlock('dataquery', PHP_EOL . $inlineCSS . PHP_EOL);
 			// Load the necessary JavaScript
