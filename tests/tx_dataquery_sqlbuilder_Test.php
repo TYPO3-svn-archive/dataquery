@@ -41,12 +41,12 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 	/**
 	 * @var	string	Language-related SQL condition to apply to tt_content table
 	 */
-	protected static $baseLanguageConditionForTTContent = 'AND (tt_content.sys_language_uid IN (0,-1)) ';
+	protected static $baseLanguageConditionForTTContent = '(tt_content.sys_language_uid IN (0,-1)) ';
 
 	/**
 	 * @var	string	Versioning-related SQL condition to apply to tt_content table
 	 */
-	protected static $baseWorkspaceConditionForTTContent = 'AND (tt_content.t3ver_oid = \'0\') ';
+	protected static $baseWorkspaceConditionForTTContent = '(tt_content.t3ver_oid = \'0\') ';
 
 	/**
 	 * @var	string	Full SQL condition (for tt_content) to apply to all queries. Will be based on the above components.
@@ -56,7 +56,7 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 	/**
 	 * @var boolean the minimum version. Currently the 4.5.0
 	 */
-	protected $isMinimumVersion;
+	protected static $isMinimumVersion;
 
 	/**
 	 * @var	array	some default data configuration from the record
@@ -68,19 +68,8 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 	 */
 	protected $additionalFields = array();
 
-	public function __construct() {
-		$this->isMinimumVersion = t3lib_div::int_from_ver(TYPO3_version) >= t3lib_div::int_from_ver('4.5.0');
-	}
-
 	public function setUp() {
-		if ($this->isMinimumVersion) {
-			self::$baseConditionForTTContent = 'WHERE (tt_content.deleted=0 AND tt_content.t3ver_state<=0 AND tt_content.hidden=0 AND tt_content.starttime<=###NOW### AND (tt_content.endtime=0 OR tt_content.endtime>###NOW###) AND (tt_content.fe_group=\'\' OR tt_content.fe_group IS NULL OR tt_content.fe_group=\'0\' OR FIND_IN_SET(\'0\',tt_content.fe_group))) ';
-		}
-		else {
-			self::$baseConditionForTTContent = 'WHERE (tt_content.deleted=0 AND tt_content.t3ver_state<=0 AND tt_content.hidden=0 AND tt_content.starttime<=###NOW### AND (tt_content.endtime=0 OR tt_content.endtime>###NOW###) AND (tt_content.fe_group=\'\' OR tt_content.fe_group IS NULL OR tt_content.fe_group=\'0\' OR (tt_content.fe_group LIKE \'%,0,%\' OR  tt_content.fe_group LIKE \'0,%\' OR tt_content.fe_group LIKE \'%,0\' OR tt_content.fe_group=\'0\') OR (tt_content.fe_group LIKE \'%,-1,%\' OR  tt_content.fe_group LIKE \'-1,%\' OR tt_content.fe_group LIKE \'%,-1\' OR tt_content.fe_group=\'-1\'))) ';
-		}
-		self::$fullConditionForTTContent = self::$baseConditionForTTContent . self::$baseLanguageConditionForTTContent . self::$baseWorkspaceConditionForTTContent;
-
+		self::assembleConditions();
 		$this->settings = array(
 			'ignore_language_handling' => FALSE,
 			'ignore_enable_fields' => 0,
@@ -88,6 +77,22 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 			'ignore_disabled_for_tables' => '*',
 			'ignore_fegroup_for_tables' => '*',
 		);
+	}
+
+	/**
+	 * This method defines the values of various SQL conditions used in the testing
+	 *
+	 * @return void
+	 */
+	public static function assembleConditions() {
+		self::$isMinimumVersion = t3lib_div::int_from_ver(TYPO3_version) >= t3lib_div::int_from_ver('4.5.0');
+		if (self::$isMinimumVersion) {
+			self::$baseConditionForTTContent = 'WHERE (tt_content.deleted=0 AND tt_content.t3ver_state<=0 AND tt_content.pid!=-1 AND tt_content.hidden=0 AND tt_content.starttime<=###NOW### AND (tt_content.endtime=0 OR tt_content.endtime>###NOW###) AND (tt_content.fe_group=\'\' OR tt_content.fe_group IS NULL OR tt_content.fe_group=\'0\' OR FIND_IN_SET(\'0\',tt_content.fe_group) OR FIND_IN_SET(\'-1\',tt_content.fe_group))) ';
+		}
+		else {
+			self::$baseConditionForTTContent = 'WHERE (tt_content.deleted=0 AND tt_content.t3ver_state<=0 AND tt_content.hidden=0 AND tt_content.starttime<=###NOW### AND (tt_content.endtime=0 OR tt_content.endtime>###NOW###) AND (tt_content.fe_group=\'\' OR tt_content.fe_group IS NULL OR tt_content.fe_group=\'0\' OR (tt_content.fe_group LIKE \'%,0,%\' OR  tt_content.fe_group LIKE \'0,%\' OR tt_content.fe_group LIKE \'%,0\' OR tt_content.fe_group=\'0\') OR (tt_content.fe_group LIKE \'%,-1,%\' OR  tt_content.fe_group LIKE \'-1,%\' OR tt_content.fe_group LIKE \'%,-1\' OR tt_content.fe_group=\'-1\'))) ';
+		}
+		self::$fullConditionForTTContent = self::$baseConditionForTTContent . 'AND ' . self::$baseLanguageConditionForTTContent . 'AND ' . self::$baseWorkspaceConditionForTTContent;
 	}
 
 	/**
@@ -204,6 +209,24 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 			}
 		}
 		return $additionalSelectFields;
+	}
+
+	/**
+	 * Utility method to compare two strings one letter after the other
+	 * This helps when trying to find whitespace differences which may make a test fail,
+	 * but are not visible in the BE module
+	 *
+	 * @param string $a: first string to compare
+	 * @param string $b: second string to compare
+	 * @return void
+	 */
+	protected function compareStringLetterPerLetter($a, $b) {
+		$length = max(array(strlen($a), strlen($b)));
+		$comparison = array();
+		for ($i = 0; $i < $length; $i++) {
+			$comparison[] = ((isset($a[$i])) ? $a[$i] : '*') . ' - ' . ((isset($b[$i])) ? $b[$i] : '*');
+		}
+		t3lib_utility_Debug::debug($comparison, 'comparison', 'results');
 	}
 }
 ?>
