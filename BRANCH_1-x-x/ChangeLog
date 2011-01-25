@@ -1,0 +1,25 @@
+2010-12-28 Francois Suter (Cobweb) <typo3@cobweb.ch>
+
+	* Released to TER as version 1.1.0
+
+2010-12-20 Francois Suter (Cobweb) <typo3@cobweb.ch>
+
+	* Added code to help match aliases and true table names coming from external sources, resolves #11196
+	* Added hook to modify result of tx_dataquery_wrapper::getTablesAndFields, resolves #11190
+
+2010-11-15 Francois Suter (Cobweb) <typo3@cobweb.ch>
+
+	* Improved messages from query validation, resolves #10482
+	* Corrected data structure building when primary keys are not continuous, resolves #10641
+
+2010-10-23 Francois Suter (Cobweb) <typo3@cobweb.ch>
+
+	* Corrected detection of DISTINCT keyword in SQL parser, resolves #10318
+
+2010-09-28 Francois Suter (Cobweb) <typo3@cobweb.ch>
+
+	* Corrected support for array-type filter values
+
+2010-09-27 Francois Suter (Cobweb) <typo3@cobweb.ch>
+
+	* First public release
