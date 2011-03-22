@@ -112,7 +112,7 @@ class tx_dataquery_sqlparser {
 					$theJoin = array();
 					$theJoin['type'] = $joinType;
 						// Separate the table from the join condition
-					$parts = explode('ON', $value);
+					$parts = preg_split('/\bON\b/', $value);
 						// Separate an alias from the table name
 					$moreParts = t3lib_div::trimExplode('AS', $parts[0]);
 					$theJoin['table'] = trim($moreParts[0]);

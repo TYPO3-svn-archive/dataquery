@@ -1,6 +1,7 @@
 2011-03-22 Francois Suter (Cobweb) <typo3@cobweb.ch>
 
 	* Improved unit tests to run in various contexts, resolves #12521
+	* Corrected detection of ON clause in SQL parser, resolves #13247
 
 2011-01-25 Francois Suter (Cobweb) <typo3@cobweb.ch>
 
