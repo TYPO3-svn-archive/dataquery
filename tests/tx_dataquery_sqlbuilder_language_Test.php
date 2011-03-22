@@ -43,8 +43,8 @@ class tx_dataquery_sqlbuilder_Language_Test extends tx_dataquery_sqlbuilder_Test
 		$GLOBALS['TSFE']->sys_language_content = 2;
 
 			// Adapt language condition accordingly
-		self::$baseLanguageConditionForTTContent = "AND (tt_content.sys_language_uid IN (0,-1) OR (tt_content.sys_language_uid = '2' AND tt_content.l18n_parent = '0')) ";
-		self::$fullConditionForTTContent = self::$baseConditionForTTContent . self::$baseLanguageConditionForTTContent . self::$baseWorkspaceConditionForTTContent;
+		self::$baseLanguageConditionForTTContent = "(tt_content.sys_language_uid IN (0,-1) OR (tt_content.sys_language_uid = '2' AND tt_content.l18n_parent = '0')) ";
+		self::$fullConditionForTTContent = self::$baseConditionForTTContent . 'AND ' . self::$baseLanguageConditionForTTContent . self::$baseWorkspaceConditionForTTContent;
 	}
 
 	/**

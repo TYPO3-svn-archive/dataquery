@@ -92,7 +92,7 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 		else {
 			self::$baseConditionForTTContent = 'WHERE (tt_content.deleted=0 AND tt_content.t3ver_state<=0 AND tt_content.hidden=0 AND tt_content.starttime<=###NOW### AND (tt_content.endtime=0 OR tt_content.endtime>###NOW###) AND (tt_content.fe_group=\'\' OR tt_content.fe_group IS NULL OR tt_content.fe_group=\'0\' OR (tt_content.fe_group LIKE \'%,0,%\' OR  tt_content.fe_group LIKE \'0,%\' OR tt_content.fe_group LIKE \'%,0\' OR tt_content.fe_group=\'0\') OR (tt_content.fe_group LIKE \'%,-1,%\' OR  tt_content.fe_group LIKE \'-1,%\' OR tt_content.fe_group LIKE \'%,-1\' OR tt_content.fe_group=\'-1\'))) ';
 		}
-		self::$fullConditionForTTContent = self::$baseConditionForTTContent . 'AND ' . self::$baseLanguageConditionForTTContent . self::$baseWorkspaceConditionForTTContent;
+		self::$fullConditionForTTContent = self::$baseConditionForTTContent . 'AND ###LANGUAGE_CONDITION###' . self::$baseWorkspaceConditionForTTContent;
 	}
 
 	/**
@@ -103,6 +103,8 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 	public function simpleSelectQuery() {
 			// Replace time marker by time used for starttime and endtime enable fields
 		$condition = str_replace('###NOW###', $GLOBALS['SIM_ACCESS_TIME'], self::$fullConditionForTTContent);
+			// Replace the language condition marker
+		$condition = str_replace('###LANGUAGE_CONDITION###', self::$baseLanguageConditionForTTContent, $condition);
 		$additionalSelectFields = $this->prepareAdditionalFields('tt_content');
 		$expectedResult = 'SELECT tt_content.uid, tt_content.header, tt_content.pid, tt_content.sys_language_uid' . $additionalSelectFields . ' FROM tt_content AS tt_content ' . $condition;
 			/**
@@ -126,6 +128,8 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 	public function simpleSelectQueryWithTableAlias() {
 			// Replace time marker by time used for starttime and endtime enable fields
 		$condition = str_replace('###NOW###', $GLOBALS['SIM_ACCESS_TIME'], self::$fullConditionForTTContent);
+			// Replace the language condition marker
+		$condition = str_replace('###LANGUAGE_CONDITION###', self::$baseLanguageConditionForTTContent, $condition);
 			// Replace table name by its alias
 		$condition = str_replace('tt_content', 'c', $condition);
 		$additionalSelectFields = $this->prepareAdditionalFields('c');
@@ -151,6 +155,8 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 	public function selectQueryWithIdList() {
 			// Replace time marker by time used for starttime and endtime enable fields
 		$condition = str_replace('###NOW###', $GLOBALS['SIM_ACCESS_TIME'], self::$fullConditionForTTContent);
+			// Replace the language condition marker
+		$condition = str_replace('###LANGUAGE_CONDITION###', self::$baseLanguageConditionForTTContent, $condition);
 		$additionalSelectFields = $this->prepareAdditionalFields('tt_content');
 		$expectedResult = 'SELECT tt_content.uid, tt_content.header, tt_content.pid, tt_content.sys_language_uid' . $additionalSelectFields . ' FROM tt_content AS tt_content ' . $condition. 'AND (tt_content.uid IN (1,12)) ';
 			/**
@@ -191,6 +197,105 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 		$parser->addTypo3Mechanisms();
 		$actualResult = $parser->buildQuery();
 			// Check if the "structure" part is correct
+		$this->assertEquals($expectedResult, $actualResult);
+	}
+
+	/**
+	 * Provides various setups for all ignore flags
+	 * Also provides the corresponding expected WHERE clauses
+	 * NOTE: we use markers for some conditions, because the values defined in setUp() are not available
+	 * to the data providers
+	 *
+	 * @return array
+	 */
+	public static function ignoreSetupProvider() {
+		self::assembleConditions();
+		$fullCondition = str_replace('###NOW###', $GLOBALS['SIM_ACCESS_TIME'], self::$fullConditionForTTContent);
+		$setup = array(
+			'ignore nothing' => array(
+				'ignore_setup' => array(
+					'ignore_enable_fields' => '0',
+					'ignore_time_for_tables' => '',
+					'ignore_disabled_for_tables' => 'pages',
+					'ignore_fegroup_for_tables' => 'tt_content' // Tests that this is *not* ignore, because global ignore flag is 0
+				),
+				'condition' => $fullCondition
+			),
+				// Ignore all enable fields (detailed settings should be irrelevant)
+			'ignore all' => array(
+				'ignore_setup' => array(
+					'ignore_enable_fields' => '1',
+					'ignore_time_for_tables' => '',
+					'ignore_disabled_for_tables' => 'pages',
+					'ignore_fegroup_for_tables' => 'tt_content'
+				),
+				'condition' => 'WHERE ###LANGUAGE_CONDITION###' . self::$baseWorkspaceConditionForTTContent
+			),
+				// Ignore select enable fields, take 1: ignore all fields for all tables
+			'ignore selected - all for all tables' => array(
+				'ignore_setup' => array(
+					'ignore_enable_fields' => '2',
+					'ignore_time_for_tables' => '*',
+					'ignore_disabled_for_tables' => '*',
+					'ignore_fegroup_for_tables' => '*'
+				),
+				'condition' => 'WHERE (tt_content.deleted=0 AND tt_content.t3ver_state<=0 AND tt_content.pid!=-1) AND ###LANGUAGE_CONDITION###' . self::$baseWorkspaceConditionForTTContent
+			),
+				// Ignore select enable fields, take 2: ignore all fields for all tables
+				// NOTE: should be the same as previous one since the only table in the query is tt_content
+			'ignore selected - all for tt_content' => array(
+				'ignore_setup' => array(
+					'ignore_enable_fields' => '2',
+					'ignore_time_for_tables' => 'tt_content',
+					'ignore_disabled_for_tables' => 'tt_content',
+					'ignore_fegroup_for_tables' => 'tt_content'
+				),
+				'condition' => 'WHERE (tt_content.deleted=0 AND tt_content.t3ver_state<=0 AND tt_content.pid!=-1) AND ###LANGUAGE_CONDITION###' . self::$baseWorkspaceConditionForTTContent
+			),
+				// Ignore select enable fields, take 3: ignore time fields for all tables and hidden field for tt_content
+			'ignore selected - time and disabled for tt_content' => array(
+				'ignore_setup' => array(
+					'ignore_enable_fields' => '2',
+					'ignore_time_for_tables' => '*',
+					'ignore_disabled_for_tables' => ', tt_content', // Weird but valid value (= tt_content)
+					'ignore_fegroup_for_tables' => 'pages' // Irrelevant, table "pages" is not in query
+				),
+				'condition' => "WHERE (tt_content.deleted=0 AND tt_content.t3ver_state<=0 AND tt_content.pid!=-1 AND (tt_content.fe_group='' OR tt_content.fe_group IS NULL OR tt_content.fe_group='0' OR FIND_IN_SET('0',tt_content.fe_group) OR FIND_IN_SET('-1',tt_content.fe_group))) AND ###LANGUAGE_CONDITION###" . self::$baseWorkspaceConditionForTTContent
+			),
+				// Ignore select enable fields, take 4: no tables defined at all, so nothing is ignore after all
+			'ignore selected - ignore nothing after all' => array(
+				'ignore_setup' => array(
+					'ignore_enable_fields' => '2',
+					'ignore_time_for_tables' => '',
+					'ignore_disabled_for_tables' => '',
+					'ignore_fegroup_for_tables' => ''
+				),
+				'condition' => $fullCondition
+			),
+		);
+		return $setup;
+	}
+
+	/**
+	 * Parse and rebuild a simple SELECT query and test value of ignore_enable_fields set to 0,
+	 * i.e. enable fields are not ignored at all
+	 *
+	 * @test
+	 * @dataProvider ignoreSetupProvider
+	 */
+	public function addTypo3MechanismsWithIgnoreEnableFields($ignoreSetup, $condition) {
+		$parsedCondition = str_replace('###LANGUAGE_CONDITION###', self::$baseLanguageConditionForTTContent, $condition);
+		$expectedResult = 'SELECT tt_content.uid, tt_content.header, tt_content.pid, tt_content.sys_language_uid FROM tt_content AS tt_content ' . $parsedCondition;
+			/** @var $parser tx_dataquery_parser */
+		$parser = t3lib_div::makeInstance('tx_dataquery_parser');
+		$query = 'SELECT uid,header FROM tt_content';
+		$parser->parseQuery($query);
+			// Assemble the settings and rebuild the query
+		$settings = array_merge($this->settings, $ignoreSetup);
+		$parser->setProviderData($settings);
+		$parser->addTypo3Mechanisms();
+		$actualResult = $parser->buildQuery();
+
 		$this->assertEquals($expectedResult, $actualResult);
 	}
 
