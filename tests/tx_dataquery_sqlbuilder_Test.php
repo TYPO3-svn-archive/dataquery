@@ -190,7 +190,6 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 		$parser->setProviderData($this->settings);
 		$parser->addTypo3Mechanisms();
 		$actualResult = $parser->buildQuery();
-$this->compareStringLetterPerLetter($expectedResult, $actualResult);
 			// Check if the "structure" part is correct
 		$this->assertEquals($expectedResult, $actualResult);
 	}
