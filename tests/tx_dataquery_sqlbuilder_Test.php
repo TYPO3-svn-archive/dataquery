@@ -46,7 +46,7 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 	/**
 	 * @var	string	Versioning-related SQL condition to apply to tt_content table
 	 */
-	protected static $baseWorkspaceConditionForTTContent = '(tt_content.t3ver_oid = \'0\') ';
+	protected static $baseWorkspaceConditionForTTContent = 'AND (tt_content.t3ver_oid = \'0\') ';
 
 	/**
 	 * @var	string	Full SQL condition (for tt_content) to apply to all queries. Will be based on the above components.
@@ -92,7 +92,7 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 		else {
 			self::$baseConditionForTTContent = 'WHERE (tt_content.deleted=0 AND tt_content.t3ver_state<=0 AND tt_content.hidden=0 AND tt_content.starttime<=###NOW### AND (tt_content.endtime=0 OR tt_content.endtime>###NOW###) AND (tt_content.fe_group=\'\' OR tt_content.fe_group IS NULL OR tt_content.fe_group=\'0\' OR (tt_content.fe_group LIKE \'%,0,%\' OR  tt_content.fe_group LIKE \'0,%\' OR tt_content.fe_group LIKE \'%,0\' OR tt_content.fe_group=\'0\') OR (tt_content.fe_group LIKE \'%,-1,%\' OR  tt_content.fe_group LIKE \'-1,%\' OR tt_content.fe_group LIKE \'%,-1\' OR tt_content.fe_group=\'-1\'))) ';
 		}
-		self::$fullConditionForTTContent = self::$baseConditionForTTContent . 'AND ' . self::$baseLanguageConditionForTTContent . 'AND ' . self::$baseWorkspaceConditionForTTContent;
+		self::$fullConditionForTTContent = self::$baseConditionForTTContent . 'AND ' . self::$baseLanguageConditionForTTContent . self::$baseWorkspaceConditionForTTContent;
 	}
 
 	/**
@@ -190,6 +190,7 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 		$parser->setProviderData($this->settings);
 		$parser->addTypo3Mechanisms();
 		$actualResult = $parser->buildQuery();
+$this->compareStringLetterPerLetter($expectedResult, $actualResult);
 			// Check if the "structure" part is correct
 		$this->assertEquals($expectedResult, $actualResult);
 	}
@@ -226,7 +227,7 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 		for ($i = 0; $i < $length; $i++) {
 			$comparison[] = ((isset($a[$i])) ? $a[$i] : '*') . ' - ' . ((isset($b[$i])) ? $b[$i] : '*');
 		}
-		t3lib_utility_Debug::debug($comparison, 'comparison', 'results');
+		t3lib_div::devlog('String comparison', 'dataquery', 0, $comparison);
 	}
 }
 ?>

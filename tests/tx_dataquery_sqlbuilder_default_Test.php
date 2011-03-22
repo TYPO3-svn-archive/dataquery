@@ -59,7 +59,7 @@ class tx_dataquery_sqlbuilder_Default_Test extends tx_dataquery_sqlbuilder_Test 
 					'ignore_disabled_for_tables' => 'pages',
 					'ignore_fegroup_for_tables' => 'tt_content'
 				),
-				'condition' => 'WHERE ' . self::$baseLanguageConditionForTTContent . 'AND ' . self::$baseWorkspaceConditionForTTContent
+				'condition' => 'WHERE ' . self::$baseLanguageConditionForTTContent . self::$baseWorkspaceConditionForTTContent
 			),
 		);
 		return $setup;
