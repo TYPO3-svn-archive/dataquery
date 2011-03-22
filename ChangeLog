@@ -7,6 +7,7 @@
 2011-01-25 Francois Suter (Cobweb) <typo3@cobweb.ch>
 
 	* Added workspace/versioning support, resolves #10207
+	* Corrected behavior of brackets when rebuilding the query, resolves #11241
 
 2010-12-28 Francois Suter (Cobweb) <typo3@cobweb.ch>
 
