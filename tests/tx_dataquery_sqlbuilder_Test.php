@@ -39,14 +39,24 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 	protected static $baseConditionForTTContent;
 
 	/**
+	 * @var string Absolute minimal condition applied to all TYPO3 requests, even in workspaces
+	 */
+	protected static $minimalConditionForTTContent;
+
+	/**
+	 * @var string Condition on user groups found inside the base condition
+	 */
+	protected static $groupsConditionForTTContent;
+
+	/**
 	 * @var	string	Language-related SQL condition to apply to tt_content table
 	 */
-	protected static $baseLanguageConditionForTTContent = '(tt_content.sys_language_uid IN (0,-1)) ';
+	protected static $baseLanguageConditionForTTContent = '(tt_content.sys_language_uid IN (0,-1))';
 
 	/**
 	 * @var	string	Versioning-related SQL condition to apply to tt_content table
 	 */
-	protected static $baseWorkspaceConditionForTTContent = 'AND (tt_content.t3ver_oid = \'0\') ';
+	protected static $baseWorkspaceConditionForTTContent = '(tt_content.t3ver_oid = \'0\') ';
 
 	/**
 	 * @var	string	Full SQL condition (for tt_content) to apply to all queries. Will be based on the above components.
@@ -87,12 +97,44 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 	public static function assembleConditions() {
 		self::$isMinimumVersion = t3lib_div::int_from_ver(TYPO3_version) >= t3lib_div::int_from_ver('4.5.0');
 		if (self::$isMinimumVersion) {
-			self::$baseConditionForTTContent = 'WHERE (tt_content.deleted=0 AND tt_content.t3ver_state<=0 AND tt_content.pid!=-1 AND tt_content.hidden=0 AND tt_content.starttime<=###NOW### AND (tt_content.endtime=0 OR tt_content.endtime>###NOW###) AND (tt_content.fe_group=\'\' OR tt_content.fe_group IS NULL OR tt_content.fe_group=\'0\' OR FIND_IN_SET(\'0\',tt_content.fe_group) OR FIND_IN_SET(\'-1\',tt_content.fe_group))) ';
+			self::$minimalConditionForTTContent = 'tt_content.deleted=0 AND tt_content.t3ver_state<=0 AND tt_content.pid!=-1';
+			self::$groupsConditionForTTContent = ' AND (tt_content.fe_group=\'\' OR tt_content.fe_group IS NULL OR tt_content.fe_group=\'0\' OR FIND_IN_SET(\'0\',tt_content.fe_group) OR FIND_IN_SET(\'-1\',tt_content.fe_group))';
+			self::$baseConditionForTTContent = '(###MINIMAL_CONDITION### AND tt_content.hidden=0 AND tt_content.starttime<=###NOW### AND (tt_content.endtime=0 OR tt_content.endtime>###NOW###)###GROUP_CONDITION###)';
 		}
 		else {
-			self::$baseConditionForTTContent = 'WHERE (tt_content.deleted=0 AND tt_content.t3ver_state<=0 AND tt_content.hidden=0 AND tt_content.starttime<=###NOW### AND (tt_content.endtime=0 OR tt_content.endtime>###NOW###) AND (tt_content.fe_group=\'\' OR tt_content.fe_group IS NULL OR tt_content.fe_group=\'0\' OR (tt_content.fe_group LIKE \'%,0,%\' OR  tt_content.fe_group LIKE \'0,%\' OR tt_content.fe_group LIKE \'%,0\' OR tt_content.fe_group=\'0\') OR (tt_content.fe_group LIKE \'%,-1,%\' OR  tt_content.fe_group LIKE \'-1,%\' OR tt_content.fe_group LIKE \'%,-1\' OR tt_content.fe_group=\'-1\'))) ';
+			self::$minimalConditionForTTContent = 'tt_content.deleted=0 AND tt_content.t3ver_state<=0';
+			self::$groupsConditionForTTContent = ' AND (tt_content.fe_group=\'\' OR tt_content.fe_group IS NULL OR tt_content.fe_group=\'0\' OR (tt_content.fe_group LIKE \'%,0,%\' OR  tt_content.fe_group LIKE \'0,%\' OR tt_content.fe_group LIKE \'%,0\' OR tt_content.fe_group=\'0\') OR (tt_content.fe_group LIKE \'%,-1,%\' OR  tt_content.fe_group LIKE \'-1,%\' OR tt_content.fe_group LIKE \'%,-1\' OR tt_content.fe_group=\'-1\'))';
+			self::$baseConditionForTTContent = '(###MINIMAL_CONDITION### AND tt_content.hidden=0 AND tt_content.starttime<=###NOW### AND (tt_content.endtime=0 OR tt_content.endtime>###NOW###)###GROUP_CONDITION###)';
 		}
-		self::$fullConditionForTTContent = self::$baseConditionForTTContent . 'AND ###LANGUAGE_CONDITION###' . self::$baseWorkspaceConditionForTTContent;
+			// NOTE: markers are used instead of the corresponding conditions, because the setUp() method
+			// is not invoked inside the data providers. Thus when using a data provider, it's not possible
+			// to refer to the conditions defined via setUp()
+		self::$fullConditionForTTContent = 'WHERE ###BASE_CONDITION### AND ###LANGUAGE_CONDITION### AND ###WORKSPACE_CONDITION###';
+	}
+
+	/**
+	 * This method takes care of replacing all the markers found in the conditions
+	 *
+	 * @static
+	 * @param string $condition The condition to parse for markers
+	 * @return string The parsed condition
+	 */
+	public static function finalizeCondition($condition) {
+		$parsedCondition = $condition;
+			// Replace the base condition marker
+		$parsedCondition = str_replace('###BASE_CONDITION###', self::$baseConditionForTTContent, $parsedCondition);
+			// Replace the minimal condition marker (which may have been inside the ###BASE_CONDITION### marker)
+		$parsedCondition = str_replace('###MINIMAL_CONDITION###', self::$minimalConditionForTTContent, $parsedCondition);
+			// Replace the group condition marker (which may have been inside the ###BASE_CONDITION### marker)
+		$parsedCondition = str_replace('###GROUP_CONDITION###', self::$groupsConditionForTTContent, $parsedCondition);
+			// Replace the language condition marker
+		$parsedCondition = str_replace('###LANGUAGE_CONDITION###', self::$baseLanguageConditionForTTContent, $parsedCondition);
+			// Replace the workspace condition marker
+		$parsedCondition = str_replace('###WORKSPACE_CONDITION###', self::$baseWorkspaceConditionForTTContent, $parsedCondition);
+			// Replace time marker by time used for starttime and endtime enable fields
+			// This is done last because it is "contained" in other markers
+		$parsedCondition = str_replace('###NOW###', $GLOBALS['SIM_ACCESS_TIME'], $parsedCondition);
+		return $parsedCondition;
 	}
 
 	/**
@@ -101,10 +143,8 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 	 * @test
 	 */
 	public function simpleSelectQuery() {
-			// Replace time marker by time used for starttime and endtime enable fields
-		$condition = str_replace('###NOW###', $GLOBALS['SIM_ACCESS_TIME'], self::$fullConditionForTTContent);
-			// Replace the language condition marker
-		$condition = str_replace('###LANGUAGE_CONDITION###', self::$baseLanguageConditionForTTContent, $condition);
+			// Replace markers in the condition
+		$condition = self::finalizeCondition(self::$fullConditionForTTContent);
 		$additionalSelectFields = $this->prepareAdditionalFields('tt_content');
 		$expectedResult = 'SELECT tt_content.uid, tt_content.header, tt_content.pid, tt_content.sys_language_uid' . $additionalSelectFields . ' FROM tt_content AS tt_content ' . $condition;
 			/**
@@ -126,10 +166,8 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 	 * @test
 	 */
 	public function simpleSelectQueryWithTableAlias() {
-			// Replace time marker by time used for starttime and endtime enable fields
-		$condition = str_replace('###NOW###', $GLOBALS['SIM_ACCESS_TIME'], self::$fullConditionForTTContent);
-			// Replace the language condition marker
-		$condition = str_replace('###LANGUAGE_CONDITION###', self::$baseLanguageConditionForTTContent, $condition);
+			// Replace markers in the condition
+		$condition = self::finalizeCondition(self::$fullConditionForTTContent);
 			// Replace table name by its alias
 		$condition = str_replace('tt_content', 'c', $condition);
 		$additionalSelectFields = $this->prepareAdditionalFields('c');
@@ -153,10 +191,8 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 	 * @test
 	 */
 	public function selectQueryWithIdList() {
-			// Replace time marker by time used for starttime and endtime enable fields
-		$condition = str_replace('###NOW###', $GLOBALS['SIM_ACCESS_TIME'], self::$fullConditionForTTContent);
-			// Replace the language condition marker
-		$condition = str_replace('###LANGUAGE_CONDITION###', self::$baseLanguageConditionForTTContent, $condition);
+			// Replace markers in the condition
+		$condition = self::finalizeCondition(self::$fullConditionForTTContent);
 		$additionalSelectFields = $this->prepareAdditionalFields('tt_content');
 		$expectedResult = 'SELECT tt_content.uid, tt_content.header, tt_content.pid, tt_content.sys_language_uid' . $additionalSelectFields . ' FROM tt_content AS tt_content ' . $condition. 'AND (tt_content.uid IN (1,12)) ';
 			/**
@@ -180,11 +216,11 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 	 *
 	 * @test
 	 */
-	public function selectQueryWithUidAsAlias() {
-			// Language condition does not apply when DISTINCT is used
-		$condition = self::$baseConditionForTTContent . self::$baseWorkspaceConditionForTTContent;
-			// Replace time marker by time used for starttime and endtime enable fields
-		$condition = str_replace('###NOW###', $GLOBALS['SIM_ACCESS_TIME'], $condition);
+	public function selectQueryWithUidAsAliasAndDistinct() {
+			// Language condition does not apply when DISTINCT is used, so assemble a specific condition
+		$condition = 'WHERE ###BASE_CONDITION### AND ###WORKSPACE_CONDITION###';
+			// Replace markers in the condition
+		$condition = self::finalizeCondition($condition);
 		$additionalSelectFields = $this->prepareAdditionalFields('tt_content');
 		$expectedResult = 'SELECT DISTINCT tt_content.CType AS uid' . $additionalSelectFields . ' FROM tt_content AS tt_content ' . $condition;
 			/**
@@ -201,6 +237,116 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 	}
 
 	/**
+	 * Parse and rebuild a SELECT query with a filter
+	 *
+	 * @test
+	 */
+	public function selectQueryWithFilter() {
+			// Replace markers in the condition
+		$condition = self::finalizeCondition(self::$fullConditionForTTContent);
+		$additionalSelectFields = $this->prepareAdditionalFields('tt_content');
+		$expectedResult = 'SELECT tt_content.uid, tt_content.header, FROM_UNIXTIME(tstamp, \'%Y\') AS year, tt_content.pid, tt_content.sys_language_uid' . $additionalSelectFields . ' FROM tt_content AS tt_content ' . $condition . 'AND (((tt_content.uid > \'10\') AND (tt_content.uid <= \'50\')) AND ((tt_content.header LIKE \'%foo%\' OR tt_content.header LIKE \'%bar%\')) AND ((tt_content.image IS NOT NULL)) AND ((tt_content.header = \'\')) AND ((FROM_UNIXTIME(tstamp, \'%Y\') = \'2010\'))) ORDER BY tt_content.crdate desc ';
+			/**
+			 * @var tx_dataquery_parser	$parser
+			 */
+		$parser = t3lib_div::makeInstance('tx_dataquery_parser');
+		$query = 'SELECT uid,header, FROM_UNIXTIME(tstamp, \'%Y\') AS year FROM tt_content';
+		$parser->parseQuery($query);
+		$parser->setProviderData($this->settings);
+		$parser->addTypo3Mechanisms();
+			// Define filter with many different conditions
+		$filter = array(
+			'filters' => array(
+				0 => array(
+					'table' => 'tt_content',
+					'field' => 'uid',
+					'conditions' => array(
+						0 => array(
+							'operator' => '>',
+							'value' => 10
+						),
+						1 => array(
+							'operator' => '<=',
+							'value' => 50
+						)
+					)
+				),
+				1 => array(
+					'table' => 'tt_content',
+					'field' => 'header',
+					'conditions' => array(
+						0 => array(
+							'operator' => 'like',
+							'value' => array(
+								'foo',
+								'bar'
+							)
+						)
+					)
+				),
+					// Test filters using special value \null, \empty and \all
+				2 => array(
+					'table' => 'tt_content',
+					'field' => 'image',
+					'conditions' => array(
+						0 => array(
+							'operator' => '!=',
+							'value' => '\null'
+						)
+					)
+				),
+				3 => array(
+					'table' => 'tt_content',
+					'field' => 'header',
+					'conditions' => array(
+						0 => array(
+							'operator' => '=',
+							'value' => '\empty'
+						)
+					)
+				),
+				4 => array(
+					'table' => 'tt_content',
+					'field' => 'bodytext',
+					'conditions' => array(
+						0 => array(
+							'operator' => '=',
+							'value' => '\all'
+						)
+					)
+				),
+					// Test filter on a field using an alias
+				5 => array(
+					'table' => 'tt_content',
+					'field' => 'year',
+					'conditions' => array(
+						0 => array(
+							'operator' => '=',
+							'value' => 2010
+						)
+					)
+				)
+			),
+			'logicalOperator' => 'AND',
+			'limit' => array(
+				'max' => 20,
+				'offset' => 2
+			),
+			'orderby' => array(
+				0 => array(
+					'table' => 'tt_content',
+					'field' => 'crdate',
+					'order' => 'desc'
+				)
+			)
+		);
+		$parser->addFilter($filter);
+		$actualResult = $parser->buildQuery();
+			// Check if the "structure" part is correct
+		$this->assertEquals($expectedResult, $actualResult);
+	}
+
+	/**
 	 * Provides various setups for all ignore flags
 	 * Also provides the corresponding expected WHERE clauses
 	 * NOTE: we use markers for some conditions, because the values defined in setUp() are not available
@@ -210,7 +356,6 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 	 */
 	public static function ignoreSetupProvider() {
 		self::assembleConditions();
-		$fullCondition = str_replace('###NOW###', $GLOBALS['SIM_ACCESS_TIME'], self::$fullConditionForTTContent);
 		$setup = array(
 			'ignore nothing' => array(
 				'ignore_setup' => array(
@@ -219,7 +364,7 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 					'ignore_disabled_for_tables' => 'pages',
 					'ignore_fegroup_for_tables' => 'tt_content' // Tests that this is *not* ignore, because global ignore flag is 0
 				),
-				'condition' => $fullCondition
+				'condition' => self::$fullConditionForTTContent
 			),
 				// Ignore all enable fields (detailed settings should be irrelevant)
 			'ignore all' => array(
@@ -229,7 +374,7 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 					'ignore_disabled_for_tables' => 'pages',
 					'ignore_fegroup_for_tables' => 'tt_content'
 				),
-				'condition' => 'WHERE ###LANGUAGE_CONDITION###' . self::$baseWorkspaceConditionForTTContent
+				'condition' => 'WHERE ###LANGUAGE_CONDITION### AND ###WORKSPACE_CONDITION###'
 			),
 				// Ignore select enable fields, take 1: ignore all fields for all tables
 			'ignore selected - all for all tables' => array(
@@ -239,7 +384,7 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 					'ignore_disabled_for_tables' => '*',
 					'ignore_fegroup_for_tables' => '*'
 				),
-				'condition' => 'WHERE (tt_content.deleted=0 AND tt_content.t3ver_state<=0 AND tt_content.pid!=-1) AND ###LANGUAGE_CONDITION###' . self::$baseWorkspaceConditionForTTContent
+				'condition' => 'WHERE (###MINIMAL_CONDITION###) AND ###LANGUAGE_CONDITION### AND ###WORKSPACE_CONDITION###'
 			),
 				// Ignore select enable fields, take 2: ignore all fields for all tables
 				// NOTE: should be the same as previous one since the only table in the query is tt_content
@@ -250,7 +395,7 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 					'ignore_disabled_for_tables' => 'tt_content',
 					'ignore_fegroup_for_tables' => 'tt_content'
 				),
-				'condition' => 'WHERE (tt_content.deleted=0 AND tt_content.t3ver_state<=0 AND tt_content.pid!=-1) AND ###LANGUAGE_CONDITION###' . self::$baseWorkspaceConditionForTTContent
+				'condition' => 'WHERE (###MINIMAL_CONDITION###) AND ###LANGUAGE_CONDITION### AND ###WORKSPACE_CONDITION###'
 			),
 				// Ignore select enable fields, take 3: ignore time fields for all tables and hidden field for tt_content
 			'ignore selected - time and disabled for tt_content' => array(
@@ -260,7 +405,7 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 					'ignore_disabled_for_tables' => ', tt_content', // Weird but valid value (= tt_content)
 					'ignore_fegroup_for_tables' => 'pages' // Irrelevant, table "pages" is not in query
 				),
-				'condition' => "WHERE (tt_content.deleted=0 AND tt_content.t3ver_state<=0 AND tt_content.pid!=-1 AND (tt_content.fe_group='' OR tt_content.fe_group IS NULL OR tt_content.fe_group='0' OR FIND_IN_SET('0',tt_content.fe_group) OR FIND_IN_SET('-1',tt_content.fe_group))) AND ###LANGUAGE_CONDITION###" . self::$baseWorkspaceConditionForTTContent
+				'condition' => "WHERE (###MINIMAL_CONDITION######GROUP_CONDITION###) AND ###LANGUAGE_CONDITION### AND ###WORKSPACE_CONDITION###"
 			),
 				// Ignore select enable fields, take 4: no tables defined at all, so nothing is ignore after all
 			'ignore selected - ignore nothing after all' => array(
@@ -270,7 +415,7 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 					'ignore_disabled_for_tables' => '',
 					'ignore_fegroup_for_tables' => ''
 				),
-				'condition' => $fullCondition
+				'condition' => self::$fullConditionForTTContent
 			),
 		);
 		return $setup;
@@ -284,8 +429,11 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 	 * @dataProvider ignoreSetupProvider
 	 */
 	public function addTypo3MechanismsWithIgnoreEnableFields($ignoreSetup, $condition) {
-		$parsedCondition = str_replace('###LANGUAGE_CONDITION###', self::$baseLanguageConditionForTTContent, $condition);
-		$expectedResult = 'SELECT tt_content.uid, tt_content.header, tt_content.pid, tt_content.sys_language_uid FROM tt_content AS tt_content ' . $parsedCondition;
+			// Replace markers in the condition
+		$condition = self::finalizeCondition($condition);
+			// Add extra fields, as needed
+		$additionalSelectFields = $this->prepareAdditionalFields('tt_content');
+		$expectedResult = 'SELECT tt_content.uid, tt_content.header, tt_content.pid, tt_content.sys_language_uid' . $additionalSelectFields . ' FROM tt_content AS tt_content ' . $condition;
 			/** @var $parser tx_dataquery_parser */
 		$parser = t3lib_div::makeInstance('tx_dataquery_parser');
 		$query = 'SELECT uid,header FROM tt_content';

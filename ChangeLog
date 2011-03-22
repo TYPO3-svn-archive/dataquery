@@ -1,3 +1,7 @@
+2011-03-22 Francois Suter (Cobweb) <typo3@cobweb.ch>
+
+	* Improved unit tests to run in various contexts, resolves #12521
+
 2011-01-25 Francois Suter (Cobweb) <typo3@cobweb.ch>
 
 	* Added workspace/versioning support, resolves #10207
