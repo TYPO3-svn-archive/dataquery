@@ -1,3 +1,8 @@
+2011-03-23 Francois Suter (Cobweb) <typo3@cobweb.ch>
+
+	* Corrected error in usage of table aliases for enable fields condition on sub-tables, resolves #13985
+	* Released to TER as version 1.2.1
+
 2011-03-22 Francois Suter (Cobweb) <typo3@cobweb.ch>
 
 	* Improved unit tests to run in various contexts, resolves #12521

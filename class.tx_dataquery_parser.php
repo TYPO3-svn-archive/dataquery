@@ -495,7 +495,7 @@ class tx_dataquery_parser {
 						if ($table != $joinData['alias']) {
 							$enableClause = str_replace($table . '.', $joinData['alias'] . '.', $enableClause);
 						}
-						$this->addOnClause($enableClause, $table);
+						$this->addOnClause($enableClause, $joinData['alias']);
 					}
 				}
 			}
