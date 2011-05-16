@@ -1093,10 +1093,12 @@ t3lib_div::debug($this->queryObject->structure['SELECT'], 'Updated select struct
 	 */
 	protected function isAQueryField($table, $field) {
 		$isAQueryField = FALSE;
-		foreach ($this->queryFields[$table]['fields'] as $fieldData) {
-			if ($fieldData['name'] == $field) {
-				$isAQueryField = TRUE;
-				break;
+		if (isset($this->queryFields[$table]['fields'])) {
+			foreach ($this->queryFields[$table]['fields'] as $fieldData) {
+				if ($fieldData['name'] == $field) {
+					$isAQueryField = TRUE;
+					break;
+				}
 			}
 		}
 		return $isAQueryField;

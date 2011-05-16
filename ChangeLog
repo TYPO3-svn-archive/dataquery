@@ -1,3 +1,7 @@
+2011-05-16 Francois Suter (Cobweb) <typo3@cobweb.ch>
+
+	* Added check for possible empty array when checking query fields, resolves #26835
+
 2011-03-23 Francois Suter (Cobweb) <typo3@cobweb.ch>
 
 	* Corrected error in usage of table aliases for enable fields condition on sub-tables, resolves #13985
