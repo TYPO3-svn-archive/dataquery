@@ -73,9 +73,9 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 		$returnStructure = array();
 
 			// If the cache duration is not set to 0, try to find a cached query
-			// Avoid that if global no_cache flag is set
+			// Avoid that if global no_cache flag is set or if in a workspace
 		$hasStructure = FALSE;
-		if (!empty($this->providerData['cache_duration']) && empty($GLOBALS['TSFE']->no_cache)) {
+		if (!empty($this->providerData['cache_duration']) && empty($GLOBALS['TSFE']->no_cache) && empty($GLOBALS['TSFE']->sys_page->versioningPreview)) {
 			try {
 				$dataStructure = $this->getCachedStructure();
 //t3lib_div::debug($dataStructure);
@@ -649,7 +649,7 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 			}
 		}
 
-			// Store the structure in the cache table
+			// Store the structure in the cache table,
 		$this->writeStructureToCache($dataStructure);
 
 			// Finally return the assembled structure
@@ -728,8 +728,9 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 	 * @return	void
 	 */
 	protected function writeStructureToCache($structure) {
-			// Write only if cache is active
-		if (!empty($this->providerData['cache_duration'])) {
+			// Write only if cache is active, i.e.
+			// if cache duration is not empty, and we're not in no_cache mode or in a workspace
+		if (!empty($this->providerData['cache_duration']) && empty($GLOBALS['TSFE']->no_cache) && empty($GLOBALS['TSFE']->sys_page->versioningPreview)) {
 			$cacheHash = $this->calculateCacheHash(array());
 			$serializedStructure = serialize($structure);
 				// Write only if serialized data is not too large
