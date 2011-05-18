@@ -43,7 +43,6 @@ Developer's Guide	14
 Hooks	14
 Known problems	15
 To-Do List	16
-Changelog	17
 
 Introduction
 What does it do?
@@ -274,24 +273,4 @@ If you have any issues, please refer to the Tesseract Project web site (http://w
 To-Do List
 The roadmap for the evolution of this extension can be found on Forge: http://forge.typo3.org/projects/roadmap/extension-dataquery
 For feature requests, please open a report on Forge issue tracker: http://forge.typo3.org/projects/extension-dataquery/issues
-
-Changelog
-Version
-Changes:
-1.2.0
-Added support for workspace preview
-Added storage of filter information inside the data structure
-1.1.0
-Corrected handling of array-type values coming from filters
-Added "postProcessFieldInformation" hook
-Added helper mechanism for matching aliases
-Additional bug fixes
-1.0.0
-Second public release, as part of the Tesseract project
-0.3.0-0.20.0
-Internal versions
-0.2.0
-Refactoring for integration into the Tesseract concept
-0.1.4
-First public release
 
