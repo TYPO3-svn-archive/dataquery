@@ -1,3 +1,7 @@
+2011-05-18 Francois Suter (Cobweb) <typo3@cobweb.ch>
+
+	* Released to TER as version 1.2.2
+
 2011-05-16 Francois Suter (Cobweb) <typo3@cobweb.ch>
 
 	* Added check for possible empty array when checking query fields, resolves #26835
