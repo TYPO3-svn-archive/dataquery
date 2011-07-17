@@ -325,6 +325,18 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 							'value' => 2010
 						)
 					)
+				),
+					// This filter must not be applied (void filter)
+				6 => array(
+					'table' => 'tt_content',
+					'field' => 'month',
+					'void' => TRUE,
+					'conditions' => array(
+						0 => array(
+							'operator' => '>',
+							'value' => 3
+						)
+					)
 				)
 			),
 			'logicalOperator' => 'AND',

@@ -1,3 +1,7 @@
+2011-07-17 Francois Suter (Cobweb) <typo3@cobweb.ch>
+
+	* Added support for void filters, resolves #28274
+
 2011-05-18 Francois Suter (Cobweb) <typo3@cobweb.ch>
 
 	* Released to TER as version 1.2.2

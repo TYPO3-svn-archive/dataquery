@@ -637,14 +637,22 @@ class tx_dataquery_parser {
 		$logicalOperator = (empty($filter['logicalOperator'])) ? 'AND' : $filter['logicalOperator'];
 		if (isset($filter['filters']) && is_array($filter['filters'])) {
 			foreach ($filter['filters'] as $index => $filterData) {
-				$ignoreCondition = FALSE;
-				$table = (empty($filterData['table'])) ? $this->queryObject->mainTable : $filterData['table'];
-					// Check if the table is available in the query
-				try {
-					$table = $this->matchAliasOrTableName($table, 'Filter - ' . ((empty($filterData['string'])) ? $index : $filterData['string']));
-				}
-				catch (tx_tesseract_exception $e) {
+				$table = '';
+					// Check if the condition must be explicitly ignored
+					// (i.e. it is transmitted by the filter only for information)
+					// If not, resolve the table name, if possible
+				if ($filterData['void']) {
 					$ignoreCondition = TRUE;
+				} else {
+					$ignoreCondition = FALSE;
+					$table = (empty($filterData['table'])) ? $this->queryObject->mainTable : $filterData['table'];
+						// Check if the table is available in the query
+					try {
+						$table = $this->matchAliasOrTableName($table, 'Filter - ' . ((empty($filterData['string'])) ? $index : $filterData['string']));
+					}
+					catch (tx_tesseract_exception $e) {
+						$ignoreCondition = TRUE;
+					}
 				}
 					// If the table is not in the query, ignore the condition
 				if (!$ignoreCondition) {
