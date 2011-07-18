@@ -1,3 +1,7 @@
+2011-07-18 Francois Suter (Cobweb) <typo3@cobweb.ch>
+
+	* Used new hook of datafilter to count "additional SQL" into empty filter check, resolves #28287
+
 2011-07-17 Francois Suter (Cobweb) <typo3@cobweb.ch>
 
 	* Added support for void filters, resolves #28274

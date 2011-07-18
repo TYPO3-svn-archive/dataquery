@@ -36,6 +36,7 @@ $TYPO3_CONF_VARS['SC_OPTIONS']['t3lib/class.t3lib_tcemain.php']['clearPageCacheE
 
 	// Register a hook with datafilter to handle the extra field added by dataquery
 $TYPO3_CONF_VARS['EXTCONF']['datafilter']['postprocessReturnValue']['tx_dataquery'] = 'EXT:dataquery/hooks/class.tx_dataquery_datafilterhook.php:&tx_dataquery_datafilterhook';
+$TYPO3_CONF_VARS['EXTCONF']['datafilter']['postprocessEmptyFilterCheck']['tx_dataquery'] = 'EXT:dataquery/hooks/class.tx_dataquery_datafilterhook.php:&tx_dataquery_datafilterhook';
 
 	// Register wizard validation method with generic BE ajax calls handler
 $TYPO3_CONF_VARS['BE']['AJAX']['dataquery::validate'] = 'typo3conf/ext/dataquery/class.tx_dataquery_ajax.php:tx_dataquery_Ajax->validate';

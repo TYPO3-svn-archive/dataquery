@@ -31,7 +31,7 @@
  *
  * $Id$
  */
-class tx_dataquery_datafilterhook implements tx_datafilter_postprocessFilter {
+class tx_dataquery_datafilterhook implements tx_datafilter_postprocessFilter, tx_datafilter_postprocessEmptyFilterCheck {
 
 	/**
 	 * This method is used to modify a datafilter object
@@ -50,6 +50,19 @@ class tx_dataquery_datafilterhook implements tx_datafilter_postprocessFilter {
 			$filterArray['rawSQL'] = $additionalSQL;
 			$filter->setFilter($filterArray);
 		}
+	}
+
+	/**
+	 * This method must be implemented for post-processing the empty filter check
+	 * It receives the current status of the check and a reference to the complete filter object
+	 *
+	 * @param boolean $isEmpty Current value of the is filter empty flag
+	 * @param tx_datafilter $filter The calling filter object
+	 * @return boolean
+	 */
+	public function postprocessEmptyFilterCheck($isEmpty, tx_datafilter $filter) {
+		$filterStructure = $filter->getFilter();
+		return $isEmpty && empty($filterStructure['rawSQL']);
 	}
 }
 ?>
