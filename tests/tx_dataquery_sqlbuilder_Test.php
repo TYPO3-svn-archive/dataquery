@@ -437,6 +437,8 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 	 * Parse and rebuild a simple SELECT query and test value of ignore_enable_fields set to 0,
 	 * i.e. enable fields are not ignored at all
 	 *
+	 * @param array $ignoreSetup Array with mechanisms to ignore
+	 * @param string $condition Expected condition
 	 * @test
 	 * @dataProvider ignoreSetupProvider
 	 */
