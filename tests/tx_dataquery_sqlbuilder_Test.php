@@ -36,32 +36,32 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 	/**
 	 * @var	string	Base SQL condition to apply to tt_content table
 	 */
-	protected static $baseConditionForTTContent;
+	protected static $baseConditionForTable;
 
 	/**
 	 * @var string Absolute minimal condition applied to all TYPO3 requests, even in workspaces
 	 */
-	protected static $minimalConditionForTTContent;
+	protected static $minimalConditionForTable;
 
 	/**
 	 * @var string Condition on user groups found inside the base condition
 	 */
-	protected static $groupsConditionForTTContent;
+	protected static $groupsConditionForTable;
 
 	/**
 	 * @var	string	Language-related SQL condition to apply to tt_content table
 	 */
-	protected static $baseLanguageConditionForTTContent = '(tt_content.sys_language_uid IN (0,-1))';
+	protected static $baseLanguageConditionForTable = '(###TABLE###.sys_language_uid IN (0,-1))';
 
 	/**
 	 * @var	string	Versioning-related SQL condition to apply to tt_content table
 	 */
-	protected static $baseWorkspaceConditionForTTContent = '(tt_content.t3ver_oid = \'0\') ';
+	protected static $baseWorkspaceConditionForTable = '(###TABLE###.t3ver_oid = \'0\') ';
 
 	/**
 	 * @var	string	Full SQL condition (for tt_content) to apply to all queries. Will be based on the above components.
 	 */
-	protected static $fullConditionForTTContent;
+	protected static $fullConditionForTable;
 
 	/**
 	 * @var boolean the minimum version. Currently the 4.5.0
@@ -121,18 +121,18 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
     	    : t3lib_div::int_from_ver(TYPO3_version);
 		self::$isMinimumVersion = $currentVersion >= 4005000;
 		if (self::$isMinimumVersion) {
-			self::$minimalConditionForTTContent = 'tt_content.deleted=0 AND tt_content.t3ver_state<=0 AND tt_content.pid!=-1';
-			self::$groupsConditionForTTContent = ' AND (tt_content.fe_group=\'\' OR tt_content.fe_group IS NULL OR tt_content.fe_group=\'0\' OR FIND_IN_SET(\'0\',tt_content.fe_group) OR FIND_IN_SET(\'-1\',tt_content.fe_group))';
-			self::$baseConditionForTTContent = '(###MINIMAL_CONDITION### AND tt_content.hidden=0 AND tt_content.starttime<=###NOW### AND (tt_content.endtime=0 OR tt_content.endtime>###NOW###)###GROUP_CONDITION###)';
+			self::$minimalConditionForTable = '###TABLE###.deleted=0 AND ###TABLE###.t3ver_state<=0 AND ###TABLE###.pid!=-1';
+			self::$groupsConditionForTable = ' AND (###TABLE###.fe_group=\'\' OR ###TABLE###.fe_group IS NULL OR ###TABLE###.fe_group=\'0\' OR FIND_IN_SET(\'0\',###TABLE###.fe_group) OR FIND_IN_SET(\'-1\',###TABLE###.fe_group))';
+			self::$baseConditionForTable = '(###MINIMAL_CONDITION### AND ###TABLE###.hidden=0 AND ###TABLE###.starttime<=###NOW### AND (###TABLE###.endtime=0 OR ###TABLE###.endtime>###NOW###)###GROUP_CONDITION###)';
 		} else {
-			self::$minimalConditionForTTContent = 'tt_content.deleted=0 AND tt_content.t3ver_state<=0';
-			self::$groupsConditionForTTContent = ' AND (tt_content.fe_group=\'\' OR tt_content.fe_group IS NULL OR tt_content.fe_group=\'0\' OR (tt_content.fe_group LIKE \'%,0,%\' OR  tt_content.fe_group LIKE \'0,%\' OR tt_content.fe_group LIKE \'%,0\' OR tt_content.fe_group=\'0\') OR (tt_content.fe_group LIKE \'%,-1,%\' OR  tt_content.fe_group LIKE \'-1,%\' OR tt_content.fe_group LIKE \'%,-1\' OR tt_content.fe_group=\'-1\'))';
-			self::$baseConditionForTTContent = '(###MINIMAL_CONDITION### AND tt_content.hidden=0 AND tt_content.starttime<=###NOW### AND (tt_content.endtime=0 OR tt_content.endtime>###NOW###)###GROUP_CONDITION###)';
+			self::$minimalConditionForTable = '###TABLE###.deleted=0 AND ###TABLE###.t3ver_state<=0';
+			self::$groupsConditionForTable = ' AND (###TABLE###.fe_group=\'\' OR ###TABLE###.fe_group IS NULL OR ###TABLE###.fe_group=\'0\' OR (###TABLE###.fe_group LIKE \'%,0,%\' OR  ###TABLE###.fe_group LIKE \'0,%\' OR ###TABLE###.fe_group LIKE \'%,0\' OR ###TABLE###.fe_group=\'0\') OR (###TABLE###.fe_group LIKE \'%,-1,%\' OR  ###TABLE###.fe_group LIKE \'-1,%\' OR ###TABLE###.fe_group LIKE \'%,-1\' OR ###TABLE###.fe_group=\'-1\'))';
+			self::$baseConditionForTable = '(###MINIMAL_CONDITION### AND ###TABLE###.hidden=0 AND ###TABLE###.starttime<=###NOW### AND (###TABLE###.endtime=0 OR ###TABLE###.endtime>###NOW###)###GROUP_CONDITION###)';
 		}
 			// NOTE: markers are used instead of the corresponding conditions, because the setUp() method
 			// is not invoked inside the data providers. Thus when using a data provider, it's not possible
 			// to refer to the conditions defined via setUp()
-		self::$fullConditionForTTContent = 'WHERE ###BASE_CONDITION### AND ###LANGUAGE_CONDITION### AND ###WORKSPACE_CONDITION###';
+		self::$fullConditionForTable = 'WHERE ###BASE_CONDITION### AND ###LANGUAGE_CONDITION### AND ###WORKSPACE_CONDITION###';
 	}
 
 	/**
@@ -140,20 +140,23 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 	 *
 	 * @static
 	 * @param string $condition The condition to parse for markers
+	 * @param string $table The name of the table to use (the default is tt_content, which is used in most tests)
 	 * @return string The parsed condition
 	 */
-	public static function finalizeCondition($condition) {
+	public static function finalizeCondition($condition, $table = 'tt_content') {
 		$parsedCondition = $condition;
 			// Replace the base condition marker
-		$parsedCondition = str_replace('###BASE_CONDITION###', self::$baseConditionForTTContent, $parsedCondition);
+		$parsedCondition = str_replace('###BASE_CONDITION###', self::$baseConditionForTable, $parsedCondition);
 			// Replace the minimal condition marker (which may have been inside the ###BASE_CONDITION### marker)
-		$parsedCondition = str_replace('###MINIMAL_CONDITION###', self::$minimalConditionForTTContent, $parsedCondition);
+		$parsedCondition = str_replace('###MINIMAL_CONDITION###', self::$minimalConditionForTable, $parsedCondition);
 			// Replace the group condition marker (which may have been inside the ###BASE_CONDITION### marker)
-		$parsedCondition = str_replace('###GROUP_CONDITION###', self::$groupsConditionForTTContent, $parsedCondition);
+		$parsedCondition = str_replace('###GROUP_CONDITION###', self::$groupsConditionForTable, $parsedCondition);
 			// Replace the language condition marker
-		$parsedCondition = str_replace('###LANGUAGE_CONDITION###', self::$baseLanguageConditionForTTContent, $parsedCondition);
+		$parsedCondition = str_replace('###LANGUAGE_CONDITION###', self::$baseLanguageConditionForTable, $parsedCondition);
 			// Replace the workspace condition marker
-		$parsedCondition = str_replace('###WORKSPACE_CONDITION###', self::$baseWorkspaceConditionForTTContent, $parsedCondition);
+		$parsedCondition = str_replace('###WORKSPACE_CONDITION###', self::$baseWorkspaceConditionForTable, $parsedCondition);
+			// Replace table marker by table name
+		$parsedCondition = str_replace('###TABLE###', $table, $parsedCondition);
 			// Replace time marker by time used for starttime and endtime enable fields
 			// This is done last because it is "contained" in other markers
 		$parsedCondition = str_replace('###NOW###', $GLOBALS['SIM_ACCESS_TIME'], $parsedCondition);
@@ -167,7 +170,7 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 	 */
 	public function simpleSelectQuery() {
 			// Replace markers in the condition
-		$condition = self::finalizeCondition(self::$fullConditionForTTContent);
+		$condition = self::finalizeCondition(self::$fullConditionForTable);
 		$additionalSelectFields = $this->prepareAdditionalFields('tt_content');
 		$expectedResult = 'SELECT tt_content.uid, tt_content.header, tt_content.pid, tt_content.sys_language_uid' . $additionalSelectFields . ' FROM tt_content AS tt_content ' . $condition;
 
@@ -189,7 +192,7 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 	 */
 	public function simpleSelectQueryWithTableAlias() {
 			// Replace markers in the condition
-		$condition = self::finalizeCondition(self::$fullConditionForTTContent);
+		$condition = self::finalizeCondition(self::$fullConditionForTable);
 			// Replace table name by its alias
 		$condition = str_replace('tt_content', 'c', $condition);
 		$additionalSelectFields = $this->prepareAdditionalFields('c');
@@ -213,7 +216,7 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 	 */
 	public function selectQueryWithIdList() {
 			// Replace markers in the condition
-		$condition = self::finalizeCondition(self::$fullConditionForTTContent);
+		$condition = self::finalizeCondition(self::$fullConditionForTable);
 		$additionalSelectFields = $this->prepareAdditionalFields('tt_content');
 		$expectedResult = 'SELECT tt_content.uid, tt_content.header, tt_content.pid, tt_content.sys_language_uid' . $additionalSelectFields . ' FROM tt_content AS tt_content ' . $condition. 'AND (tt_content.uid IN (1,12)) ';
 
@@ -502,7 +505,7 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 	 */
 	public function selectQueryWithFilter($filter, $condition, $isSqlCondition = TRUE) {
 			// Replace markers in the condition
-		$generalCondition = self::finalizeCondition(self::$fullConditionForTTContent);
+		$generalCondition = self::finalizeCondition(self::$fullConditionForTable);
 		$additionalSelectFields = $this->prepareAdditionalFields('tt_content');
 		$expectedResult = 'SELECT tt_content.uid, tt_content.header, FROM_UNIXTIME(tstamp, \'%Y\') AS year, tt_content.pid, tt_content.sys_language_uid' . $additionalSelectFields . ' FROM tt_content AS tt_content ' . $generalCondition;
 			// Add the filter's condition if not empty
@@ -544,7 +547,7 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 					'ignore_disabled_for_tables' => 'pages',
 					'ignore_fegroup_for_tables' => 'tt_content' // Tests that this is *not* ignore, because global ignore flag is 0
 				),
-				'condition' => self::$fullConditionForTTContent
+				'condition' => self::$fullConditionForTable
 			),
 				// Ignore all enable fields (detailed settings should be irrelevant)
 			'ignore all' => array(
@@ -595,7 +598,7 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 					'ignore_disabled_for_tables' => '',
 					'ignore_fegroup_for_tables' => ''
 				),
-				'condition' => self::$fullConditionForTTContent
+				'condition' => self::$fullConditionForTable
 			),
 		);
 		return $setup;
