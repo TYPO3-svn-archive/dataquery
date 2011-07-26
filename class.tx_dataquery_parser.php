@@ -112,9 +112,7 @@ class tx_dataquery_parser {
 		$query = $this->prepareQueryString($query);
 
 			// Parse the SQL query
-			/**
-			 * @var	tx_dataquery_sqlparser
-			 */
+			/** @var $sqlParser tx_dataquery_sqlparser */
 		$sqlParser = t3lib_div::makeInstance('tx_dataquery_sqlparser');
 			// NOTE: the following call may throw exceptions,
 			// but we let them bubble up
@@ -203,7 +201,6 @@ class tx_dataquery_parser {
 				//
 				// The $ sign is used in class tx_dataquery_wrapper for building the data structure
 				// Initialize values
-			$theAlias = '';
 			$mappedField = '';
 			$mappedTable = '';
 			$fullField = $fieldInfo['tableAlias'] . '.' . $fieldInfo['field'];
@@ -298,6 +295,7 @@ class tx_dataquery_parser {
 			// If no language object is available, create one
         } else {
 			require_once(PATH_typo3 . 'sysext/lang/lang.php');
+				/** @var $lang language */
 			$lang = t3lib_div::makeInstance('language');
 			$languageCode = '';
 				// Find out which language to use
@@ -376,8 +374,8 @@ class tx_dataquery_parser {
 	/**
 	 * Set the data coming from the Data Provider class
 	 *
-	 * @param	array		$data: database record corresponding to the current Data Query record
-	 * @return	void
+	 * @param array $providerData Database record corresponding to the current Data Query record
+	 * @return void
 	 */
 	public function setProviderData($providerData) {
 		$this->providerData = $providerData;
@@ -474,7 +472,7 @@ class tx_dataquery_parser {
 				// Replace the true table name by its alias if necessary
 				// NOTE: there's a risk that a field containing the table name might be modified abusively
 				// There's no real way around it except changing tx_overlays::getEnableFieldsCondition()
-				// to reimplement a better t3lib_page::enableFields()
+				// to re-implement a better t3lib_page::enableFields()
 				// Adding the "." in the replacement reduces the risks
 			if ($this->queryObject->mainTable != $trueTableName) {
 				$enableClause = str_replace($trueTableName . '.', $this->queryObject->mainTable . '.', $enableClause);
@@ -483,7 +481,7 @@ class tx_dataquery_parser {
 
 				// Add enable fields to JOINed tables
 			if (isset($this->queryObject->structure['JOIN']) && is_array($this->queryObject->structure['JOIN'])) {
-				foreach ($this->queryObject->structure['JOIN'] as $tableIndex => $joinData) {
+				foreach ($this->queryObject->structure['JOIN'] as $joinData) {
 
 						// Define parameters for enable fields condition
 					$table = $joinData['table'];
@@ -612,7 +610,7 @@ class tx_dataquery_parser {
 					}
 					catch (Exception $e) {
 						$this->doVersioning[$table] = FALSE;
-							// TODO: this should be logged to indicated that we are falling back to LIVE records
+							// TODO: this should be logged to indicate that we are falling back to LIVE records
 					}
 				}
 				if ($alias == $this->queryObject->mainTable) {
@@ -730,7 +728,6 @@ class tx_dataquery_parser {
 								if (!empty($localCondition)) {
 									$localCondition .= ' OR ';
 								}
-								$value = '';
 								if ($conditionData['operator'] == 'start') {
 									$value = $aValue . '%';
 								} elseif ($conditionData['operator'] == 'end') {
@@ -746,7 +743,6 @@ class tx_dataquery_parser {
 							// We just need to take care of special values: "\empty", "\null" and "\all"
 						} else {
 							$operator = $conditionData['operator'];
-							$quotedValue = '';
 								// If the value is special value "\all", all values must be taken,
 								// so the condition is simply ignored
 							if ($conditionData['value'] != '\all') {
@@ -978,8 +974,6 @@ t3lib_div::debug($this->queryObject->structure['SELECT'], 'Select structure');
 				$newTrueNames = array();
 				$countNewFields = 0;
 				foreach ($this->queryObject->orderFields as $index => $orderInfo) {
-					$alias = '';
-					$field = '';
 						// Define the table and field names
 					$fieldParts = explode('.', $orderInfo['field']);
 					if (count($fieldParts) == 1) {
@@ -1199,8 +1193,8 @@ t3lib_div::debug($this->queryObject->structure['SELECT'], 'Updated select struct
 	/**
 	 * Add a condition for the WHERE clause
 	 *
-	 * @param	string		SQL WHERE clause (without WHERE)
-	 * @return	void
+	 * @param string $clause SQL WHERE clause (without WHERE)
+	 * @return void
 	 */
 	public function addWhereClause($clause) {
 		if (!empty($clause)) {
@@ -1283,8 +1277,6 @@ t3lib_div::debug($this->queryObject->structure['SELECT'], 'Updated select struct
 			$alias = $this->queryObject->fieldAliases[$trueNameInformation['aliasTable']][$fieldKey];
 				// Check if the alias contains a table name
 				// If yes, strip it, as this information is already handled
-			$table = '';
-			$field = '';
 			if (strpos($alias, '.') !== FALSE) {
 				list($table, $field) = explode('.', $alias);
 				$alias = $field;
