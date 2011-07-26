@@ -54,6 +54,7 @@ class tx_dataquery_sqlbuilder_Language_Test extends tx_dataquery_sqlbuilder_Test
 	 * Reset environment
 	 */
 	public function tearDown() {
+		parent::tearDown();
 		$GLOBALS['TSFE']->sys_language_content = 0;
 	}
 }

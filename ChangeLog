@@ -1,3 +1,7 @@
+2011-07-26 Francois Suter (Cobweb) <typo3@cobweb.ch>
+
+	* Improved filter unit test to use a dataProvider, resolves #28463
+
 2011-07-18 Francois Suter (Cobweb) <typo3@cobweb.ch>
 
 	* Used new hook of datafilter to count "additional SQL" into empty filter check, resolves #28287

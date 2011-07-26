@@ -78,7 +78,20 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 	 */
 	protected $additionalFields = array();
 
+	/**
+	 * @var Tx_Phpunit_Framework
+	 */
+	protected $testingFramework;
+
+	/**
+	 * Set up the test environment
+	 *
+	 * @return void
+	 */
 	public function setUp() {
+		$this->testingFramework = new Tx_Phpunit_Framework('tx_dataquery');
+		$this->testingFramework->createFakeFrontEnd();
+
 		self::assembleConditions();
 		$this->settings = array(
 			'ignore_language_handling' => FALSE,
@@ -87,6 +100,14 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 			'ignore_disabled_for_tables' => '*',
 			'ignore_fegroup_for_tables' => '*',
 		);
+	}
+
+	/**
+	 * Clean up the test environment
+	 * @return void
+	 */
+	public function tearDown() {
+		$this->testingFramework->cleanUp();
 	}
 
 	/**
@@ -237,121 +258,270 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 	}
 
 	/**
+	 * Provides filters for testing query with filters
+	 * Also provides the expected interpretation of the filter
+	 *
+	 * @return array
+	 */
+	public function filterProvider() {
+		$filters = array(
+			'like foo' => array(
+				'filter' => array(
+					'filters' => array(
+						0 => array(
+							'table' => 'tt_content',
+							'field' => 'header',
+							'conditions' => array(
+								0 => array(
+									'operator' => 'like',
+									'value' => array(
+										'foo',
+										'bar'
+									)
+								)
+							)
+						),
+					),
+				),
+				'condition' => '((tt_content.header LIKE \'%foo%\' OR tt_content.header LIKE \'%bar%\'))'
+			),
+			'interval' => array(
+				'filter' => array(
+					'filters' => array(
+						0 => array(
+							'table' => 'tt_content',
+							'field' => 'uid',
+							'conditions' => array(
+								0 => array(
+									'operator' => '>',
+									'value' => 10
+								),
+								1 => array(
+									'operator' => '<=',
+									'value' => 50
+								)
+							)
+						),
+					)
+				),
+				'condition' => '((tt_content.uid > \'10\') AND (tt_content.uid <= \'50\'))'
+			),
+			'combined with AND' => array(
+				'filter' => array(
+					'filters' => array(
+						0 => array(
+							'table' => 'tt_content',
+							'field' => 'header',
+							'conditions' => array(
+								0 => array(
+									'operator' => 'like',
+									'value' => array(
+										'foo',
+										'bar'
+									)
+								)
+							)
+						),
+						1 => array(
+							'table' => 'tt_content',
+							'field' => 'uid',
+							'conditions' => array(
+								0 => array(
+									'operator' => '>',
+									'value' => 10
+								),
+								1 => array(
+									'operator' => '<=',
+									'value' => 50
+								)
+							)
+						)
+					),
+					'logicalOperator' => 'AND'
+				),
+				'condition' => '((tt_content.header LIKE \'%foo%\' OR tt_content.header LIKE \'%bar%\')) AND ((tt_content.uid > \'10\') AND (tt_content.uid <= \'50\'))'
+			),
+			'combined with OR' => array(
+				'filter' => array(
+					'filters' => array(
+						0 => array(
+							'table' => 'tt_content',
+							'field' => 'header',
+							'conditions' => array(
+								0 => array(
+									'operator' => 'like',
+									'value' => array(
+										'foo',
+										'bar'
+									)
+								)
+							)
+						),
+						1 => array(
+							'table' => 'tt_content',
+							'field' => 'uid',
+							'conditions' => array(
+								0 => array(
+									'operator' => '>',
+									'value' => 10
+								),
+								1 => array(
+									'operator' => '<=',
+									'value' => 50
+								)
+							)
+						)
+					),
+					'logicalOperator' => 'OR'
+				),
+				'condition' => '((tt_content.header LIKE \'%foo%\' OR tt_content.header LIKE \'%bar%\')) OR ((tt_content.uid > \'10\') AND (tt_content.uid <= \'50\'))'
+			),
+			'filter on alias' => array(
+				'filter' => array(
+					'filters' => array(
+						0 => array(
+							'table' => 'tt_content',
+							'field' => 'year',
+							'conditions' => array(
+								0 => array(
+									'operator' => '=',
+									'value' => 2010
+								)
+							)
+						)
+					)
+				),
+				'condition' => '((FROM_UNIXTIME(tstamp, \'%Y\') = \'2010\'))'
+			),
+			'special value null' => array(
+				'filter' => array(
+					'filters' => array(
+						0 => array(
+							'table' => 'tt_content',
+							'field' => 'image',
+							'conditions' => array(
+								0 => array(
+									'operator' => '!=',
+									'value' => '\null'
+								)
+							)
+						)
+					)
+				),
+				'condition' => '((tt_content.image IS NOT NULL))'
+			),
+			'special value empty' => array(
+				'filter' => array(
+					'filters' => array(
+						0 => array(
+							'table' => 'tt_content',
+							'field' => 'header',
+							'conditions' => array(
+								0 => array(
+									'operator' => '=',
+									'value' => '\empty'
+								)
+							)
+						)
+					)
+				),
+				'condition' => '((tt_content.header = \'\'))'
+			),
+				// NOTE: a filter with "all" does not get applied
+			'special value all' => array(
+				'filter' => array(
+					'filters' => array(
+						0 => array(
+							'table' => 'tt_content',
+							'field' => 'bodytext',
+							'conditions' => array(
+								0 => array(
+									'operator' => '=',
+									'value' => '\all'
+								)
+							)
+						)
+					)
+				),
+				'condition' => ''
+			),
+				// NOTE: void filters do not get applied
+			'void filter' => array(
+				'filter' => array(
+					'filters' => array(
+						0 => array(
+							'table' => 'tt_content',
+							'field' => 'month',
+							'void' => TRUE,
+							'conditions' => array(
+								0 => array(
+									'operator' => '>',
+									'value' => 3
+								)
+							)
+						)
+					)
+				),
+				'condition' => ''
+			),
+			'ordering' => array(
+				'filter' => array(
+					'filters' => array(),
+					'orderby' => array(
+						0 => array(
+							'table' => 'tt_content',
+							'field' => 'crdate',
+							'order' => 'desc'
+						)
+					)
+				),
+				'condition' => 'ORDER BY tt_content.crdate desc',
+				'sqlCondition' => FALSE
+			),
+				// Filter limits are not applied explicitly
+			'limit' => array(
+				'filter' => array(
+					'filters' => array(),
+					'limit' => array(
+						'max' => 20,
+						'offset' => 2
+					),
+				),
+				'condition' => ''
+			),
+		);
+		return $filters;
+	}
+
+	/**
 	 * Parse and rebuild a SELECT query with a filter
 	 *
+	 * @param array $filter Filter configuration
+	 * @param string $condition Interpreted condition
+	 * @param boolean $isSqlCondition TRUE if the filter applies as a SQL WHERE condition, FALSE otherwise
 	 * @test
+	 * @dataProvider filterProvider
 	 */
-	public function selectQueryWithFilter() {
+	public function selectQueryWithFilter($filter, $condition, $isSqlCondition = TRUE) {
 			// Replace markers in the condition
-		$condition = self::finalizeCondition(self::$fullConditionForTTContent);
+		$generalCondition = self::finalizeCondition(self::$fullConditionForTTContent);
 		$additionalSelectFields = $this->prepareAdditionalFields('tt_content');
-		$expectedResult = 'SELECT tt_content.uid, tt_content.header, FROM_UNIXTIME(tstamp, \'%Y\') AS year, tt_content.pid, tt_content.sys_language_uid' . $additionalSelectFields . ' FROM tt_content AS tt_content ' . $condition . 'AND (((tt_content.uid > \'10\') AND (tt_content.uid <= \'50\')) AND ((tt_content.header LIKE \'%foo%\' OR tt_content.header LIKE \'%bar%\')) AND ((tt_content.image IS NOT NULL)) AND ((tt_content.header = \'\')) AND ((FROM_UNIXTIME(tstamp, \'%Y\') = \'2010\'))) ORDER BY tt_content.crdate desc ';
-			/**
-			 * @var tx_dataquery_parser	$parser
-			 */
+		$expectedResult = 'SELECT tt_content.uid, tt_content.header, FROM_UNIXTIME(tstamp, \'%Y\') AS year, tt_content.pid, tt_content.sys_language_uid' . $additionalSelectFields . ' FROM tt_content AS tt_content ' . $generalCondition;
+			// Add the filter's condition if not empty
+		if (!empty($condition)) {
+			if ($isSqlCondition) {
+				$expectedResult .= 'AND (' . $condition . ') ';
+			} else {
+				$expectedResult .= $condition . ' ';
+			}
+		}
+
+			/** @var $parser tx_dataquery_parser */
 		$parser = t3lib_div::makeInstance('tx_dataquery_parser');
 		$query = 'SELECT uid,header, FROM_UNIXTIME(tstamp, \'%Y\') AS year FROM tt_content';
 		$parser->parseQuery($query);
 		$parser->setProviderData($this->settings);
 		$parser->addTypo3Mechanisms();
-			// Define filter with many different conditions
-		$filter = array(
-			'filters' => array(
-				0 => array(
-					'table' => 'tt_content',
-					'field' => 'uid',
-					'conditions' => array(
-						0 => array(
-							'operator' => '>',
-							'value' => 10
-						),
-						1 => array(
-							'operator' => '<=',
-							'value' => 50
-						)
-					)
-				),
-				1 => array(
-					'table' => 'tt_content',
-					'field' => 'header',
-					'conditions' => array(
-						0 => array(
-							'operator' => 'like',
-							'value' => array(
-								'foo',
-								'bar'
-							)
-						)
-					)
-				),
-					// Test filters using special value \null, \empty and \all
-				2 => array(
-					'table' => 'tt_content',
-					'field' => 'image',
-					'conditions' => array(
-						0 => array(
-							'operator' => '!=',
-							'value' => '\null'
-						)
-					)
-				),
-				3 => array(
-					'table' => 'tt_content',
-					'field' => 'header',
-					'conditions' => array(
-						0 => array(
-							'operator' => '=',
-							'value' => '\empty'
-						)
-					)
-				),
-				4 => array(
-					'table' => 'tt_content',
-					'field' => 'bodytext',
-					'conditions' => array(
-						0 => array(
-							'operator' => '=',
-							'value' => '\all'
-						)
-					)
-				),
-					// Test filter on a field using an alias
-				5 => array(
-					'table' => 'tt_content',
-					'field' => 'year',
-					'conditions' => array(
-						0 => array(
-							'operator' => '=',
-							'value' => 2010
-						)
-					)
-				),
-					// This filter must not be applied (void filter)
-				6 => array(
-					'table' => 'tt_content',
-					'field' => 'month',
-					'void' => TRUE,
-					'conditions' => array(
-						0 => array(
-							'operator' => '>',
-							'value' => 3
-						)
-					)
-				)
-			),
-			'logicalOperator' => 'AND',
-			'limit' => array(
-				'max' => 20,
-				'offset' => 2
-			),
-			'orderby' => array(
-				0 => array(
-					'table' => 'tt_content',
-					'field' => 'crdate',
-					'order' => 'desc'
-				)
-			)
-		);
 		$parser->addFilter($filter);
 		$actualResult = $parser->buildQuery();
 			// Check if the "structure" part is correct
