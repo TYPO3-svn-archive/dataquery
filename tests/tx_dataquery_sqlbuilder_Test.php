@@ -634,17 +634,47 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 	}
 
 	/**
+	 * Parse and rebuild a SELECT query with an explicit JOIN and fields forced to another table
+	 *
+	 * @test
+	 */
+	public function selectQueryWithJoin() {
+			// Replace markers in the condition
+		$conditionForTtContent = self::finalizeCondition(self::$fullConditionForTable);
+		$conditionForPages = self::finalizeCondition('###BASE_CONDITION### AND ###WORKSPACE_CONDITION###', 'pages');
+		$additionalSelectFieldsForTtContent = $this->prepareAdditionalFields('tt_content');
+		$additionalSelectFieldsForPages = $this->prepareAdditionalFields('pages', FALSE);
+		$expectedResult = 'SELECT tt_content.uid, tt_content.header, pages.title AS tt_content$title, tt_content.pid, pages.uid AS pages$uid, pages.pid AS pages$pid, tt_content.sys_language_uid' . $additionalSelectFieldsForTtContent . $additionalSelectFieldsForPages . ' FROM tt_content AS tt_content INNER JOIN pages AS pages ON pages.uid = tt_content.pid AND ' . $conditionForPages . 'WHERE ' . $conditionForTtContent;
+
+			/** @var $parser tx_dataquery_parser */
+		$parser = t3lib_div::makeInstance('tx_dataquery_parser');
+		$query = 'SELECT uid,header,pages.title AS tt_content.title FROM tt_content INNER JOIN pages ON pages.uid = tt_content.pid';
+		$parser->parseQuery($query);
+		$parser->setProviderData($this->settings);
+		$parser->addTypo3Mechanisms();
+		$actualResult = $parser->buildQuery();
+		$this->compareStringLetterPerLetter($expectedResult, $actualResult);
+
+		$this->assertEquals($expectedResult, $actualResult);
+	}
+
+	/**
 	 * This method prepares the addition to the SELECT string necessary for any
 	 * additional fields defined by a given test class
 	 *
-	 * @param	string	$table: name of the table to use
+	 * @param string $table Name of the table to use
+	 * @param boolean $isMainTable True if the table is the main one, false otherwise
 	 * @return	string	List of additional fields to add to SELECT statement
 	 */
-	protected function prepareAdditionalFields($table) {
+	protected function prepareAdditionalFields($table, $isMainTable = TRUE) {
 		$additionalSelectFields = '';
 		if (count($this->additionalFields) > 0) {
 			foreach ($this->additionalFields as $field) {
 				$additionalSelectFields .= ', ' . $table . '.' . $field;
+					// If table is not the main one, add alias
+				if (!$isMainTable) {
+					$additionalSelectFields .= ' AS ' . $table . '$' . $field;
+				}
 			}
 		}
 		return $additionalSelectFields;
