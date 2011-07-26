@@ -24,6 +24,8 @@
 
 /**
  * Testcase for the Data Query query builder
+ * It is empty because it is just designed to run the tests from its parent class
+ * in default conditions
  *
  * @author		Francois Suter <typo3@cobweb.ch>
  * @package		TYPO3

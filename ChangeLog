@@ -1,6 +1,7 @@
 2011-07-26 Francois Suter (Cobweb) <typo3@cobweb.ch>
 
 	* Improved filter unit test to use a dataProvider, resolves #28463
+	* Improved unit tests to fully run for multiple tables in query, resolves #13988
 
 2011-07-18 Francois Suter (Cobweb) <typo3@cobweb.ch>
 

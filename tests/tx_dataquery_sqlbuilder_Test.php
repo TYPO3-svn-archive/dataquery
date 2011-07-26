@@ -659,6 +659,81 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 	}
 
 	/**
+	 * Parse and rebuild a SELECT query with an implicit JOIN and filters applying to both tables,
+	 * including one forced to main
+	 *
+	 * @test
+	 */
+	public function selectQueryWithJoinAndFilter() {
+			// Replace markers in the conditions
+		$conditionForTtContent = self::finalizeCondition(self::$fullConditionForTable);
+		$conditionForPages = self::finalizeCondition('###BASE_CONDITION### AND ###WORKSPACE_CONDITION###', 'pages');
+		$additionalSelectFieldsForTtContent = $this->prepareAdditionalFields('tt_content');
+		$additionalSelectFieldsForPages = $this->prepareAdditionalFields('pages', FALSE);
+			// Assemble expected result
+		$expectedResult = 'SELECT tt_content.header, pages.title AS pages$title, tt_content.uid, tt_content.pid, ';
+		$expectedResult .= 'pages.uid AS pages$uid, pages.pid AS pages$pid, tt_content.sys_language_uid';
+		$expectedResult .= $additionalSelectFieldsForTtContent . $additionalSelectFieldsForPages;
+		$expectedResult .= ' FROM tt_content AS tt_content INNER JOIN pages AS pages ON ' . $conditionForPages;
+		$expectedResult .= 'AND (((pages.title LIKE \'%bar%\'))) WHERE (pages.uid = tt_content.pid) AND ';
+		$expectedResult .= $conditionForTtContent . 'AND (((tt_content.header LIKE \'%foo%\')) AND ((pages.tstamp > \'' . mktime(0, 0, 0, 1, 1, 2010) . '\'))) ';
+
+			// Define the filter to apply
+		$filter = array(
+			'filters' => array(
+				0 => array(
+					'table' => 'tt_content',
+					'field' => 'header',
+					'conditions' => array(
+						0 => array(
+							'operator' => 'like',
+							'value' => array(
+								'foo',
+							)
+						)
+					)
+				),
+				1 => array(
+					'table' => 'pages',
+					'field' => 'title',
+					'conditions' => array(
+						0 => array(
+							'operator' => 'like',
+							'value' => array(
+								'bar',
+							)
+						)
+					)
+				),
+				2 => array(
+					'table' => 'pages',
+					'field' => 'tstamp',
+					'conditions' => array(
+						0 => array(
+							'operator' => '>',
+							'value' => mktime(0, 0, 0, 1, 1, 2010)
+						)
+					),
+					'main' => TRUE
+				)
+			),
+			'logicalOperator' => 'AND'
+		);
+
+			/** @var $parser tx_dataquery_parser */
+		$parser = t3lib_div::makeInstance('tx_dataquery_parser');
+		$query = 'SELECT header,pages.title FROM tt_content,pages WHERE pages.uid = tt_content.pid';
+		$parser->parseQuery($query);
+		$parser->setProviderData($this->settings);
+		$parser->addTypo3Mechanisms();
+		$parser->addFilter($filter);
+		$actualResult = $parser->buildQuery();
+		$this->compareStringLetterPerLetter($expectedResult, $actualResult);
+
+		$this->assertEquals($expectedResult, $actualResult);
+	}
+
+	/**
 	 * This method prepares the addition to the SELECT string necessary for any
 	 * additional fields defined by a given test class
 	 *
