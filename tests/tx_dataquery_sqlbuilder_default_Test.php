@@ -43,7 +43,7 @@ class tx_dataquery_sqlbuilder_Default_Test extends tx_dataquery_sqlbuilder_Test 
 		$condition = self::finalizeCondition(self::$fullConditionForTable);
 		$conditionForPages = str_replace('tt_content.', 'pages.', $condition);
 		$additionalSelectFields = $this->prepareAdditionalFields('tt_content');
-		$expectedResult = 'SELECT tt_content.uid, tt_content.header, pages.title AS tt_content$title, tt_content.pid, pages.uid AS pages$uid, pages.pid AS pages$pid, tt_content.sys_language_uid' . $additionalSelectFields . ' FROM tt_content AS tt_content INNER JOIN pages AS pages ON pages.uid = tt_content.pid AND ' . $conditionForPages . ' ' . $condition;
+		$expectedResult = 'SELECT tt_content.uid, tt_content.header, pages.title AS tt_content$title, tt_content.pid, pages.uid AS pages$uid, pages.pid AS pages$pid, tt_content.sys_language_uid' . $additionalSelectFields . ' FROM tt_content AS tt_content INNER JOIN pages AS pages ON pages.uid = tt_content.pid AND ' . $conditionForPages . ' WHERE ' . $condition;
 
 			/** @var $parser tx_dataquery_parser */
 		$parser = t3lib_div::makeInstance('tx_dataquery_parser');

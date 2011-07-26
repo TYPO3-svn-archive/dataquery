@@ -43,11 +43,11 @@ class tx_dataquery_sqlbuilder_Language_Test extends tx_dataquery_sqlbuilder_Test
 		$GLOBALS['TSFE']->sys_language_content = 2;
 
 			// Adapt language condition accordingly
-		self::$baseLanguageConditionForTable = "(tt_content.sys_language_uid IN (0,-1) OR (tt_content.sys_language_uid = '2' AND tt_content.l18n_parent = '0'))";
+		self::$baseLanguageConditionForTable = "(###TABLE###.sys_language_uid IN (0,-1) OR (###TABLE###.sys_language_uid = '2' AND ###TABLE###.l18n_parent = '0'))";
 			// NOTE: markers are used instead of the corresponding conditions, because the setUp() method
 			// is not invoked inside the data providers. Thus when using a data provider, it's not possible
 			// to refer to the conditions defined via setUp()
-		self::$fullConditionForTable = 'WHERE ###BASE_CONDITION### AND ###LANGUAGE_CONDITION### AND ###WORKSPACE_CONDITION###';
+		self::$fullConditionForTable = '###BASE_CONDITION### AND ###LANGUAGE_CONDITION### AND ###WORKSPACE_CONDITION###';
 	}
 
 	/**

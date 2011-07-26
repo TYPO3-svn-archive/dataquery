@@ -54,18 +54,18 @@ class tx_dataquery_sqlbuilder_Workspace_Test extends tx_dataquery_sqlbuilder_Tes
 
 			// The base condition is different in the case of workspaces, because
 			// versioning preview deactivates most of the enable fields check
-		self::$minimalConditionForTable = 'tt_content.deleted=0';
+		self::$minimalConditionForTable = '###TABLE###.deleted=0';
 		self::$baseConditionForTable = '(###MINIMAL_CONDITION###)';
 		self::$groupsConditionForTable = '';
 			// Reset language condition which might have been altered by language unit test
-		self::$baseLanguageConditionForTable = '(tt_content.sys_language_uid IN (0,-1))';
+		self::$baseLanguageConditionForTable = '(###TABLE###.sys_language_uid IN (0,-1))';
 			// Add workspace condition, assuming some arbitrary workspace (= 42)
-		self::$baseWorkspaceConditionForTable = '((tt_content.t3ver_state <= 0 AND tt_content.t3ver_oid = 0) OR (tt_content.t3ver_state = 0 AND tt_content.t3ver_wsid = 42) OR (tt_content.t3ver_state = 1 AND tt_content.t3ver_wsid = 42) OR (tt_content.t3ver_state = 3 AND tt_content.t3ver_wsid = 42)) ';
+		self::$baseWorkspaceConditionForTable = '((###TABLE###.t3ver_state <= 0 AND ###TABLE###.t3ver_oid = 0) OR (###TABLE###.t3ver_state = 0 AND ###TABLE###.t3ver_wsid = 42) OR (###TABLE###.t3ver_state = 1 AND ###TABLE###.t3ver_wsid = 42) OR (###TABLE###.t3ver_state = 3 AND ###TABLE###.t3ver_wsid = 42)) ';
 //		self::$fullConditionForTable = self::$baseConditionForTable . self::$baseLanguageConditionForTable . self::$baseWorkspaceConditionForTable;
 			// NOTE: markers are used instead of the corresponding conditions, because the setUp() method
 			// is not invoked inside the data providers. Thus when using a data provider, it's not possible
 			// to refer to the conditions defined via setUp()
-		self::$fullConditionForTable = 'WHERE ###BASE_CONDITION### AND ###LANGUAGE_CONDITION### AND ###WORKSPACE_CONDITION###';
+		self::$fullConditionForTable = '###BASE_CONDITION### AND ###LANGUAGE_CONDITION### AND ###WORKSPACE_CONDITION###';
 	}
 
 	/**

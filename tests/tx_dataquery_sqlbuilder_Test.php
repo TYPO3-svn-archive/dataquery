@@ -132,7 +132,7 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 			// NOTE: markers are used instead of the corresponding conditions, because the setUp() method
 			// is not invoked inside the data providers. Thus when using a data provider, it's not possible
 			// to refer to the conditions defined via setUp()
-		self::$fullConditionForTable = 'WHERE ###BASE_CONDITION### AND ###LANGUAGE_CONDITION### AND ###WORKSPACE_CONDITION###';
+		self::$fullConditionForTable = '###BASE_CONDITION### AND ###LANGUAGE_CONDITION### AND ###WORKSPACE_CONDITION###';
 	}
 
 	/**
@@ -172,7 +172,7 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 			// Replace markers in the condition
 		$condition = self::finalizeCondition(self::$fullConditionForTable);
 		$additionalSelectFields = $this->prepareAdditionalFields('tt_content');
-		$expectedResult = 'SELECT tt_content.uid, tt_content.header, tt_content.pid, tt_content.sys_language_uid' . $additionalSelectFields . ' FROM tt_content AS tt_content ' . $condition;
+		$expectedResult = 'SELECT tt_content.uid, tt_content.header, tt_content.pid, tt_content.sys_language_uid' . $additionalSelectFields . ' FROM tt_content AS tt_content WHERE ' . $condition;
 
 			/** @var $parser tx_dataquery_parser */
 		$parser = t3lib_div::makeInstance('tx_dataquery_parser');
@@ -196,7 +196,7 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 			// Replace table name by its alias
 		$condition = str_replace('tt_content', 'c', $condition);
 		$additionalSelectFields = $this->prepareAdditionalFields('c');
-		$expectedResult = 'SELECT c.uid, c.header, c.pid, c.sys_language_uid' . $additionalSelectFields . ' FROM tt_content AS c ' . $condition;
+		$expectedResult = 'SELECT c.uid, c.header, c.pid, c.sys_language_uid' . $additionalSelectFields . ' FROM tt_content AS c WHERE ' . $condition;
 
 			/** @var $parser tx_dataquery_parser */
 		$parser = t3lib_div::makeInstance('tx_dataquery_parser');
@@ -218,7 +218,7 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 			// Replace markers in the condition
 		$condition = self::finalizeCondition(self::$fullConditionForTable);
 		$additionalSelectFields = $this->prepareAdditionalFields('tt_content');
-		$expectedResult = 'SELECT tt_content.uid, tt_content.header, tt_content.pid, tt_content.sys_language_uid' . $additionalSelectFields . ' FROM tt_content AS tt_content ' . $condition. 'AND (tt_content.uid IN (1,12)) ';
+		$expectedResult = 'SELECT tt_content.uid, tt_content.header, tt_content.pid, tt_content.sys_language_uid' . $additionalSelectFields . ' FROM tt_content AS tt_content WHERE ' . $condition. 'AND (tt_content.uid IN (1,12)) ';
 
 			/** @var $parser tx_dataquery_parser */
 		$parser = t3lib_div::makeInstance('tx_dataquery_parser');
@@ -241,11 +241,11 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 	 */
 	public function selectQueryWithUidAsAliasAndDistinct() {
 			// Language condition does not apply when DISTINCT is used, so assemble a specific condition
-		$condition = 'WHERE ###BASE_CONDITION### AND ###WORKSPACE_CONDITION###';
+		$condition = '###BASE_CONDITION### AND ###WORKSPACE_CONDITION###';
 			// Replace markers in the condition
 		$condition = self::finalizeCondition($condition);
 		$additionalSelectFields = $this->prepareAdditionalFields('tt_content');
-		$expectedResult = 'SELECT DISTINCT tt_content.CType AS uid' . $additionalSelectFields . ' FROM tt_content AS tt_content ' . $condition;
+		$expectedResult = 'SELECT DISTINCT tt_content.CType AS uid' . $additionalSelectFields . ' FROM tt_content AS tt_content WHERE ' . $condition;
 
 			/** @var $parser tx_dataquery_parser */
 		$parser = t3lib_div::makeInstance('tx_dataquery_parser');
@@ -507,7 +507,7 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 			// Replace markers in the condition
 		$generalCondition = self::finalizeCondition(self::$fullConditionForTable);
 		$additionalSelectFields = $this->prepareAdditionalFields('tt_content');
-		$expectedResult = 'SELECT tt_content.uid, tt_content.header, FROM_UNIXTIME(tstamp, \'%Y\') AS year, tt_content.pid, tt_content.sys_language_uid' . $additionalSelectFields . ' FROM tt_content AS tt_content ' . $generalCondition;
+		$expectedResult = 'SELECT tt_content.uid, tt_content.header, FROM_UNIXTIME(tstamp, \'%Y\') AS year, tt_content.pid, tt_content.sys_language_uid' . $additionalSelectFields . ' FROM tt_content AS tt_content WHERE ' . $generalCondition;
 			// Add the filter's condition if not empty
 		if (!empty($condition)) {
 			if ($isSqlCondition) {
@@ -557,7 +557,7 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 					'ignore_disabled_for_tables' => 'pages',
 					'ignore_fegroup_for_tables' => 'tt_content'
 				),
-				'condition' => 'WHERE ###LANGUAGE_CONDITION### AND ###WORKSPACE_CONDITION###'
+				'condition' => '###LANGUAGE_CONDITION### AND ###WORKSPACE_CONDITION###'
 			),
 				// Ignore select enable fields, take 1: ignore all fields for all tables
 			'ignore selected - all for all tables' => array(
@@ -567,7 +567,7 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 					'ignore_disabled_for_tables' => '*',
 					'ignore_fegroup_for_tables' => '*'
 				),
-				'condition' => 'WHERE (###MINIMAL_CONDITION###) AND ###LANGUAGE_CONDITION### AND ###WORKSPACE_CONDITION###'
+				'condition' => '(###MINIMAL_CONDITION###) AND ###LANGUAGE_CONDITION### AND ###WORKSPACE_CONDITION###'
 			),
 				// Ignore select enable fields, take 2: ignore all fields for all tables
 				// NOTE: should be the same as previous one since the only table in the query is tt_content
@@ -578,7 +578,7 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 					'ignore_disabled_for_tables' => 'tt_content',
 					'ignore_fegroup_for_tables' => 'tt_content'
 				),
-				'condition' => 'WHERE (###MINIMAL_CONDITION###) AND ###LANGUAGE_CONDITION### AND ###WORKSPACE_CONDITION###'
+				'condition' => '(###MINIMAL_CONDITION###) AND ###LANGUAGE_CONDITION### AND ###WORKSPACE_CONDITION###'
 			),
 				// Ignore select enable fields, take 3: ignore time fields for all tables and hidden field for tt_content
 			'ignore selected - time and disabled for tt_content' => array(
@@ -588,7 +588,7 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 					'ignore_disabled_for_tables' => ', tt_content', // Weird but valid value (= tt_content)
 					'ignore_fegroup_for_tables' => 'pages' // Irrelevant, table "pages" is not in query
 				),
-				'condition' => "WHERE (###MINIMAL_CONDITION######GROUP_CONDITION###) AND ###LANGUAGE_CONDITION### AND ###WORKSPACE_CONDITION###"
+				'condition' => "(###MINIMAL_CONDITION######GROUP_CONDITION###) AND ###LANGUAGE_CONDITION### AND ###WORKSPACE_CONDITION###"
 			),
 				// Ignore select enable fields, take 4: no tables defined at all, so nothing is ignore after all
 			'ignore selected - ignore nothing after all' => array(
@@ -618,7 +618,7 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 		$condition = self::finalizeCondition($condition);
 			// Add extra fields, as needed
 		$additionalSelectFields = $this->prepareAdditionalFields('tt_content');
-		$expectedResult = 'SELECT tt_content.uid, tt_content.header, tt_content.pid, tt_content.sys_language_uid' . $additionalSelectFields . ' FROM tt_content AS tt_content ' . $condition;
+		$expectedResult = 'SELECT tt_content.uid, tt_content.header, tt_content.pid, tt_content.sys_language_uid' . $additionalSelectFields . ' FROM tt_content AS tt_content WHERE ' . $condition;
 
 			/** @var $parser tx_dataquery_parser */
 		$parser = t3lib_div::makeInstance('tx_dataquery_parser');
