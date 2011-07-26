@@ -40,10 +40,10 @@ class tx_dataquery_sqlbuilder_Default_Test extends tx_dataquery_sqlbuilder_Test 
 	 */
 	public function selectQueryWithJoin() {
 			// Replace markers in the condition
-		$condition = self::finalizeCondition(self::$fullConditionForTable);
-		$conditionForPages = str_replace('tt_content.', 'pages.', $condition);
+		$conditionForTtContent = self::finalizeCondition(self::$fullConditionForTable);
+		$conditionForPages = self::finalizeCondition('###BASE_CONDITION### AND ###WORKSPACE_CONDITION###', 'pages');
 		$additionalSelectFields = $this->prepareAdditionalFields('tt_content');
-		$expectedResult = 'SELECT tt_content.uid, tt_content.header, pages.title AS tt_content$title, tt_content.pid, pages.uid AS pages$uid, pages.pid AS pages$pid, tt_content.sys_language_uid' . $additionalSelectFields . ' FROM tt_content AS tt_content INNER JOIN pages AS pages ON pages.uid = tt_content.pid AND ' . $conditionForPages . ' WHERE ' . $condition;
+		$expectedResult = 'SELECT tt_content.uid, tt_content.header, pages.title AS tt_content$title, tt_content.pid, pages.uid AS pages$uid, pages.pid AS pages$pid, tt_content.sys_language_uid' . $additionalSelectFields . ' FROM tt_content AS tt_content INNER JOIN pages AS pages ON pages.uid = tt_content.pid AND ' . $conditionForPages . 'WHERE ' . $conditionForTtContent;
 
 			/** @var $parser tx_dataquery_parser */
 		$parser = t3lib_div::makeInstance('tx_dataquery_parser');
@@ -52,6 +52,7 @@ class tx_dataquery_sqlbuilder_Default_Test extends tx_dataquery_sqlbuilder_Test 
 		$parser->setProviderData($this->settings);
 		$parser->addTypo3Mechanisms();
 		$actualResult = $parser->buildQuery();
+		$this->compareStringLetterPerLetter($expectedResult, $actualResult);
 
 		$this->assertEquals($expectedResult, $actualResult);
 	}
