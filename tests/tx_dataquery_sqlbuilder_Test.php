@@ -116,13 +116,15 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 	 * @return void
 	 */
 	public static function assembleConditions() {
-		self::$isMinimumVersion = t3lib_div::int_from_ver(TYPO3_version) >= t3lib_div::int_from_ver('4.5.0');
+		$currentVersion = class_exists('t3lib_utility_VersionNumber')
+	        ? t3lib_utility_VersionNumber::convertVersionNumberToInteger(TYPO3_version)
+    	    : t3lib_div::int_from_ver(TYPO3_version);
+		self::$isMinimumVersion = $currentVersion >= 4005000;
 		if (self::$isMinimumVersion) {
 			self::$minimalConditionForTTContent = 'tt_content.deleted=0 AND tt_content.t3ver_state<=0 AND tt_content.pid!=-1';
 			self::$groupsConditionForTTContent = ' AND (tt_content.fe_group=\'\' OR tt_content.fe_group IS NULL OR tt_content.fe_group=\'0\' OR FIND_IN_SET(\'0\',tt_content.fe_group) OR FIND_IN_SET(\'-1\',tt_content.fe_group))';
 			self::$baseConditionForTTContent = '(###MINIMAL_CONDITION### AND tt_content.hidden=0 AND tt_content.starttime<=###NOW### AND (tt_content.endtime=0 OR tt_content.endtime>###NOW###)###GROUP_CONDITION###)';
-		}
-		else {
+		} else {
 			self::$minimalConditionForTTContent = 'tt_content.deleted=0 AND tt_content.t3ver_state<=0';
 			self::$groupsConditionForTTContent = ' AND (tt_content.fe_group=\'\' OR tt_content.fe_group IS NULL OR tt_content.fe_group=\'0\' OR (tt_content.fe_group LIKE \'%,0,%\' OR  tt_content.fe_group LIKE \'0,%\' OR tt_content.fe_group LIKE \'%,0\' OR tt_content.fe_group=\'0\') OR (tt_content.fe_group LIKE \'%,-1,%\' OR  tt_content.fe_group LIKE \'-1,%\' OR tt_content.fe_group LIKE \'%,-1\' OR tt_content.fe_group=\'-1\'))';
 			self::$baseConditionForTTContent = '(###MINIMAL_CONDITION### AND tt_content.hidden=0 AND tt_content.starttime<=###NOW### AND (tt_content.endtime=0 OR tt_content.endtime>###NOW###)###GROUP_CONDITION###)';
