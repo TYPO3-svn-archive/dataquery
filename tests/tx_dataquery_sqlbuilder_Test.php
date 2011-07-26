@@ -168,16 +168,15 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 		$condition = self::finalizeCondition(self::$fullConditionForTTContent);
 		$additionalSelectFields = $this->prepareAdditionalFields('tt_content');
 		$expectedResult = 'SELECT tt_content.uid, tt_content.header, tt_content.pid, tt_content.sys_language_uid' . $additionalSelectFields . ' FROM tt_content AS tt_content ' . $condition;
-			/**
-			 * @var tx_dataquery_parser	$parser
-			 */
+
+			/** @var $parser tx_dataquery_parser */
 		$parser = t3lib_div::makeInstance('tx_dataquery_parser');
 		$query = 'SELECT uid,header FROM tt_content';
 		$parser->parseQuery($query);
 		$parser->setProviderData($this->settings);
 		$parser->addTypo3Mechanisms();
 		$actualResult = $parser->buildQuery();
-			// Check if the "structure" part is correct
+
 		$this->assertEquals($expectedResult, $actualResult);
 	}
 
@@ -193,16 +192,15 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 		$condition = str_replace('tt_content', 'c', $condition);
 		$additionalSelectFields = $this->prepareAdditionalFields('c');
 		$expectedResult = 'SELECT c.uid, c.header, c.pid, c.sys_language_uid' . $additionalSelectFields . ' FROM tt_content AS c ' . $condition;
-			/**
-			 * @var tx_dataquery_parser	$parser
-			 */
+
+			/** @var $parser tx_dataquery_parser */
 		$parser = t3lib_div::makeInstance('tx_dataquery_parser');
 		$query = 'SELECT uid,header FROM tt_content AS c';
 		$parser->parseQuery($query);
 		$parser->setProviderData($this->settings);
 		$parser->addTypo3Mechanisms();
 		$actualResult = $parser->buildQuery();
-			// Check if the "structure" part is correct
+
 		$this->assertEquals($expectedResult, $actualResult);
 	}
 
@@ -216,9 +214,8 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 		$condition = self::finalizeCondition(self::$fullConditionForTTContent);
 		$additionalSelectFields = $this->prepareAdditionalFields('tt_content');
 		$expectedResult = 'SELECT tt_content.uid, tt_content.header, tt_content.pid, tt_content.sys_language_uid' . $additionalSelectFields . ' FROM tt_content AS tt_content ' . $condition. 'AND (tt_content.uid IN (1,12)) ';
-			/**
-			 * @var tx_dataquery_parser	$parser
-			 */
+
+			/** @var $parser tx_dataquery_parser */
 		$parser = t3lib_div::makeInstance('tx_dataquery_parser');
 		$query = 'SELECT uid,header FROM tt_content';
 		$parser->parseQuery($query);
@@ -228,7 +225,7 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 			// NOTE: "pages_3" is expected to be ignored, as the "pages" table is not being queried
 		$parser->addIdList('1,tt_content_12,pages_3');
 		$actualResult = $parser->buildQuery();
-			// Check if the "structure" part is correct
+
 		$this->assertEquals($expectedResult, $actualResult);
 	}
 
@@ -244,16 +241,15 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 		$condition = self::finalizeCondition($condition);
 		$additionalSelectFields = $this->prepareAdditionalFields('tt_content');
 		$expectedResult = 'SELECT DISTINCT tt_content.CType AS uid' . $additionalSelectFields . ' FROM tt_content AS tt_content ' . $condition;
-			/**
-			 * @var tx_dataquery_parser	$parser
-			 */
+
+			/** @var $parser tx_dataquery_parser */
 		$parser = t3lib_div::makeInstance('tx_dataquery_parser');
 		$query = 'SELECT DISTINCT CType AS uid FROM tt_content';
 		$parser->parseQuery($query);
 		$parser->setProviderData($this->settings);
 		$parser->addTypo3Mechanisms();
 		$actualResult = $parser->buildQuery();
-			// Check if the "structure" part is correct
+
 		$this->assertEquals($expectedResult, $actualResult);
 	}
 
@@ -524,7 +520,7 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 		$parser->addTypo3Mechanisms();
 		$parser->addFilter($filter);
 		$actualResult = $parser->buildQuery();
-			// Check if the "structure" part is correct
+
 		$this->assertEquals($expectedResult, $actualResult);
 	}
 
@@ -618,6 +614,7 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 			// Add extra fields, as needed
 		$additionalSelectFields = $this->prepareAdditionalFields('tt_content');
 		$expectedResult = 'SELECT tt_content.uid, tt_content.header, tt_content.pid, tt_content.sys_language_uid' . $additionalSelectFields . ' FROM tt_content AS tt_content ' . $condition;
+
 			/** @var $parser tx_dataquery_parser */
 		$parser = t3lib_div::makeInstance('tx_dataquery_parser');
 		$query = 'SELECT uid,header FROM tt_content';

@@ -40,14 +40,13 @@ class tx_dataquery_sqlbuilder_Default_Test extends tx_dataquery_sqlbuilder_Test 
 	 */
 	public function selectQueryWithJoin() {
 		$expectedResult = 'SELECT tt_content.uid, tt_content.header, pages.title AS tt_content$title, tt_content.pid, pages.uid AS pages$uid, pages.pid AS pages$pid FROM tt_content AS tt_content INNER JOIN pages AS pages ON pages.uid = tt_content.pid ';
-			/**
-			 * @var tx_dataquery_parser	$parser
-			 */
+
+			/** @var $parser tx_dataquery_parser */
 		$parser = t3lib_div::makeInstance('tx_dataquery_parser');
 		$query = 'SELECT uid,header,pages.title AS tt_content.title FROM tt_content INNER JOIN pages ON pages.uid = tt_content.pid';
 		$parser->parseQuery($query);
 		$actualResult = $parser->buildQuery();
-			// Check if the "structure" part is correct
+
 		$this->assertEquals($expectedResult, $actualResult);
 	}
 }
