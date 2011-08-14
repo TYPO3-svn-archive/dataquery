@@ -18,7 +18,8 @@
             <label index="query.exception-1272556601">The FROM keyword is missing or is written in lowercase. Please add it or use uppercase.</label>
             <label index="query.exception-1280323976">No columns selected. Nothing was detected between the SELECT and the FROM keywords.</label>
             <label index="query.exception-1272954424">Bad SQL syntax, opening and closing brackets are not balanced. Note that Data Query supports only a sub-set of SQL features. It may also be that the query uses unsupported SQL elements. Please refer to the manual.</label>
-            <label index="query.exception-1280323639">No table name was found after the FROM statement. Note that Data Query supports only a sub-set of SQL features. It may also be that the query uses unsupported SQL elements. Please refer to the manual.</label>
+			<label index="query.exception-1280323639">No table name was found after the FROM statement. Note that Data Query supports only a sub-set of SQL features. It may also be that the query uses unsupported SQL elements. Please refer to the manual.</label>
+			<label index="query.exception-1313354033">A "uid" field seems to be missing for the main table. You must set it manually when using the DISTINCT keyword. Please refer to the manual.</label>
             <label index="wizard.check.debugTab">Validate</label>
             <label index="wizard.check.previewTab">Preview</label>
             <label index="wizard.check.debugQuery">Validate the query</label>

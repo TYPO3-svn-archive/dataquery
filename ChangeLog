@@ -1,3 +1,7 @@
+2011-08-14 Francois Suter (Cobweb) <typo3@cobweb.ch>
+
+	* Added a check to warn about missing uid when using DISTINCT in a query, resolves #28969
+
 2011-07-26 Francois Suter (Cobweb) <typo3@cobweb.ch>
 
 	* Improved filter unit test to use a dataProvider, resolves #28463

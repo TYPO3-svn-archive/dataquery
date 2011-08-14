@@ -124,6 +124,13 @@ class tx_dataquery_parser {
 			// Don't do this for queries using the DISTINCT keyword, as it may mess it up
 		if (!$this->queryObject->structure['DISTINCT']) {
 			$this->addBaseFields();
+
+			// If the query uses the DISTINCT keyword, check if a "uid" field has been defined manually
+			// If not, issue warning
+		} else {
+			if (!$this->checkUidForDistinctUsage()) {
+				throw new tx_tesseract_exception('"uid" field missing with DISTINCT usage', 1313354033);
+			}
 		}
 
 //t3lib_div::debug($this->queryObject->aliases, 'Table aliases');
@@ -1382,6 +1389,36 @@ t3lib_div::debug($this->queryObject->structure['SELECT'], 'Updated select struct
 	 */
 	public function getSubTableLimit($table) {
 		return isset($this->queryObject->structure['JOIN'][$table]['limit']) ? $this->queryObject->structure['JOIN'][$table]['limit'] : 0;
+	}
+
+	/**
+	 * This method checks for the existing of a field (possibly with alias) called "uid"
+	 * for the query's main table
+	 *
+	 * @return bool TRUE if a "uid" field is present, FALSE otherwise
+	 */
+	protected function checkUidForDistinctUsage() {
+		$hasUid = FALSE;
+			// There should be either an alias called "uid" or "table$uid"
+			// (where "table" is the name of the main table)
+		$possibleKeys = array('uid', $this->queryObject->mainTable . '$uid');
+			// Also add the possible aliases of the main table
+			// NOTE: this may be wrong when there are more than 1 alias for the main table,
+			// as the uid may actually belong to another table
+		$reversedAliases = array_flip($this->queryObject->aliases);
+		foreach ($reversedAliases as $table => $alias) {
+			if ($table == $this->queryObject->mainTable) {
+				$possibleKeys[] = $alias . '$uid';
+			}
+		}
+			// Loop on all possible keys and exit successfully if one matches a field mapped to "uid"
+		foreach ($possibleKeys as $key) {
+			if (isset($this->fieldTrueNames[$key]) && $this->fieldTrueNames[$key]['mapping']['field'] = 'uid') {
+				$hasUid = TRUE;
+				break;
+			}
+		}
+		return $hasUid;
 	}
 }
 
