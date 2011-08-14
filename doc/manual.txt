@@ -104,10 +104,19 @@ OFFSET
 On top of these keywords, it is possible to use:
 aliases (using “AS”), see “Advanced uses of aliases” in the “Behind the scenes” chapter below.
 the “ON” clause inside a JOIN.
-DISTINCT at the beginning of the list of SELECTed fields; note that using DISTINCT will disable language overlays.
+DISTINCT at the beginning of the list of SELECTed fields. See more about the use of DISTINCT below.
 ASC, DESC in the ORDER BY part.
 any function call in the list of SELECTed fields. More details in “SQL function calls” below.
 the alternate OFFSET syntax (i.e. you can use LIMIT x,y or LIMIT y OFFSET x).
+Using DISTINCT
+Using the DISTINCT keyword in your queries requires to pay attention to a couple of peculiarities:
+1. It is very likely that the DISTINCT field in your query is the actual primary key in your query. To avoid the standard uid field being added to the query (and ruining the effect of DISTINCT), designate the DISTINCT field as being the uid. Example:
+
+SELECT DISTINCT name AS uid FROM fe_users
+2. In a more complex scenario using several fields with DISTINCT, you should build a concatenated string with all fields involved to be used as uid. Example:
+
+SELECT DISTINCT name, username, CONCAT(name, username) AS uid FROM fe_users
+Furthermore, please note that using DISTINCT will disable language overlays (because of the limitations discussed in "Behind the scenes" below).
 Non-standard SQL keywords
 Data Query is open to support non-standard SQL keywords for increased ease of use. Obviously these are not handled inside the SQL query, but during processing of the recordset.
 MAX
@@ -207,7 +216,7 @@ Imagine setting up a group of checkboxes like:
 <input type=”checkbox” name=”tx_myext[foo][]” value=”bob” />
 <input type=”checkbox” name=”tx_myext[foo][]” value=”alice” />
 
-Next image a filter like:
+Next imagine a filter like:
 fe_users.name like gp:tx_myext|foo
 
 The value returned will be an array. This is handled by Data Query by creating a LIKE condition for each value and concatenating all these conditions with a “OR” logical operator. So the above example would result in the following SQL condition (assuming both checkboxes were checked):
@@ -263,9 +272,10 @@ Hooks
 There are two hooks that can be used to manipulate the Data Structure produced by dataquery. They are similar but one is called before the structure is stored into cache, and the second one is called every time (i.e. either when the structure was freshly generated or when it was read from cache).
 postProcessDataStructure: called every time
 postProcessDataStructureBeforeCache: called when a structure has been newly generated and is about to be stored into cache (note that this hook is called also if the structure is not written to cache)
-postProcessFieldInformation: this hook is inside tx_dataquery_wrapper::getTablesAndFields(), a method which is called when "dataquery" provides Data Consumers with a list of available tables and fields while working within the TYPO3 backend (this is how, for example, "templatedisplay" knows which fields to map). This hook can be used when the data structure has been modified by one of the above hooks and such changes need to be known in the backend too. This is generally the case when the hooks change the tables and fields structure, so that these changed elements can be mapped properly.
 Both hooks receive as arguments the full Data Structure as well as a back-reference to the calling tx_dataquery_wrapper object. They are expected to return a complete Data Structure even if they did not perform any change.
 Skeleton code for both hooks can be found in samples/class.tx_dataquery_sample_hook.php.
+Another hook is available for manipulating the tables and fields information:
+postProcessFieldInformation: this hook is inside tx_dataquery_wrapper::getTablesAndFields(), a method which is called when "dataquery" provides Data Consumers with a list of available tables and fields while working within the TYPO3 backend (this is how, for example, "templatedisplay" knows which fields to map). This hook can be used when the data structure has been modified by one of the above hooks and such changes need to be known in the backend too. This is generally the case when the hooks change the tables and fields structure, so that these changed elements can be mapped properly.
 Known problems
 The following problems have been identified:
 RIGHT JOINs will not produce a correct Data Structure (i.e. the orphan elements on the right side of the join do not appear).
