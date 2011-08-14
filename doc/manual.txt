@@ -110,7 +110,7 @@ any function call in the list of SELECTed fields. More details in “SQL functio
 the alternate OFFSET syntax (i.e. you can use LIMIT x,y or LIMIT y OFFSET x).
 Using DISTINCT
 Using the DISTINCT keyword in your queries requires to pay attention to a couple of peculiarities:
-1. It is very likely that the DISTINCT field in your query is the actual primary key in your query. To avoid the standard uid field being added to the query (and ruining the effect of DISTINCT), designate the DISTINCT field as being the uid. Example:
+1. It is very likely that the DISTINCT field in your query is the actual primary key in your query. Assuming this, Data Query does not automatically add the "uid" field to this query (if it exists) to avoid messing up the effect of DISTINCT. Thus it is your responsibility to explicitly designate a "uid" in this case, using aliases. Example:
 
 SELECT DISTINCT name AS uid FROM fe_users
 2. In a more complex scenario using several fields with DISTINCT, you should build a concatenated string with all fields involved to be used as uid. Example:
