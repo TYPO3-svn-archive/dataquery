@@ -45,15 +45,14 @@ class tx_dataquery_Ajax {
 	public function validate($params, TYPO3AJAX $ajaxObj) {
 		$parsingSeverity = t3lib_FlashMessage::OK;
 		$executionSeverity = t3lib_FlashMessage::OK;
-		$parsingMessage = '';
 		$executionMessage = '';
-		$parsingTitle = '';
 
 			// Try parsing and building the query
 		try {
 				// Get the query to parse from the GET/POST parameters
 			$query = t3lib_div::_GP('query');
 				// Create an instance of the parser
+				/** @var $parser tx_dataquery_parser */
 			$parser = t3lib_div::makeInstance('tx_dataquery_parser');
 				// Clean up and prepare the query string
 			$query = $parser->prepareQueryString($query);
@@ -88,6 +87,7 @@ class tx_dataquery_Ajax {
 			$parsingMessage = $GLOBALS['LANG']->sL('LLL:EXT:dataquery/locallang.xml:query.exception-' . $exceptionCode);
 		}
 			// Render parsing result as flash message
+			/** @var $flashMessage t3lib_FlashMessage */
 		$flashMessage = t3lib_div::makeInstance(
 			't3lib_FlashMessage',
 			$parsingMessage,
