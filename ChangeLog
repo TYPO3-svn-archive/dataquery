@@ -1,68 +1,72 @@
-2011-08-14 Francois Suter (Cobweb) <typo3@cobweb.ch>
+2011-08-16 Francois Suter (Cobweb)  <typo3@cobweb.ch>
+
+	* Released to TER as version 1.3.0
+
+2011-08-14 Francois Suter (Cobweb)  <typo3@cobweb.ch>
 
 	* Added a check to warn about missing uid when using DISTINCT in a query, resolves #28969
 
-2011-07-26 Francois Suter (Cobweb) <typo3@cobweb.ch>
+2011-07-26 Francois Suter (Cobweb)  <typo3@cobweb.ch>
 
 	* Improved filter unit test to use a dataProvider, resolves #28463
 	* Improved unit tests to fully run for multiple tables in query, resolves #13988
 
-2011-07-18 Francois Suter (Cobweb) <typo3@cobweb.ch>
+2011-07-18 Francois Suter (Cobweb)  <typo3@cobweb.ch>
 
 	* Used new hook of datafilter to count "additional SQL" into empty filter check, resolves #28287
 
-2011-07-17 Francois Suter (Cobweb) <typo3@cobweb.ch>
+2011-07-17 Francois Suter (Cobweb)  <typo3@cobweb.ch>
 
 	* Added support for void filters, resolves #28274
 
-2011-05-18 Francois Suter (Cobweb) <typo3@cobweb.ch>
+2011-05-18 Francois Suter (Cobweb)  <typo3@cobweb.ch>
 
 	* Released to TER as version 1.2.2
 
-2011-05-16 Francois Suter (Cobweb) <typo3@cobweb.ch>
+2011-05-16 Francois Suter (Cobweb)  <typo3@cobweb.ch>
 
 	* Added check for possible empty array when checking query fields, resolves #26835
 	* Added check to avoid caching in workspaces, resolves #26847
 
-2011-03-23 Francois Suter (Cobweb) <typo3@cobweb.ch>
+2011-03-23 Francois Suter (Cobweb)  <typo3@cobweb.ch>
 
 	* Corrected error in usage of table aliases for enable fields condition on sub-tables, resolves #13985
 	* Released to TER as version 1.2.1
 
-2011-03-22 Francois Suter (Cobweb) <typo3@cobweb.ch>
+2011-03-22 Francois Suter (Cobweb)  <typo3@cobweb.ch>
 
 	* Improved unit tests to run in various contexts, resolves #12521
 	* Corrected detection of ON clause in SQL parser, resolves #13247
 	* Added storage of filter information inside data structure, resolves #10753
 	* Released to TER as version 1.2.0
 
-2011-01-25 Francois Suter (Cobweb) <typo3@cobweb.ch>
+2011-01-25 Francois Suter (Cobweb)  <typo3@cobweb.ch>
 
 	* Added workspace/versioning support, resolves #10207
 	* Corrected behavior of brackets when rebuilding the query, resolves #11241
 
-2010-12-28 Francois Suter (Cobweb) <typo3@cobweb.ch>
+2010-12-28 Francois Suter (Cobweb)  <typo3@cobweb.ch>
 
 	* Released to TER as version 1.1.0
 
-2010-12-20 Francois Suter (Cobweb) <typo3@cobweb.ch>
+2010-12-20 Francois Suter (Cobweb)  <typo3@cobweb.ch>
 
 	* Added code to help match aliases and true table names coming from external sources, resolves #11196
 	* Added hook to modify result of tx_dataquery_wrapper::getTablesAndFields, resolves #11190
 
-2010-11-15 Francois Suter (Cobweb) <typo3@cobweb.ch>
+2010-11-15 Francois Suter (Cobweb)  <typo3@cobweb.ch>
 
 	* Improved messages from query validation, resolves #10482
 	* Corrected data structure building when primary keys are not continuous, resolves #10641
 
-2010-10-23 Francois Suter (Cobweb) <typo3@cobweb.ch>
+2010-10-23 Francois Suter (Cobweb)  <typo3@cobweb.ch>
 
 	* Corrected detection of DISTINCT keyword in SQL parser, resolves #10318
 
-2010-09-28 Francois Suter (Cobweb) <typo3@cobweb.ch>
+2010-09-28 Francois Suter (Cobweb)  <typo3@cobweb.ch>
 
 	* Corrected support for array-type filter values
 
-2010-09-27 Francois Suter (Cobweb) <typo3@cobweb.ch>
+2010-09-27 Francois Suter (Cobweb)  <typo3@cobweb.ch>
 
 	* First public release
