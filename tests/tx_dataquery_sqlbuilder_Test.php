@@ -428,7 +428,7 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 				),
 				'condition' => '((tt_content.header = \'\'))'
 			),
-				// NOTE: a filter with "all" does not get applied
+				// NOTE: a filter with "all" does not get applied (no matter the operator)
 			'special value all' => array(
 				'filter' => array(
 					'filters' => array(
@@ -438,6 +438,18 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 							'conditions' => array(
 								0 => array(
 									'operator' => '=',
+									'value' => '\all'
+								),
+								1 => array(
+									'operator' => 'like',
+									'value' => '\all'
+								),
+								2 => array(
+									'operator' => 'in',
+									'value' => '\all'
+								),
+								3 => array(
+									'operator' => 'andgroup',
 									'value' => '\all'
 								)
 							)

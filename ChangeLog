@@ -1,3 +1,7 @@
+2011-08-24 Francois Suter (Cobweb)  <typo3@cobweb.ch>
+
+	* Corrected filter handling to ignore \all value with all operators, resolves #29235
+
 2011-08-16 Francois Suter (Cobweb)  <typo3@cobweb.ch>
 
 	* Released to TER as version 1.3.0
