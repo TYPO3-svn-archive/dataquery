@@ -2,6 +2,7 @@
 
 	* Added possibility to exclude specific tables from language mechanisms, resolves #30039
 	* Corrected broken language overlays on joined tables, resolves #30036
+	* Corrected version dependency on datafilter (1.2.0+ required)
 
 2011-08-24 Francois Suter (Cobweb)  <typo3@cobweb.ch>
 
