@@ -119,6 +119,14 @@ $TCA['tx_dataquery_queries'] = array(
 				),
 			)
 		),
+		'skip_overlays_for_tables' => array(
+			'exclude' => 1,
+			'label' => 'LLL:EXT:dataquery/locallang_db.xml:tx_dataquery_queries.skip_overlays_for_tables',
+			'config' => array(
+				'type' => 'input',
+				'size' => 255,
+			)
+		),
 		'get_versions_directly' => array(
 			'exclude' => 1,
 			'label' => 'LLL:EXT:dataquery/locallang_db.xml:tx_dataquery_queries.get_versions_directly',
@@ -130,11 +138,12 @@ $TCA['tx_dataquery_queries'] = array(
 	),
 	'types' => array(
 		'0' => array('showitem' => 'hidden;;;;1-1-1, title;;1;;2-2-2, sql_query;;;;3-3-3,
-									--div--;LLL:EXT:dataquery/locallang_db.xml:tx_dataquery_queries.tab.advanced, cache_duration;;;;1-1-1, ignore_enable_fields;;2;;2-2-2 , ignore_language_handling;;;;3-3-3, get_versions_directly')
+									--div--;LLL:EXT:dataquery/locallang_db.xml:tx_dataquery_queries.tab.advanced, cache_duration;;;;1-1-1, ignore_enable_fields;;2;;2-2-2 , ignore_language_handling;;3;;3-3-3, get_versions_directly')
 	),
 	'palettes' => array(
 		'1' => array('showitem' => 'description'),
 		'2' => array('showitem' => 'ignore_time_for_tables, --linebreak--, ignore_disabled_for_tables, --linebreak--, ignore_fegroup_for_tables'),
+		'3' => array('showitem' => 'skip_overlays_for_tables')
 	)
 );
 ?>

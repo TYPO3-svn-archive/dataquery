@@ -516,6 +516,8 @@ class tx_dataquery_parser {
 	 * @return	void
 	 */
 	protected function addLanguageCondition($fieldsPerTable) {
+		$skippedTablesForLanguageOverlays = t3lib_div::trimExplode(',', $this->providerData['skip_overlays_for_tables'], TRUE);
+
 			// Add the language condition, if necessary
 		if (empty($this->providerData['ignore_language_handling']) && !$this->queryObject->structure['DISTINCT']) {
 
@@ -525,9 +527,13 @@ class tx_dataquery_parser {
 			foreach ($this->queryFields as $alias => $tableData) {
 				$table = $tableData['name'];
 
-					// First check which handling applies, based on existing TCA structure
+					// First entirely skip tables which are defined in the skip list
+				if (in_array($table, $skippedTablesForLanguageOverlays)) {
+					$this->doOverlays[$table] = FALSE;
+
+					// Check which handling applies, based on existing TCA structure
 					// The table must at least have a language field or point to a foreign table for translation
-				if (isset($GLOBALS['TCA'][$table]['ctrl']['languageField']) || isset($GLOBALS['TCA'][$table]['ctrl']['transForeignTable'])) {
+				} elseif (isset($GLOBALS['TCA'][$table]['ctrl']['languageField']) || isset($GLOBALS['TCA'][$table]['ctrl']['transForeignTable'])) {
 
 						// The table uses translations in the same table (transOrigPointerField) or in a foreign table (transForeignTable)
 						// Prepare for overlays

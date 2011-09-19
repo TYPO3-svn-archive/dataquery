@@ -27,6 +27,7 @@ CREATE TABLE tx_dataquery_queries (
 	ignore_disabled_for_tables varchar(255) DEFAULT '' NOT NULL,
 	ignore_fegroup_for_tables varchar(255) DEFAULT '' NOT NULL,
 	ignore_language_handling tinyint(4) DEFAULT '0' NOT NULL,
+	skip_overlays_for_tables varchar(255) DEFAULT '' NOT NULL,
 	get_versions_directly varchar(255) DEFAULT '' NOT NULL,
 
 	PRIMARY KEY (uid),

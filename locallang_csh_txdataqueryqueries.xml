@@ -78,6 +78,7 @@
 				Checking this box generally makes sense only in a site with a single language.
 				It can also be used in special situations when the language selection is written in the SQL query itself, or when querying tables that may not follow the usual TYPO3 language handling pattern.
 			</label>
+			<label index="skip_overlays_for_tables.description">Comma-separated list of tables for which neither the language conditions, nor the translation overlay mechanism should be applied.</label>
 			<label index="get_versions_directly.description">List tables for which to get the version overlays straightaway rather than the placeholder records.</label>
 			<label index="get_versions_directly.details">
 				By default Data Query will get the placeholders for new or modified records and then overlay these with the appropriate workspace version.
