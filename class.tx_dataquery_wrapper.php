@@ -341,18 +341,9 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 				$allUIDs = array();
 				foreach ($versionedRecordset as $subParts) {
 					foreach ($subParts as $alias => $subRow) {
+						$table = $allTablesTrueNames[$alias];
 						foreach ($subRow as $fieldName => $fieldValue) {
-							$fieldNameParts = t3lib_div::trimExplode('$', $fieldName);
-							$table = '';
-							$field = '';
-							if (count($fieldNameParts) == 1) {
-								$table = $allTablesTrueNames[$this->mainTable];
-								$field = $fieldNameParts[0];
-							} else {
-								$table = $allTablesTrueNames[$fieldNameParts[0]];
-								$field = $fieldNameParts[1];
-							}
-							if ($field == 'uid' && isset($fieldValue)) {
+							if ($fieldName == 'uid' && isset($fieldValue)) {
 								if (!isset($allUIDs[$table])) {
 									$allUIDs[$table] = array();
 								}
