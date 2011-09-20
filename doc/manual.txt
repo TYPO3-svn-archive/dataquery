@@ -24,25 +24,25 @@ Defining a query	5
 Writing queries	8
 Allowed keywords	8
 Non-standard SQL keywords	8
-Join rules	8
+Join rules	9
 SQL function calls	9
 Expressions in queries	9
 Comments	9
 Mandatory field “uid”	9
 Additional SQL in Data Filter	9
-Behind the scenes	10
-Query parsing and query building	10
-Translations, ordering and limits	10
-Versioning	11
-Limitations	11
-Queries and Data Filters	11
-Data Query output	12
-Advanced uses of aliases	12
-Caching	12
-Developer's Guide	14
-Hooks	14
-Known problems	15
-To-Do List	16
+Behind the scenes	11
+Query parsing and query building	11
+Translations, ordering and limits	11
+Versioning	12
+Limitations	12
+Queries and Data Filters	12
+Data Query output	13
+Advanced uses of aliases	13
+Caching	13
+Developer's Guide	15
+Hooks	15
+Known problems	16
+To-Do List	17
 
 Introduction
 What does it do?
@@ -82,7 +82,7 @@ the start and end time enable fields should be ignored for all tables (using the
 the hidden field should be ignored for tables “tt_content” and “pages” (comma-separated list of table names)
 the access rights should not be ignored for any table (field is left blank)
 If you used aliases for table names in your SQL query, you should use the same aliases in the ignore enable field settings.
-On top of this “dataquery” also transparently handles everything related to language overlays. Again it is possible to disable that behavior by checking the “Language handling” box.
+On top of this “dataquery” also transparently handles everything related to language overlays. Again it is possible to disable that behavior by checking the “Language handling” box. On a finer level, it's possible to give a list of table for which language overlays (and conditions) should not be applied (in the above screenshot, records from table "tx_dam" will be taken in the default language and kept as is).
 Data Query also handles versioning transparently, as soon as it is used within a workspace. This behavior cannot be switched off. However it is sometimes necessary to influence which records are taken when handling workspaces: the lives ones (that will be overlaid) or directly the ones that contain the modified version. This is the point of the "Directly get version overlays for tables" field. For any table listed there (comma-separated list), the records will be selected among the overlays and not the live ones. This if often necessary for handling JOINs correctly in workspaces. If you don't use workspaces, just ignore this option. For more details, see the "Limitations" section later.
 See the “Behind the scene” chapter for more details about what Data Query handles automatically.
 
