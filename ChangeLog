@@ -1,3 +1,7 @@
+2011-09-21 Francois Suter (Cobweb)  <typo3@cobweb.ch>
+
+	* Released to TER as version 1.4.0
+
 2011-09-19 Francois Suter (Cobweb)  <typo3@cobweb.ch>
 
 	* Added possibility to exclude specific tables from language mechanisms, resolves #30039
