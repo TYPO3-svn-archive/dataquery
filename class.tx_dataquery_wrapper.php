@@ -82,52 +82,84 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 				$hasStructure = TRUE;
 			}
 				// No structure was found, set flag that there's no structure yet
+				// Add a message for debugging
 			catch (Exception $e) {
 				$hasStructure = FALSE;
+				$this->controller->addMessage($this->extKey, 'No cached structure found', '', t3lib_FlashMessage::NOTICE);
 			}
 		}
 
 			// If there's no structure yet, assemble it
 		if (!$hasStructure) {
-			$this->loadQuery();
-
-				// Pass provider data to the parser
-			$this->sqlParser->setProviderData($this->providerData);
-
-				// Add the SQL conditions for the selected TYPO3 mechanisms
-			$this->sqlParser->addTypo3Mechanisms();
-
-				// Assemble filters, if defined
-			if (is_array($this->filter) && count($this->filter) > 0) {
-				$this->sqlParser->addFilter($this->filter);
-			}
-
-				// Use idList from input SDS, if defined
-			if (is_array($this->structure) && !empty($this->structure['count'])) {
-				$this->sqlParser->addIdList($this->structure['uidListWithTable']);
-			}
-
-				// Build the complete query
-				// TODO: the exception handling should be part of a global error handling mechanism
 			try {
-				$query = $this->sqlParser->buildQuery();
-				if ($this->configuration['debug'] || TYPO3_DLOG) {
-					t3lib_div::devLog($query, $this->extKey, -1);
+				$this->loadQuery();
+
+					// Pass provider data to the parser
+				$this->sqlParser->setProviderData($this->providerData);
+
+					// Add the SQL conditions for the selected TYPO3 mechanisms
+				$this->sqlParser->addTypo3Mechanisms();
+
+					// Assemble filters, if defined
+				if (is_array($this->filter) && count($this->filter) > 0) {
+					$this->sqlParser->addFilter($this->filter);
+				}
+
+					// Use idList from input SDS, if defined
+				if (is_array($this->structure) && !empty($this->structure['count'])) {
+					$this->sqlParser->addIdList($this->structure['uidListWithTable']);
+				}
+
+					// Build the complete query and execute it
+				try {
+					$query = $this->sqlParser->buildQuery();
+					$this->controller->addMessage($this->extKey, 'Query parsed and rebuilt successfully', '', t3lib_FlashMessage::OK, $query);
+
+						// Execute the query
+					$res = $GLOBALS['TYPO3_DB']->sql_query($query);
+
+						// Prepare the full data structure
+					$dataStructure = $this->prepareFullStructure($res);
+				}
+				catch (Exception $e) {
+					$this->controller->addMessage($this->extKey, $e->getMessage() . ' (' . $e->getCode() . ')', 'Query building failed', t3lib_FlashMessage::ERROR);
 				}
 			}
 			catch (Exception $e) {
-				if ($this->configuration['debug'] || TYPO3_DLOG) {
-					t3lib_div::devLog($e->getMessage(), $this->extKey, 3);
-				}
+				$this->controller->addMessage($this->extKey, $e->getMessage() . ' (' . $e->getCode() . ')', 'Query parsing error', t3lib_FlashMessage::ERROR, $this->providerData);
 			}
-
-				// Execute the query
-			$res = $GLOBALS['TYPO3_DB']->sql_query($query);
-
-				// Prepare the full data structure
-			$dataStructure = $this->prepareFullStructure($res);
 		}
 
+			// Continue only if there were some results
+		if (count($dataStructure) > 0) {
+				// Apply limit and offset constraints
+			$returnStructure = $this->applyLimit($dataStructure);
+				// Free some memory
+			unset($dataStructure);
+				// As a last step add the filter to the data structure
+				// NOTE: not all Data Consumers may be able to handle this data, but at least it's available
+			$returnStructure['filter'] = $this->filter;
+
+				// Hook for post-processing the data structure
+			if (is_array($GLOBALS['TYPO3_CONF_VARS']['EXTCONF'][$this->extKey]['postProcessDataStructure'])) {
+				foreach($GLOBALS['TYPO3_CONF_VARS']['EXTCONF'][$this->extKey]['postProcessDataStructure'] as $className) {
+					$postProcessor = &t3lib_div::getUserObj($className);
+					$returnStructure = $postProcessor->postProcessDataStructure($returnStructure, $this);
+				}
+			}
+//t3lib_div::debug($returnStructure);
+		}
+		return $returnStructure;
+	}
+
+	/**
+	 * Applies limit and offset constraints, if any and if relevant
+	 *
+	 * @param array $dataStructure Full data structure
+	 * @return array Data structure with limits applied (if relevant)
+	 */
+	protected function applyLimit($dataStructure) {
+		$returnStructure = $dataStructure;
 			// Prepare the limit and offset parameters
 		$limit = (isset($this->filter['limit']['max'])) ? $this->filter['limit']['max'] : 0;
 		$offset = 0;
@@ -177,26 +209,8 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 			$returnStructure['count'] = count($returnStructure['records']);
 			$returnStructure['uidList'] = implode(',', $uidList);
 		}
-			// If there's no limit take the structure as is
-		else {
-			$returnStructure = $dataStructure;
-		}
-		unset($dataStructure);
-			// As a last step add the filter to the data structure
-			// NOTE: not all Data Consumers may be able to handle this data, but at least it's available
-		$returnStructure['filter'] = $this->filter;
-
-			// Hook for post-processing the data structure
-		if (is_array($GLOBALS['TYPO3_CONF_VARS']['EXTCONF'][$this->extKey]['postProcessDataStructure'])) {
-			foreach($GLOBALS['TYPO3_CONF_VARS']['EXTCONF'][$this->extKey]['postProcessDataStructure'] as $className) {
-				$postProcessor = &t3lib_div::getUserObj($className);
-				$returnStructure = $postProcessor->postProcessDataStructure($returnStructure, $this);
-			}
-		}
-//t3lib_div::debug($returnStructure);
 		return $returnStructure;
 	}
-
 	/**
 	 * This method prepares a full data structure with overlays if needed but without limits and offset
 	 * This is the structure that will be cached (at the end of method) to be called again from the cache when appropriate
