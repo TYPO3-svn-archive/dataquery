@@ -1,3 +1,7 @@
+2012-01-14 Francois Suter (Cobweb)  <typo3@cobweb.ch>
+
+	* Corrected wrong cache hash calculation for FE users, resolves #33193
+
 2011-09-21 Francois Suter (Cobweb)  <typo3@cobweb.ch>
 
 	* Released to TER as version 1.4.0

@@ -783,7 +783,7 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 			//	- the current FE language
 			//	- the groups of the currently logged in FE user (if any)
 		$cacheParameters['sys_language_uid'] = $GLOBALS['TSFE']->sys_language_content;
-		if (is_array($this->fe_user->user) && count($this->fe_user->groupData['uid']) > 0) {
+		if (is_array($GLOBALS['TSFE']->fe_user->user) && count($GLOBALS['TSFE']->fe_user->groupData['uid']) > 0) {
 			$cacheParameters['fe_groups'] = $this->fe_user->groupData['uid'];
 		}
 			// Calculate the hash using the method provided by the base controller,
