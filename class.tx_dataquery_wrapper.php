@@ -797,7 +797,7 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 	 * @return	void
 	 */
 	protected function loadQuery() {
-		$this->sqlParser = t3lib_div::makeInstance('tx_dataquery_parser');
+		$this->sqlParser = t3lib_div::makeInstance('tx_dataquery_parser', $this);
 		$this->sqlParser->parseQuery($this->providerData['sql_query']);
     }
 

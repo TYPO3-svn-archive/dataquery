@@ -1,3 +1,8 @@
+2012-01-15 Francois Suter (Cobweb)  <typo3@cobweb.ch>
+
+	* Improved query parsing and execution logic, resolves #33175
+	* Added debug logging with the controller
+
 2012-01-14 Francois Suter (Cobweb)  <typo3@cobweb.ch>
 
 	* Corrected wrong cache hash calculation for FE users, resolves #33193

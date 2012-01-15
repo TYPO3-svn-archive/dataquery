@@ -43,6 +43,11 @@ class tx_dataquery_parser {
 	static protected $notTextTypes = array('date', 'datetime', 'time', 'timesec', 'year', 'num', 'md5', 'int', 'double2');
 
 		/**
+		 * Reference to the calling object
+		 * @var tx_dataquery_wrapper $parentObject
+		 */
+	protected $parentObject;
+		/**
 		 * Unserialized extension configuration
 		 * @var array	$configuration
 		 */
@@ -96,7 +101,8 @@ class tx_dataquery_parser {
 		 */
 	protected $providerData;
 
-	public function  __construct() {
+	public function  __construct($parentObject) {
+		$this->parentObject = $parentObject;
 		$this->configuration = unserialize($GLOBALS['TYPO3_CONF_VARS']['EXT']['extConf']['dataquery']);
 	}
 
@@ -623,7 +629,12 @@ class tx_dataquery_parser {
 					}
 					catch (Exception $e) {
 						$this->doVersioning[$table] = FALSE;
-							// TODO: this should be logged to indicate that we are falling back to LIVE records
+						$this->parentObject->getController()->addMessage(
+							self::$extKey,
+							'A problem happened with versioning: ' . $e->getMessage() . ' (' . $e->getCode() . ')',
+							'Falling back to LIVE records for table ' . $table,
+							t3lib_FlashMessage::WARNING
+						);
 					}
 				}
 				if ($alias == $this->queryObject->mainTable) {
@@ -663,6 +674,13 @@ class tx_dataquery_parser {
 					}
 					catch (tx_tesseract_exception $e) {
 						$ignoreCondition = TRUE;
+						$this->parentObject->getController()->addMessage(
+							self::$extKey,
+							'The condition did not apply to a table used in the query.',
+							'Condition ignored',
+							t3lib_FlashMessage::NOTICE,
+							$filterData
+						);
 					}
 				}
 					// If the table is not in the query, ignore the condition
@@ -833,7 +851,13 @@ class tx_dataquery_parser {
 				}
 					// Table was not matched
 				catch (tx_tesseract_exception $e) {
-					// Nothing to do
+					$this->parentObject->getController()->addMessage(
+						self::$extKey,
+						'The ordering clause did not apply to a table used in the query.',
+						'Ordering ignored',
+						t3lib_FlashMessage::NOTICE,
+						$orderData
+					);
 				}
 			}
 		}
@@ -877,7 +901,13 @@ class tx_dataquery_parser {
 						$idlistsPerTable[$table][] = $uid;
 					}
 					catch (tx_tesseract_exception $e) {
-						// Nothing to do
+						$this->parentObject->getController()->addMessage(
+							self::$extKey,
+							'An item from the id list did not apply, because table ' . $table . ' is not used in the query.',
+							'Id ignored',
+							t3lib_FlashMessage::NOTICE,
+							$item
+						);
 					}
 				}
 			}
@@ -1157,18 +1187,20 @@ t3lib_div::debug($this->queryObject->structure['SELECT'], 'Updated select struct
 				if (isset($reversedAliasTable[$name])) {
 					$returnedName = $reversedAliasTable[$name];
 					$this->tableMatches[$name] = $reversedAliasTable[$name];
-					if ($this->configuration['debug'] || TYPO3_DLOG) {
+					if ($this->parentObject->getController()->getDebug()) {
 						$message = sprintf('Potentially unreliable match of table %1$s from component %2$s', $name, $identifier);
-						t3lib_div::devLog($message, self::$extKey, 2);
+						$this->parentObject->getController()->addMessage(
+							self::$extKey,
+							$message,
+							'Unreliable alias match',
+							t3lib_FlashMessage::WARNING
+						);
 					}
 
 					// No match found, throw exception
 				} else {
-					if ($this->configuration['debug'] || TYPO3_DLOG) {
-						$message = sprintf('No match found for table %1$s from component %2$s', $name, $identifier);
-						t3lib_div::devLog($message, self::$extKey, 2);
-					}
-					throw new tx_tesseract_exception('Unmatched alias or table name', 1291753564);
+					$message = sprintf('No match found for table %1$s from component %2$s', $name, $identifier);
+					throw new tx_tesseract_exception($message, 1291753564);
 				}
 			}
 		}
