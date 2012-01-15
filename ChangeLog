@@ -2,6 +2,7 @@
 
 	* Improved query parsing and execution logic, resolves #33175
 	* Added debug logging with the controller
+	* Removed debug configuration option, resolves #33205
 
 2012-01-14 Francois Suter (Cobweb)  <typo3@cobweb.ch>
 

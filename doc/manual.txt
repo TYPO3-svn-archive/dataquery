@@ -3,7 +3,7 @@ EXT: SQL-based Data Provider
 Extension Key: dataquery
 Language: en
 Keywords: forAdmins, forIntermediates, tesseract
-Copyright 2007-2011, Francois Suter, <typo3@cobweb.ch>
+Copyright 2007-2012, Francois Suter, <typo3@cobweb.ch>
 
 This document is published under the Open Content License
 available from http://www.opencontent.org/opl.shtml
@@ -19,6 +19,7 @@ Screenshot	3
 Questions?	3
 Keeping the developer happy	3
 Installation	4
+Upgrading to 1.5.0	4
 User manual	5
 Defining a query	5
 Writing queries	8
@@ -61,7 +62,8 @@ The only condition is that “dataquery” must be installed after “datafilter
 “dataquery” requires TYPO3 4.3 or above.
 The extension provides to configuration options:
 Cache limit: Data Query comes with its own cache system, which is detailed later. The elements cached by Data Query may be quite large and may actually crash the database system. As such this option provides a way to limit the size of elements written to the cache table. Setting this option to 0 is equivalent to having no limit, but you should be cautious about this. See the chapter about cache for more details.
-Debug: this option will log all executed queries to the DevLog, which is very useful to check what has been eventually executed. Note that this requires to have some DevLog-related extension installed, such as “devlog”.
+Upgrading to 1.5.0
+Note that the "Debug" flag was removed from the extension configuration options as of version 1.5.0. Data Query now refers to the calling controller to get the status of the debug flag.
 User manual
 Defining a query
 To create a new SQL query using Data Query, create a new “Data Queries” record. This is divided into two tabs.
