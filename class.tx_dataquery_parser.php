@@ -1187,15 +1187,14 @@ t3lib_div::debug($this->queryObject->structure['SELECT'], 'Updated select struct
 				if (isset($reversedAliasTable[$name])) {
 					$returnedName = $reversedAliasTable[$name];
 					$this->tableMatches[$name] = $reversedAliasTable[$name];
-					if ($this->parentObject->getController()->getDebug()) {
-						$message = sprintf('Potentially unreliable match of table %1$s from component %2$s', $name, $identifier);
-						$this->parentObject->getController()->addMessage(
-							self::$extKey,
-							$message,
-							'Unreliable alias match',
-							t3lib_FlashMessage::WARNING
-						);
-					}
+						// Write a notice to the message queue
+					$message = sprintf('Potentially unreliable match of table %1$s from component %2$s', $name, $identifier);
+					$this->parentObject->getController()->addMessage(
+						self::$extKey,
+						$message,
+						'Unreliable alias match',
+						t3lib_FlashMessage::WARNING
+					);
 
 					// No match found, throw exception
 				} else {
