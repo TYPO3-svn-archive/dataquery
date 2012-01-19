@@ -262,6 +262,7 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 
 	/**
 	 * Provides filters for testing query with filters
+	 * Some filters are arbitrarily negated, to test the building of negated conditions
 	 * Also provides the expected interpretation of the filter
 	 *
 	 * @return array
@@ -280,7 +281,8 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 									'value' => array(
 										'foo',
 										'bar'
-									)
+									),
+									'negate' => FALSE
 								)
 							)
 						),
@@ -297,17 +299,55 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 							'conditions' => array(
 								0 => array(
 									'operator' => '>',
-									'value' => 10
+									'value' => 10,
+									'negate' => FALSE
 								),
 								1 => array(
 									'operator' => '<=',
-									'value' => 50
+									'value' => 50,
+									'negate' => FALSE
 								)
 							)
 						),
 					)
 				),
 				'condition' => '((tt_content.uid > \'10\') AND (tt_content.uid <= \'50\'))'
+			),
+			'not in' => array(
+				'filter' => array(
+					'filters' => array(
+						0 => array(
+							'table' => 'tt_content',
+							'field' => 'uid',
+							'conditions' => array(
+								0 => array(
+									'operator' => 'in',
+									'value' => array(1, 2, 3),
+									'negate' => TRUE
+								)
+							)
+						),
+					)
+				),
+				'condition' => '((tt_content.uid NOT IN (\'1\',\'2\',\'3\')))'
+			),
+			'not orgroup' => array(
+				'filter' => array(
+					'filters' => array(
+						0 => array(
+							'table' => 'tt_content',
+							'field' => 'fe_group',
+							'conditions' => array(
+								0 => array(
+									'operator' => 'orgroup',
+									'value' => '1,2,3',
+									'negate' => TRUE
+								)
+							)
+						),
+					)
+				),
+				'condition' => '((NOT (FIND_IN_SET(\'1\',tt_content.fe_group) OR FIND_IN_SET(\'2\',tt_content.fe_group) OR FIND_IN_SET(\'3\',tt_content.fe_group))))'
 			),
 			'combined with AND' => array(
 				'filter' => array(
@@ -321,7 +361,8 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 									'value' => array(
 										'foo',
 										'bar'
-									)
+									),
+									'negate' => FALSE
 								)
 							)
 						),
@@ -331,11 +372,13 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 							'conditions' => array(
 								0 => array(
 									'operator' => '>',
-									'value' => 10
+									'value' => 10,
+									'negate' => FALSE
 								),
 								1 => array(
 									'operator' => '<=',
-									'value' => 50
+									'value' => 50,
+									'negate' => FALSE
 								)
 							)
 						)
@@ -356,7 +399,8 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 									'value' => array(
 										'foo',
 										'bar'
-									)
+									),
+									'negate' => FALSE
 								)
 							)
 						),
@@ -366,11 +410,13 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 							'conditions' => array(
 								0 => array(
 									'operator' => '>',
-									'value' => 10
+									'value' => 10,
+									'negate' => FALSE
 								),
 								1 => array(
 									'operator' => '<=',
-									'value' => 50
+									'value' => 50,
+									'negate' => FALSE
 								)
 							)
 						)
@@ -388,7 +434,8 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 							'conditions' => array(
 								0 => array(
 									'operator' => '=',
-									'value' => 2010
+									'value' => 2010,
+									'negate' => FALSE
 								)
 							)
 						)
@@ -404,14 +451,15 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 							'field' => 'image',
 							'conditions' => array(
 								0 => array(
-									'operator' => '!=',
-									'value' => '\null'
+									'operator' => '=',
+									'value' => '\null',
+									'negate' => TRUE
 								)
 							)
 						)
 					)
 				),
-				'condition' => '((tt_content.image IS NOT NULL))'
+				'condition' => '((NOT (tt_content.image IS NULL)))'
 			),
 			'special value empty' => array(
 				'filter' => array(
@@ -422,7 +470,8 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 							'conditions' => array(
 								0 => array(
 									'operator' => '=',
-									'value' => '\empty'
+									'value' => '\empty',
+									'negate' => FALSE
 								)
 							)
 						)
@@ -440,19 +489,23 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 							'conditions' => array(
 								0 => array(
 									'operator' => '=',
-									'value' => '\all'
+									'value' => '\all',
+									'negate' => FALSE
 								),
 								1 => array(
 									'operator' => 'like',
-									'value' => '\all'
+									'value' => '\all',
+									'negate' => FALSE
 								),
 								2 => array(
 									'operator' => 'in',
-									'value' => '\all'
+									'value' => '\all',
+									'negate' => FALSE
 								),
 								3 => array(
 									'operator' => 'andgroup',
-									'value' => '\all'
+									'value' => '\all',
+									'negate' => FALSE
 								)
 							)
 						)
@@ -471,7 +524,8 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 							'conditions' => array(
 								0 => array(
 									'operator' => '>',
-									'value' => 3
+									'value' => 3,
+									'negate' => FALSE
 								)
 							)
 						)

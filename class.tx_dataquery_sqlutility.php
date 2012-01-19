@@ -50,7 +50,7 @@ final class tx_dataquery_SqlUtility {
 				foreach ($conditionParts as $value) {
 					$escapedParts[] = $GLOBALS['TYPO3_DB']->fullQuoteStr($value, $table);
 				}
-				$condition = $field . ' IN (' . implode(',', $escapedParts) . ')';
+				$condition = $field . (($conditionData['negate']) ? ' NOT' : '') . ' IN (' . implode(',', $escapedParts) . ')';
 
 				// "andgroup" and "orgroup" require more handling
 				// The associated value is a list of comma-separated values and each of these values must be handled separately
@@ -72,6 +72,9 @@ final class tx_dataquery_SqlUtility {
 						$condition .= ' ' . $localOperator . ' ';
 					}
 					$condition .= $GLOBALS['TYPO3_DB']->listQuery($field, $aValue, $table);
+				}
+				if ($conditionData['negate']) {
+					$condition = 'NOT (' . $condition . ')';
 				}
 
 				// If the operator is "like", "start" or "end", the SQL operator is always LIKE, but different wildcards are used
@@ -97,6 +100,9 @@ final class tx_dataquery_SqlUtility {
 					}
 					$condition .= $field . ' LIKE ' . $GLOBALS['TYPO3_DB']->fullQuoteStr($value, $table);
 				}
+				if ($conditionData['negate']) {
+					$condition = 'NOT (' . $condition . ')';
+				}
 
 				// Other operators are handled simply
 				// We just need to take care of special values: "\empty" and "\null"
@@ -121,8 +127,6 @@ final class tx_dataquery_SqlUtility {
 					} elseif ($conditionData['value'] == '\null') {
 						if ($operator == '=') {
 							$operator = 'IS';
-						} else {
-							$operator = 'IS NOT';
 						}
 						$quotedValue = 'NULL';
 
@@ -131,6 +135,9 @@ final class tx_dataquery_SqlUtility {
 						$quotedValue = $GLOBALS['TYPO3_DB']->fullQuoteStr($aValue, $table);
 					}
 					$condition .= $field . ' ' . $operator . ' ' . $quotedValue;
+				}
+				if ($conditionData['negate']) {
+					$condition = 'NOT (' . $condition . ')';
 				}
 			}
 		}
