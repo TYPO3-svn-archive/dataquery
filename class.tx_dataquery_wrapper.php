@@ -60,7 +60,7 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 	public function initialise() {
 		$this->configuration = unserialize($GLOBALS['TYPO3_CONF_VARS']['EXT']['extConf'][$this->extKey]);
 		$this->mainTable = '';
-		$this->sqlParser = t3lib_div::makeInstance('tx_dataquery_parser');
+		$this->sqlParser = t3lib_div::makeInstance('tx_dataquery_parser', $this);
 	}
 
 	/**
@@ -92,7 +92,7 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 			// If there's no structure yet, assemble it
 		if (!$hasStructure) {
 			try {
-				$this->loadQuery();
+				$this->sqlParser->parseQuery($this->providerData['sql_query']);
 
 					// Pass provider data to the parser
 				$this->sqlParser->setProviderData($this->providerData);
@@ -791,16 +791,6 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 		return tx_tesseract_utilities::calculateFilterCacheHash($cacheParameters);
 	}
 
-	/**
-	 * This method loads the current query's details from the database and starts the parser
-	 *
-	 * @return	void
-	 */
-	protected function loadQuery() {
-		$this->sqlParser = t3lib_div::makeInstance('tx_dataquery_parser', $this);
-		$this->sqlParser->parseQuery($this->providerData['sql_query']);
-    }
-
     /**
 	 * This method returns the name of the main table of the query,
 	 * which is the table name that appears in the FROM clause, or the alias, if any
@@ -939,7 +929,7 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 	 * @return	array		list of tables and fields
 	 */
 	public function getTablesAndFields($language = '') {
-		$this->loadQuery();
+		$this->sqlParser->parseQuery($this->providerData['sql_query']);
 		$tablesAndFields = $this->sqlParser->getLocalizedLabels($language);
 
 			// Hook for post-processing the tables and fields information
