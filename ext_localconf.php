@@ -6,6 +6,9 @@ t3lib_extMgm::addUserTSConfig('
 	options.saveDocNew.tx_dataquery_queries=1
 ');
 
+	// Load static utility class
+require_once(t3lib_extMgm::extPath($_EXTKEY, 'class.tx_dataquery_sqlutility.php'));
+
 	// Register as Data Provider service
 	// Note that the subtype corresponds to the name of the database table
 t3lib_extMgm::addService($_EXTKEY,  'dataprovider' /* sv type */,  'tx_dataquery_dataprovider' /* sv key */,

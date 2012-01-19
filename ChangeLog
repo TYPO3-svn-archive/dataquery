@@ -1,3 +1,7 @@
+2012-01-19 Francois Suter (Cobweb)  <typo3@cobweb.ch>
+
+	* Externalized transformation of data filter conditions to SQL, resolves #33317
+
 2012-01-15 Francois Suter (Cobweb)  <typo3@cobweb.ch>
 
 	* Improved query parsing and execution logic, resolves #33175
