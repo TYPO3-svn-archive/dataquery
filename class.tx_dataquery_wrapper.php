@@ -113,13 +113,31 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 					// Build the complete query and execute it
 				try {
 					$query = $this->sqlParser->buildQuery();
-					$this->controller->addMessage($this->extKey, 'Query parsed and rebuilt successfully', '', t3lib_FlashMessage::OK, $query);
+					$this->controller->addMessage(
+						$this->extKey,
+						'Query parsed and rebuilt successfully',
+						'',
+						t3lib_FlashMessage::OK,
+						$query
+					);
 
 						// Execute the query
 					$res = $GLOBALS['TYPO3_DB']->sql_query($query);
+						// If something went wrong, issue an error
+					if ($res === FALSE) {
+						$dataStructure = array();
+						$this->controller->addMessage(
+							$this->extKey,
+							$GLOBALS['TYPO3_DB']->sql_error(),
+							'Query execution failed',
+							t3lib_FlashMessage::ERROR,
+							$query
+						);
 
-						// Prepare the full data structure
-					$dataStructure = $this->prepareFullStructure($res);
+						// Otherwise prepare the full data structure
+					} else {
+						$dataStructure = $this->prepareFullStructure($res);
+					}
 				}
 				catch (Exception $e) {
 					$this->controller->addMessage($this->extKey, $e->getMessage() . ' (' . $e->getCode() . ')', 'Query building failed', t3lib_FlashMessage::ERROR);
