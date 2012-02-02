@@ -12,24 +12,24 @@ require_once(t3lib_extMgm::extPath($_EXTKEY, 'class.tx_dataquery_sqlutility.php'
 	// Register as Data Provider service
 	// Note that the subtype corresponds to the name of the database table
 t3lib_extMgm::addService($_EXTKEY,  'dataprovider' /* sv type */,  'tx_dataquery_dataprovider' /* sv key */,
-		array(
+	array(
 
-			'title' => 'Data Query',
-			'description' => 'Data Provider for Data Query',
+		'title' => 'Data Query',
+		'description' => 'Data Provider for Data Query',
 
-			'subtype' => 'tx_dataquery_queries',
+		'subtype' => 'tx_dataquery_queries',
 
-			'available' => TRUE,
-			'priority' => 50,
-			'quality' => 50,
+		'available' => TRUE,
+		'priority' => 50,
+		'quality' => 50,
 
-			'os' => '',
-			'exec' => '',
+		'os' => '',
+		'exec' => '',
 
-			'classFile' => t3lib_extMgm::extPath($_EXTKEY, 'class.tx_dataquery_wrapper.php'),
-			'className' => 'tx_dataquery_wrapper',
-		)
-	);
+		'classFile' => t3lib_extMgm::extPath($_EXTKEY, 'class.tx_dataquery_wrapper.php'),
+		'className' => 'tx_dataquery_wrapper',
+	)
+);
 
 	// Register the dataquery cache table to be deleted when all caches are cleared
 $TYPO3_CONF_VARS['SC_OPTIONS']['t3lib/class.t3lib_tcemain.php']['clearAllCache_additionalTables']['tx_dataquery_cache'] = 'tx_dataquery_cache';
