@@ -35,7 +35,7 @@ $EM_CONF[$_EXTKEY] = array(
 			'tesseract' => '1.0.0-0.0.0',
 			'datafilter' => '1.2.0-0.0.0',
 			'overlays' => '2.0.0-0.0.0',
-			'typo3' => '4.3.0-0.0.0',
+			'typo3' => '4.3.0-4.6.99',
 			'expressions' => '',
 		),
 		'conflicts' => array(
