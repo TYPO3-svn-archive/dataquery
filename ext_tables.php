@@ -35,6 +35,7 @@ t3lib_extMgm::addLLrefForTCAdescr('tx_dataquery_queries', 'EXT:' . $_EXTKEY . '/
 	// Register dataquery as a Data Provider
 t3lib_div::loadTCA('tt_content');
 $TCA['tt_content']['columns']['tx_displaycontroller_provider']['config']['allowed'] .= ',tx_dataquery_queries';
+$TCA['tt_content']['columns']['tx_displaycontroller_provider2']['config']['allowed'] .= ',tx_dataquery_queries';
 
 	// Add a wizard for adding a dataquery
 $addDataqueryWizard = array(
@@ -49,6 +50,7 @@ $addDataqueryWizard = array(
 							)
 						);
 $TCA['tt_content']['columns']['tx_displaycontroller_provider']['config']['wizards']['add_dataquery'] = $addDataqueryWizard;
+$TCA['tt_content']['columns']['tx_displaycontroller_provider2']['config']['wizards']['add_dataquery'] = $addDataqueryWizard;
 
 	// Add SQL field to datafilter
 t3lib_div::loadTCA('tx_datafilter_filters');

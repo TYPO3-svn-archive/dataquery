@@ -1,3 +1,7 @@
+2012-02-03 Francois Suter (Cobweb)  <typo3@cobweb.ch>
+
+	* Added possibility to return also id-list type data structures, resolves #33602
+
 2012-01-19 Francois Suter (Cobweb)  <typo3@cobweb.ch>
 
 	* Externalized transformation of data filter conditions to SQL, resolves #33317

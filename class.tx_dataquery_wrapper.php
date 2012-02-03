@@ -2,7 +2,7 @@
 /***************************************************************
 *  Copyright notice
 *
-*  (c) 2007-2010 Francois Suter (Cobweb) <typo3@cobweb.ch>
+*  (c) 2007-2012 Francois Suter (Cobweb) <typo3@cobweb.ch>
 *  All rights reserved
 *
 *  This script is part of the TYPO3 project. The TYPO3 project is
@@ -44,6 +44,11 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 	protected $sqlParser;
 	static public $sortingFields = array(); // List of fields used for sorting recordset
 	static public $sortingLevel = 0;
+
+	/**
+	 * @var string Type of data structure to provide (default is idList)
+	 */
+	protected $dataStructureType = tx_tesseract::IDLIST_STRUCTURE_TYPE;
 
 	public function __construct() {
 		$this->initialise();
@@ -135,8 +140,10 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 						);
 
 						// Otherwise prepare the full data structure
+					} elseif ($this->dataStructureType == tx_tesseract::IDLIST_STRUCTURE_TYPE) {
+						$dataStructure = $this->assembleIdListStructure($res);
 					} else {
-						$dataStructure = $this->prepareFullStructure($res);
+						$dataStructure = $this->assembleRecordsetStructure($res);
 					}
 				}
 				catch (Exception $e) {
@@ -185,6 +192,7 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 				// If there's a direct pointer, it takes precedence over the offset
 			if (isset($this->filter['limit']['pointer']) && $this->filter['limit']['pointer'] > 0) {
 				$offset = $this->filter['limit']['pointer'];
+
 			} else {
 				$offset = $limit * ((isset($this->filter['limit']['offset'])) ? $this->filter['limit']['offset'] : 0);
 				if ($offset < 0) {
@@ -229,6 +237,7 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 		}
 		return $returnStructure;
 	}
+
 	/**
 	 * This method prepares a full data structure with overlays if needed but without limits and offset
 	 * This is the structure that will be cached (at the end of method) to be called again from the cache when appropriate
@@ -368,6 +377,7 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 					usort($finalRecordset, array('tx_dataquery_wrapper', 'sortUsingFixedOrder'));
 				}
 //t3lib_div::debug($finalRecordset, 'Recordset after sorting (no overlays)');
+
 			} else {
 					// First collect all the uid's for each table
 				$allUIDs = array();
@@ -680,6 +690,101 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 	}
 
 	/**
+	 * Wrapper around prepareFullStructure() for harmonizing naming between data providers
+	 *
+	 * @param pointer $res Database resource from the executed query
+	 * @return array A recordset-type data structure
+	 * @see tx_dataquery_wrapper::prepareFullStructure()
+	 */
+	protected function assembleRecordsetStructure($res) {
+		return $this->prepareFullStructure($res);
+	}
+
+	/**
+	 * Prepares an id-list type data structure based on the results of the SQL query
+	 *
+	 * @param pointer $res Database resource from the executed query
+	 * @return array An id-list type data structure
+	 */
+	protected function assembleIdListStructure($res) {
+		$uidList = array();
+			// Act only if there are records
+		if ($GLOBALS['TYPO3_DB']->sql_num_rows($res) > 0) {
+			$this->mainTable = $this->sqlParser->getMainTableName();
+
+				// Loop on all records to assemble the list of all uid's
+				// Note that all overlay mechanisms (language and version) are ignored when assembling
+				// an id-list type structure. Indeed the uid's returned by such a structure will always
+				// be fed into some other mechanism that will query the database for a more complete structure
+				// and overlays will be taken into account at that point
+			$uidColumns = array();
+			$firstPass = TRUE;
+			while ($row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res)) {
+					// On the first pass, assemble a list of all the columns containing uid's
+					// and their relative tables
+				if ($firstPass) {
+					foreach ($row as $columnName => $value) {
+						if ($columnName == 'uid' || substr($columnName, -4) == '$uid') {
+							if ($columnName == 'uid') {
+								$table = $this->mainTable;
+							} else {
+								$table = substr($columnName, 0, -4);
+							}
+							$uidColumns[$table] = $columnName;
+							$uidList[$table] = array();
+						}
+					}
+					$firstPass = FALSE;
+				}
+					// Loop on all uid columns and store them relative to their related table
+				foreach ($uidColumns as $table => $columnName) {
+					if (isset($row[$columnName])) {
+						$uidList[$table][] = $row[$columnName];
+					}
+				}
+			}
+			$GLOBALS['TYPO3_DB']->sql_free_result($res);
+
+				// Remove duplicates for every table
+			foreach ($uidList as $table => $uidListForTable) {
+				$uidList[$table] = array_unique($uidListForTable);
+			}
+		}
+
+			// Assemble the full structure
+		$numRecords = (isset($uidList[$this->mainTable])) ? count($uidList[$this->mainTable]) : 0;
+		$uidListString = (isset($uidList[$this->mainTable])) ? implode(',', $uidList[$this->mainTable]) : '';
+		$uidListWithTable = '';
+		foreach ($uidList as $table => $uidListForTable) {
+			if (!empty($uidListWithTable)) {
+				$uidListWithTable .= ',';
+			}
+			$uidListWithTable .= $table . '_' . implode(',' . $table . '_', $uidListForTable);
+		}
+		$dataStructure = array (
+			'uniqueTable' => (count($uidList) == 1) ? $this->mainTable : '',
+			'uidList' => $uidListString,
+			'uidListWithTable' => $uidListWithTable,
+			'count' => $numRecords,
+			'totalCount' => $numRecords
+		);
+
+			// Hook for post-processing the data structure before it is stored into cache
+		if (is_array($GLOBALS['TYPO3_CONF_VARS']['EXTCONF'][$this->extKey]['postProcessDataStructureBeforeCache'])) {
+			foreach ($GLOBALS['TYPO3_CONF_VARS']['EXTCONF'][$this->extKey]['postProcessDataStructureBeforeCache'] as $className) {
+				$postProcessor = &t3lib_div::getUserObj($className);
+				$dataStructure = $postProcessor->postProcessDataStructureBeforeCache($dataStructure, $this);
+			}
+		}
+
+			// Store the structure in the cache table,
+		$this->writeStructureToCache($dataStructure);
+
+			// Finally return the assembled structure
+		return $dataStructure;
+	}
+
+	/**
 	 * This method splits the rows in the recordset returned by the database query into several parts,
 	 * one for each (aliased) table in the row
 	 * Example:
@@ -800,10 +905,12 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 			// Finally we add other parameters of unicity:
 			//	- the current FE language
 			//	- the groups of the currently logged in FE user (if any)
+			//	- the type of structure
 		$cacheParameters['sys_language_uid'] = $GLOBALS['TSFE']->sys_language_content;
 		if (is_array($GLOBALS['TSFE']->fe_user->user) && count($GLOBALS['TSFE']->fe_user->groupData['uid']) > 0) {
 			$cacheParameters['fe_groups'] = $GLOBALS['TSFE']->fe_user->groupData['uid'];
 		}
+		$cacheParameters['structure_type'] = $this->dataStructureType;
 			// Calculate the hash using the method provided by the base controller,
 			// which filters out the "limit" part of the filter
 		return tx_tesseract_utilities::calculateFilterCacheHash($cacheParameters);
@@ -879,20 +986,32 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 	/**
 	 * This method returns the type of data structure that the Data Provider can prepare
 	 *
-	 * @return	string		type of the provided data structure
+	 * @return string Type of the provided data structure
 	 */
 	public function getProvidedDataStructure() {
-		return tx_tesseract::RECORDSET_STRUCTURE_TYPE;
+		return $this->dataStructureType;
 	}
 
 	/**
 	 * This method indicates whether the Data Provider can create the type of data structure requested or not
 	 *
-	 * @param	string		$type: type of data structure
-	 * @return	boolean		true if it can handle the requested type, false otherwise
+	 * @param string $type: Type of data structure
+	 * @return boolean TRUE if it can handle the requested type, FALSE otherwise
 	 */
 	public function providesDataStructure($type) {
-		return $type == tx_tesseract::RECORDSET_STRUCTURE_TYPE;
+
+		// Check which type was requested and return true if type can be provided
+		// Store requested type internally for later processing
+		if ($type == tx_tesseract::IDLIST_STRUCTURE_TYPE) {
+			$this->dataStructureType = tx_tesseract::IDLIST_STRUCTURE_TYPE;
+			$result = TRUE;
+		} elseif ($type == tx_tesseract::RECORDSET_STRUCTURE_TYPE) {
+			$this->dataStructureType = tx_tesseract::RECORDSET_STRUCTURE_TYPE;
+			$result = TRUE;
+		} else {
+			$result = FALSE;
+		}
+		return $result;
 	}
 
 	/**

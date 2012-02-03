@@ -30,7 +30,7 @@ SQL function calls	9
 Expressions in queries	9
 Comments	9
 Mandatory field “uid”	9
-Additional SQL in Data Filter	9
+Additional SQL in Data Filter	10
 Behind the scenes	11
 Query parsing and query building	11
 Translations, ordering and limits	11
@@ -47,7 +47,7 @@ To-Do List	17
 
 Introduction
 What does it do?
-The dataquery extension is a Data Provider for the Tesseract framework. It can be used to query the local TYPO3 database and return the resulting recordset in a standardized data structure (SDS) of type “recordset”.
+The dataquery extension is a Data Provider for the Tesseract framework. It can be used to query the local TYPO3 database and return the resulting recordset in a standardized data structure (SDS) of type “recordset” or "idlist".
 It is designed to make it easy to write SQL by automating the handling of all the TYPO3 standard mechanisms, like enable fields and language overlays.
 Screenshot
 Here's a view of a Data Query record in the TYPO3 BE:
@@ -87,6 +87,7 @@ If you used aliases for table names in your SQL query, you should use the same a
 On top of this “dataquery” also transparently handles everything related to language overlays. Again it is possible to disable that behavior by checking the “Language handling” box. On a finer level, it's possible to give a list of table for which language overlays (and conditions) should not be applied (in the above screenshot, records from table "tx_dam" will be taken in the default language and kept as is).
 Data Query also handles versioning transparently, as soon as it is used within a workspace. This behavior cannot be switched off. However it is sometimes necessary to influence which records are taken when handling workspaces: the lives ones (that will be overlaid) or directly the ones that contain the modified version. This is the point of the "Directly get version overlays for tables" field. For any table listed there (comma-separated list), the records will be selected among the overlays and not the live ones. This if often necessary for handling JOINs correctly in workspaces. If you don't use workspaces, just ignore this option. For more details, see the "Limitations" section later.
 See the “Behind the scene” chapter for more details about what Data Query handles automatically.
+Note: language and version overlays are not applied when the type of Data Structure returned is "idlist" (e.g. when "dataquery" is called as a secondary provider via the Display Controller). The reasoning is that the list of ids returned will always be handled by further processes which will take care of language and version overlays.
 
 Writing queries
 As is discussed later, there's quite a lot of magic going on behind the scenes to make the users' lives easier. This comes at some cost: it is not possible to write queries in any arbitrary way. In effect, Data Query will accept only a sub-set of SQL commands. It also adds a few of its own for increased convenience. All the rules that pertain to writing queries are described below.
@@ -134,8 +135,6 @@ SELECT * FROM tt_news,tx_dam WHERE …
 
 would become:
 SELECT * FROM tt_news INNER JOIN tx_dam WHERE …
-
-
 SQL function calls
 It is possible to use any SQL function in the SELECT part of the statement. Function calls are expected to be used with an alias. If this is not the case, an alias will be automatically added. So the following query:
 SELECT FROM_UNIXTIME(tstamp, '%Y') FROM tt_content...
@@ -163,6 +162,7 @@ Mandatory field “uid”
 All queries must have a field called “uid” (this is necessary for all the processing that happens afterward, see “Behind the scenes”). It can be either the real “uid” of a given table or some other field using an alias, e.g.
 SELECT FROM_UNIXTIME(tstamp, '%Y') AS uid FROM tt_content
 If no explicit “uid” field is found in the SELECT statement, Data Query will try to add one automatically, which may have unexpected results. As such it is useful to use the “Validate Query” button and look at the query that Data Query rebuilt, to see if it really matches what you expected.
+
 Additional SQL in Data Filter
 Data Query adds an “additional SQL” field to the Data Filters. This makes it possible to directly add some SQL which will be added to the WHERE part of the query. This field can be used for SQL-specific conditions which cannot be expressed with standard Data Filter syntax.
 Expressions can be used in the “additional SQL” field too.
