@@ -362,7 +362,7 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 //t3lib_div::debug($finalRecordset, 'Reassembled versioned result');
 
 					// If no sorting is defined at all, perform fixed order sorting, if defined
-					// Note this will work only if the secondary provider refers to a single table
+					// Note this will work only if the input structure's id list refers to a single table
 				if (!$this->sqlParser->hasOrdering() && !empty($this->structure['count'])) {
 						// Add fixed order to recordset
 					$uidList = t3lib_div::trimExplode(',', $this->structure['uidList']);
@@ -892,7 +892,7 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 	protected function calculateCacheHash(array $parameters) {
 			// The base of the hash parameters is the current filter
 			// To this we add the uidList (if it exists)
-			// This makes it possible to vary the cache as a function of the idList provided by a secondary provider
+			// This makes it possible to vary the cache as a function of the idList provided by the input structure
 		$filterForCache = $this->filter;
 		if (is_array($this->structure) && isset($this->structure['uidListWithTable'])) {
 			$filterForCache['uidListWithTable'] = $this->structure['uidListWithTable'];
