@@ -1,3 +1,7 @@
+2012-03-20 Francois Suter (Cobweb)  <typo3@cobweb.ch>
+
+	* Updated the process of initializing the empty data structure, resolves #35050
+
 2012-02-06 Francois Suter (Cobweb)  <typo3@cobweb.ch>
 
 	* Released to TER as version 1.5.0

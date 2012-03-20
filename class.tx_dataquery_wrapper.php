@@ -1036,11 +1036,25 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 	/**
 	 * This method assembles the data structure and returns it
 	 *
-	 * @return	array		standardised data structure
+	 * If the empty structure flag has been set, a dummy empty structure is returned instead
+	 *
+	 * @return array Standardised data structure
 	 */
 	public function getDataStructure() {
+			// If the empty output structure flag was raised, prepare a proper structure devoid of data
 		if ($this->hasEmptyOutputStructure) {
-			return $this->outputStructure;
+			try {
+					// Parse the query to get the main table's name
+				$this->sqlParser->parseQuery($this->providerData['sql_query']);
+				$this->outputStructure = $this->initEmptyDataStructure(
+					$this->sqlParser->getMainTableName(),
+					$this->dataStructureType
+				);
+				return $this->outputStructure;
+			}
+			catch (Exception $e) {
+				$this->controller->addMessage($this->extKey, $e->getMessage() . ' (' . $e->getCode() . ')', 'Query parsing error', t3lib_FlashMessage::ERROR, $this->providerData);
+			}
 		} else {
 			return $this->getData();
 		}
