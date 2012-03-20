@@ -1050,7 +1050,6 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 					$this->sqlParser->getMainTableName(),
 					$this->dataStructureType
 				);
-				return $this->outputStructure;
 			}
 			catch (Exception $e) {
 				$this->controller->addMessage($this->extKey, $e->getMessage() . ' (' . $e->getCode() . ')', 'Query parsing error', t3lib_FlashMessage::ERROR, $this->providerData);
@@ -1058,6 +1057,7 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 		} else {
 			return $this->getData();
 		}
+		return $this->outputStructure;
 	}
 
 	/**
