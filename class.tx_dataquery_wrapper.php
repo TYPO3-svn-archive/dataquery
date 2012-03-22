@@ -1046,7 +1046,7 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 			try {
 					// Parse the query to get the main table's name
 				$this->sqlParser->parseQuery($this->providerData['sql_query']);
-				$this->outputStructure = $this->initEmptyDataStructure(
+				$this->initEmptyDataStructure(
 					$this->sqlParser->getMainTableName(),
 					$this->dataStructureType
 				);
