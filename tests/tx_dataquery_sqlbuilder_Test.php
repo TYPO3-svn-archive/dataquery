@@ -131,7 +131,7 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
     	    : t3lib_div::int_from_ver(TYPO3_version);
 		self::$isMinimumVersion = $currentVersion >= 4005000;
 		if (self::$isMinimumVersion) {
-			self::$minimalConditionForTable = '###TABLE###.deleted=0 AND ###TABLE###.t3ver_state<=0 AND ###TABLE###.pid!=-1';
+			self::$minimalConditionForTable = '###TABLE###.deleted=0 AND ###TABLE###.t3ver_state<=0 AND ###TABLE###.pid<>-1';
 			self::$groupsConditionForTable = ' AND (###TABLE###.fe_group=\'\' OR ###TABLE###.fe_group IS NULL OR ###TABLE###.fe_group=\'0\' OR FIND_IN_SET(\'0\',###TABLE###.fe_group) OR FIND_IN_SET(\'-1\',###TABLE###.fe_group))';
 			self::$baseConditionForTable = '(###MINIMAL_CONDITION### AND ###TABLE###.hidden=0 AND ###TABLE###.starttime<=###NOW### AND (###TABLE###.endtime=0 OR ###TABLE###.endtime>###NOW###)###GROUP_CONDITION###)';
 		} else {
