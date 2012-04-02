@@ -912,7 +912,7 @@ t3lib_div::debug($this->queryObject->structure['SELECT'], 'Select structure');
 					// Include the complete ctrl TCA
 				$GLOBALS['TSFE']->includeTCA();
 					// Initialise sorting mode flag
-				$cannotUseSQLForSorting = false;
+				$cannotUseSQLForSorting = FALSE;
 					// Initialise various arrays
 				$newQueryFields = array();
 				$newSelectFields = array();
@@ -928,72 +928,75 @@ t3lib_div::debug($this->queryObject->structure['SELECT'], 'Select structure');
 						$alias = $fieldParts[0];
 						$field = $fieldParts[1];
 					}
-						// If the field has an alias, change the order fields list to use it
-					if (isset($this->queryObject->fieldAliases[$alias][$field])) {
-						$this->queryObject->orderFields[$index]['alias'] = $this->queryObject->orderFields[$index]['field'];
-						$this->queryObject->orderFields[$index]['field'] = $this->queryObject->fieldAliases[$alias][$field];
-					}
-						// Get the field's true table and name, if defined, in case an alias is used in the ORDER BY statement
-					if (isset($this->fieldTrueNames[$field])) {
-						$alias = $this->fieldTrueNames[$field]['aliasTable'];
-						$field = $this->fieldTrueNames[$field]['field'];
-					}
-						// Get the true table name and initialise new field array, if necessary
-					$table = $this->getTrueTableName($alias);
-					if (!isset($newQueryFields[$alias])) {
-						$newQueryFields[$alias] = array('name' => $alias, 'table' => $table, 'fields' => array());
-					}
-
-						// Check the type of the field in the TCA
-						// If the field is of some text type and that the table uses overlays,
-						// ordering cannot happen in SQL.
-					if (isset($GLOBALS['TCA'][$table])) {
-							// Check if table uses overlays
-						$usesOverlay = isset($GLOBALS['TCA'][$table]['ctrl']['languageField']) || isset($GLOBALS['TCA'][$table]['ctrl']['transForeignTable']);
-							// Check the field type (load full TCA first)
-							// NOTE: if there's no TCA available, we'll assume it's a text field
-							// We could query the database and get the SQL datatype, but is it worth it?
-						t3lib_div::loadTCA($table);
-						$isTextField = TRUE;
-						if (isset($GLOBALS['TCA'][$table]['columns'][$field])) {
-							$fieldConfig = $GLOBALS['TCA'][$table]['columns'][$field]['config'];
-								// It's text, easy :-)
-							if ($fieldConfig['type'] == 'text') {
-								$isTextField = TRUE;
-
-								// It's input, further check the "eval" property
-							} elseif ($fieldConfig['type'] == 'input') {
-									// If the field has no eval property, assume it's just text
-								if (empty($fieldConfig['eval'])) {
- 									$isTextField = TRUE;
-								} else {
-									$evaluations = explode(',', $fieldConfig['eval']);
-										// Check if some eval types are common to both array. If yes, it's not a text field.
-									$foundTypes = array_intersect($evaluations, self::$notTextTypes);
-									$isTextField = (count($foundTypes) > 0) ? FALSE : TRUE;
-								}
-
-								// It's another type, it's definitely not text
-							} else {
-								$isTextField = FALSE;
-							}
+						// Skip all the rest of the logic for some special values
+					if ($field !== 'RAND()' && $field !== 'NULL') {
+							// If the field has an alias, change the order fields list to use it
+						if (isset($this->queryObject->fieldAliases[$alias][$field])) {
+							$this->queryObject->orderFields[$index]['alias'] = $this->queryObject->orderFields[$index]['field'];
+							$this->queryObject->orderFields[$index]['field'] = $this->queryObject->fieldAliases[$alias][$field];
 						}
-						$cannotUseSQLForSorting |= ($usesOverlay && $isTextField);
-					}
-						// Check if the field is already part of the SELECTed fields (under its true name or an alias)
-						// If not, get ready to add it by defining all necessary info in temporary arrays
-						// (it will be added only if necessary, i.e. if at least one field needs to be ordered later)
-					if (!$this->isAQueryField($alias, $field) && !isset($this->queryObject->fieldAliases[$alias][$field])) {
-						$fieldAlias = $alias . '$' . $field;
-						$newQueryFields[$alias]['fields'][] = array('name' => $field, 'function' => FALSE);
-						$newSelectFields[] = $alias . '.' . $field . ' AS ' . $fieldAlias;
-						$newTrueNames[$fieldAlias] = array(
-														'table' => $table,
-														'aliasTable' => $alias,
-														'field' => $field,
-														'mapping' => array('table' => $alias, 'field' => $field)
-													);
-						$countNewFields++;
+							// Get the field's true table and name, if defined, in case an alias is used in the ORDER BY statement
+						if (isset($this->fieldTrueNames[$field])) {
+							$alias = $this->fieldTrueNames[$field]['aliasTable'];
+							$field = $this->fieldTrueNames[$field]['field'];
+						}
+							// Get the true table name and initialise new field array, if necessary
+						$table = $this->getTrueTableName($alias);
+						if (!isset($newQueryFields[$alias])) {
+							$newQueryFields[$alias] = array('name' => $alias, 'table' => $table, 'fields' => array());
+						}
+
+							// Check the type of the field in the TCA
+							// If the field is of some text type and that the table uses overlays,
+							// ordering cannot happen in SQL.
+						if (isset($GLOBALS['TCA'][$table])) {
+								// Check if table uses overlays
+							$usesOverlay = isset($GLOBALS['TCA'][$table]['ctrl']['languageField']) || isset($GLOBALS['TCA'][$table]['ctrl']['transForeignTable']);
+								// Check the field type (load full TCA first)
+								// NOTE: if there's no TCA available, we'll assume it's a text field
+								// We could query the database and get the SQL datatype, but is it worth it?
+							t3lib_div::loadTCA($table);
+							$isTextField = TRUE;
+							if (isset($GLOBALS['TCA'][$table]['columns'][$field])) {
+								$fieldConfig = $GLOBALS['TCA'][$table]['columns'][$field]['config'];
+									// It's text, easy :-)
+								if ($fieldConfig['type'] == 'text') {
+									$isTextField = TRUE;
+
+									// It's input, further check the "eval" property
+								} elseif ($fieldConfig['type'] == 'input') {
+										// If the field has no eval property, assume it's just text
+									if (empty($fieldConfig['eval'])) {
+										$isTextField = TRUE;
+									} else {
+										$evaluations = explode(',', $fieldConfig['eval']);
+											// Check if some eval types are common to both array. If yes, it's not a text field.
+										$foundTypes = array_intersect($evaluations, self::$notTextTypes);
+										$isTextField = (count($foundTypes) > 0) ? FALSE : TRUE;
+									}
+
+									// It's another type, it's definitely not text
+								} else {
+									$isTextField = FALSE;
+								}
+							}
+							$cannotUseSQLForSorting |= ($usesOverlay && $isTextField);
+						}
+							// Check if the field is already part of the SELECTed fields (under its true name or an alias)
+							// If not, get ready to add it by defining all necessary info in temporary arrays
+							// (it will be added only if necessary, i.e. if at least one field needs to be ordered later)
+						if (!$this->isAQueryField($alias, $field) && !isset($this->queryObject->fieldAliases[$alias][$field])) {
+							$fieldAlias = $alias . '$' . $field;
+							$newQueryFields[$alias]['fields'][] = array('name' => $field, 'function' => FALSE);
+							$newSelectFields[] = $alias . '.' . $field . ' AS ' . $fieldAlias;
+							$newTrueNames[$fieldAlias] = array(
+															'table' => $table,
+															'aliasTable' => $alias,
+															'field' => $field,
+															'mapping' => array('table' => $alias, 'field' => $field)
+														);
+							$countNewFields++;
+						}
 					}
 				}
 					// If sorting cannot be left simply to SQL, prepare to return false

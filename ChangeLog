@@ -1,3 +1,7 @@
+2012-04-02 Francois Suter (Cobweb)  <typo3@cobweb.ch>
+
+	* Added support for special ordering keywords (RAND, NULL), resolves #27780
+
 2012-03-20 Francois Suter (Cobweb)  <typo3@cobweb.ch>
 
 	* Updated the process of initializing the empty data structure, resolves #35050

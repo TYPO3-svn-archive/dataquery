@@ -261,6 +261,28 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 	}
 
 	/**
+	 * Parse and rebuild a SELECT query with RAND() ordering
+	 *
+	 * RAND() ordering is not handled like other order conditions
+	 *
+	 * @test
+	 */
+	public function selectQueryWithRand() {
+			// Replace markers in the condition
+		$condition = self::finalizeCondition(self::$fullConditionForTable);
+		$additionalSelectFields = $this->prepareAdditionalFields('tt_content');
+		$expectedResult = 'SELECT tt_content.uid, tt_content.header, tt_content.pid, tt_content.sys_language_uid' . $additionalSelectFields . ' FROM tt_content AS tt_content WHERE ' . $condition . 'ORDER BY RAND() ';
+
+		$query = 'SELECT uid, header FROM tt_content ORDER BY RAND()';
+		$this->sqlParser->parseQuery($query);
+		$this->sqlParser->setProviderData($this->settings);
+		$this->sqlParser->addTypo3Mechanisms();
+		$actualResult = $this->sqlParser->buildQuery();
+
+		$this->assertEquals($expectedResult, $actualResult);
+	}
+
+	/**
 	 * Provides filters for testing query with filters
 	 * Some filters are arbitrarily negated, to test the building of negated conditions
 	 * Also provides the expected interpretation of the filter
