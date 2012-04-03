@@ -242,8 +242,8 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 	 * This method prepares a full data structure with overlays if needed but without limits and offset
 	 * This is the structure that will be cached (at the end of method) to be called again from the cache when appropriate
 	 *
-	 * @param	pointer		$res: database resource from the executed query
-	 * @return	array		The full data structure
+	 * @param resource $res Database resource from the executed query
+	 * @return array The full data structure
 	 */
 	protected function prepareFullStructure($res) {
 			// Initialise some variables
