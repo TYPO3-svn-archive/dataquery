@@ -569,6 +569,20 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 				'condition' => 'ORDER BY tt_content.crdate desc',
 				'sqlCondition' => FALSE
 			),
+			'random ordering' => array(
+				'filter' => array(
+					'filters' => array(),
+					'orderby' => array(
+						1 => array(
+							'table' => '',
+							'field' => '',
+							'order' => 'RAND'
+						)
+					)
+				),
+				'condition' => 'ORDER BY RAND()',
+				'sqlCondition' => FALSE
+			),
 				// Filter limits are not applied explicitly
 			'limit' => array(
 				'filter' => array(

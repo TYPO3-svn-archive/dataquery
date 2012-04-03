@@ -750,24 +750,31 @@ class tx_dataquery_parser {
 			// Handle the order by clauses
 		if (count($filter['orderby']) > 0) {
 			foreach ($filter['orderby'] as $orderData) {
-				$table = ((empty($orderData['table'])) ? $this->queryObject->mainTable : $orderData['table']);
-					// Try applying the order clause to an existing table
-				try {
-					$table = $this->matchAliasOrTableName($table, 'Order clause - ' . $table . ' - ' . $orderData['field'] . ' - ' . $orderData['order']);
-					$completeField = $table . '.' . $orderData['field'];
-					$orderbyClause = $completeField . ' ' . $orderData['order'];
-					$this->queryObject->structure['ORDER BY'][] = $orderbyClause;
-					$this->queryObject->orderFields[] = array('field' => $completeField, 'order' => $orderData['order']);
-				}
-					// Table was not matched
-				catch (tx_tesseract_exception $e) {
-					$this->parentObject->getController()->addMessage(
-						self::$extKey,
-						'The ordering clause did not apply to a table used in the query.',
-						'Ordering ignored',
-						t3lib_FlashMessage::NOTICE,
-						$orderData
-					);
+					// Special case if ordering is random
+				if ($orderData['order'] == 'RAND') {
+					$this->queryObject->structure['ORDER BY'][] = 'RAND()';
+
+					// Handle normal configuration
+				} else {
+					$table = ((empty($orderData['table'])) ? $this->queryObject->mainTable : $orderData['table']);
+						// Try applying the order clause to an existing table
+					try {
+						$table = $this->matchAliasOrTableName($table, 'Order clause - ' . $table . ' - ' . $orderData['field'] . ' - ' . $orderData['order']);
+						$completeField = $table . '.' . $orderData['field'];
+						$orderbyClause = $completeField . ' ' . $orderData['order'];
+						$this->queryObject->structure['ORDER BY'][] = $orderbyClause;
+						$this->queryObject->orderFields[] = array('field' => $completeField, 'order' => $orderData['order']);
+					}
+						// Table was not matched
+					catch (tx_tesseract_exception $e) {
+						$this->parentObject->getController()->addMessage(
+							self::$extKey,
+							'The ordering clause did not apply to a table used in the query.',
+							'Ordering ignored',
+							t3lib_FlashMessage::NOTICE,
+							$orderData
+						);
+					}
 				}
 			}
 		}

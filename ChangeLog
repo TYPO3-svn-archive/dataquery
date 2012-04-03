@@ -2,6 +2,7 @@
 
 	* Fixed irregular malfunctions of the validation wizard, resolves #35594
 	* Added warning about duplicate fields in query, resolves #33061
+	* Added support for random ordering from data filter, references #27780
 
 2012-04-02 Francois Suter (Cobweb)  <typo3@cobweb.ch>
 
