@@ -41,8 +41,8 @@ class tx_dataquery_wizards_Check {
 	 * @return	string			HTML for the wizard
 	 */
 	public function render($PA, t3lib_TCEforms $fObj) {
-			// Get the attributes of the field tag to extract its id
-		$fieldAttributes = t3lib_div::get_tag_attributes($PA['item']);
+			// Get the id attribute of the field tag
+		preg_match('/id="(.+?)"/', $PA['item'], $matches);
 
 			/**
 			 * @var	t3lib_PageRenderer	$pageRenderer
@@ -51,7 +51,7 @@ class tx_dataquery_wizards_Check {
 			// Add Inline CSS
 		$inlineCSS = '
 			.x-btn button {
-				font-weight: normal !important; 
+				font-weight: normal !important;
 			}
 			.message-header {
 				margin-bottom: 10px;
@@ -65,7 +65,7 @@ class tx_dataquery_wizards_Check {
 			// Load some localized labels, plus the field's id
 		$fObj->additionalJS_pre[] = '
 			var TX_DATAQUERY = {
-				fieldId : "' . $fieldAttributes['id'] . '",
+				fieldId : "' . $matches[1] . '",
 				labels : {
 					"debugTab" : "' . $GLOBALS['LANG']->sL('LLL:EXT:dataquery/locallang.xml:wizard.check.debugTab') . '",
 					"previewTab" : "' . $GLOBALS['LANG']->sL('LLL:EXT:dataquery/locallang.xml:wizard.check.previewTab') . '",
