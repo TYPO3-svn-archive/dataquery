@@ -46,6 +46,7 @@ class tx_dataquery_Ajax {
 		$parsingSeverity = t3lib_FlashMessage::OK;
 		$executionSeverity = t3lib_FlashMessage::OK;
 		$executionMessage = '';
+		$warningMessage = '';
 
 			// Try parsing and building the query
 		try {
@@ -58,7 +59,8 @@ class tx_dataquery_Ajax {
 			$query = $parser->prepareQueryString($query);
 				// Parse the query
 				// NOTE: if the parsing fails, an exception will be received, which is handled further down
-			$parser->parseQuery($query);
+				// The parser may return a warning, though
+			$warningMessage = $parser->parseQuery($query);
 				// Build the query
 			$parsedQuery = $parser->buildQuery();
 				// The query building completed, issue success message
@@ -95,6 +97,16 @@ class tx_dataquery_Ajax {
 			$parsingSeverity
 		);
 		$content = $flashMessage->render();
+			// If a warning was returned by the query parser, display it here
+		if (!empty($warningMessage)) {
+			$flashMessage = t3lib_div::makeInstance(
+				't3lib_FlashMessage',
+				$warningMessage,
+				$GLOBALS['LANG']->sL('LLL:EXT:dataquery/locallang.xml:query.warning'),
+				t3lib_FlashMessage::WARNING
+			);
+			$content .= $flashMessage->render();
+		}
 			// If the query was also executed, render execution result
 		if (!empty($executionMessage)) {
 			$flashMessage = t3lib_div::makeInstance(

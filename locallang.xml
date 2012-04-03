@@ -11,7 +11,8 @@
         <languageKey index="default" type="array">
             <label index="limits">Limits</label>
             <label index="query.success">The query was parsed successfully</label>
-            <label index="query.failure">The query is not valid</label>
+			<label index="query.failure">The query is not valid</label>
+			<label index="query.warning">Problems in the query</label>
             <label index="query.executionSuccessful">The query was executed successfully. Note that this is probably not the query that will be eventually executed, as it misses all the filters, TYPO3-specific conditions, etc.</label>
             <label index="query.executionFailed">The query execution failed with the following error: %s</label>
             <label index="query.exception-1272556228">The SELECT keyword is missing. Please add it.</label>

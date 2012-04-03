@@ -1,6 +1,7 @@
 2012-04-03 Francois Suter (Cobweb)  <typo3@cobweb.ch>
 
 	* Fixed irregular malfunctions of the validation wizard, resolves #35594
+	* Added warning about duplicate fields in query, resolves #33061
 
 2012-04-02 Francois Suter (Cobweb)  <typo3@cobweb.ch>
 

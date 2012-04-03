@@ -97,7 +97,16 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 			// If there's no structure yet, assemble it
 		if (!$hasStructure) {
 			try {
-				$this->sqlParser->parseQuery($this->providerData['sql_query']);
+					// Parse the query and log any warning that may have been raised
+				$warning = $this->sqlParser->parseQuery($this->providerData['sql_query']);
+				if (!empty($warning)) {
+					$this->controller->addMessage(
+						$this->extKey,
+						$warning,
+						'Problems in the query',
+						t3lib_FlashMessage::WARNING
+					);
+				}
 
 					// Pass provider data to the parser
 				$this->sqlParser->setProviderData($this->providerData);

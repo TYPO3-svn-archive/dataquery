@@ -110,10 +110,11 @@ class tx_dataquery_parser {
 	 * This method is used to parse a SELECT SQL query.
 	 * It is a simple parser and no way generic. It expects queries to be written a certain way.
 	 *
-	 * @param	string		$query: the query to be parsed
-	 * @return	void
+	 * @param string $query The query to be parsed
+	 * @return string A warning message, if any (fatal errors throw exceptions)
 	 */
 	public function parseQuery($query) {
+		$warning = '';
 			// Clean up and prepare the query string
 		$query = $this->prepareQueryString($query);
 
@@ -138,12 +139,19 @@ class tx_dataquery_parser {
 				throw new tx_tesseract_exception('"uid" field missing with DISTINCT usage', 1313354033);
 			}
 		}
+			// Check if the query selects the same field multiple times
+			// Issue a warning if yes, since the results may be unpredictable
+		$duplicates = $this->checkForDuplicateFields();
+		if (count($duplicates) > 0) {
+			$warning = 'Duplicate fields in query: ' . implode(' / ', $duplicates);
+		}
 
 //t3lib_div::debug($this->queryObject->aliases, 'Table aliases');
 //t3lib_div::debug($this->fieldAliases, 'Field aliases');
 //t3lib_div::debug($this->fieldTrueNames, 'Field true names');
 //t3lib_div::debug($this->queryFields, 'Query fields');
 //t3lib_div::debug($this->queryObject->structure, 'Structure');
+		return $warning;
 	}
 
 	/**
@@ -1361,6 +1369,42 @@ t3lib_div::debug($this->queryObject->structure['SELECT'], 'Updated select struct
 			}
 		}
 		return $hasUid;
+	}
+
+	/**
+	 * Returns information about each field that appears more than once in the current query
+	 *
+	 * @return array
+	 */
+	protected function checkForDuplicateFields() {
+		$duplicates = array();
+		$fieldCountPerTable = array();
+			// Loop on all included fields and make a list of aliases per table and field
+			// Note that these are the fields explicitly entered in the SELECT statement
+			// plus all base fields added for the needs of dataquery
+		foreach ($this->fieldTrueNames as $alias => $aliasInformation) {
+			$table = $aliasInformation['aliasTable'];
+			$field = $aliasInformation['field'];
+			if (!isset($fieldCountPerTable[$table])) {
+				$fieldCountPerTable[$table] = array();
+			}
+			if (!isset($fieldCountPerTable[$table][$field])) {
+				$fieldCountPerTable[$table][$field] = array($alias);
+			} else {
+				$fieldCountPerTable[$table][$field][] = $alias;
+			}
+		}
+			// Loop on the aliases list found in the first loop
+			// List a warning for each field (in a given table) with multiple aliases
+		foreach ($fieldCountPerTable as $table => $countPerField) {
+			foreach ($countPerField as $field => $aliases) {
+				if (count($aliases) > 1) {
+					$duplicates[] = 'In table ' . $table . ', duplicates for ' . $field . ' as: ' . implode(',', $aliases);
+				}
+			}
+
+		}
+		return $duplicates;
 	}
 }
 
