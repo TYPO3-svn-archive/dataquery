@@ -2,7 +2,7 @@
 /***************************************************************
 *  Copyright notice
 *
-*  (c) 2007-2010 Francois Suter (Cobweb) <typo3@cobweb.ch>
+*  (c) 2007-2012 Francois Suter (Cobweb) <typo3@cobweb.ch>
 *  All rights reserved
 *
 *  This script is part of the TYPO3 project. The TYPO3 project is
@@ -1334,7 +1334,7 @@ t3lib_div::debug($this->queryObject->structure['SELECT'], 'Updated select struct
 	}
 
 	/**
-	 * This method checks for the existing of a field (possibly with alias) called "uid"
+	 * This method checks for the existence of a field (possibly with alias) called "uid"
 	 * for the query's main table
 	 *
 	 * @return bool TRUE if a "uid" field is present, FALSE otherwise
