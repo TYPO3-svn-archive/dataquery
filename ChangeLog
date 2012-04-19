@@ -1,3 +1,7 @@
+2012-04-19 Francois Suter (Cobweb)  <typo3@cobweb.ch>
+
+	* Released to TER as version 1.6.0
+
 2012-04-03 Francois Suter (Cobweb)  <typo3@cobweb.ch>
 
 	* Fixed irregular malfunctions of the validation wizard, resolves #35594
