@@ -64,11 +64,6 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 	protected static $fullConditionForTable;
 
 	/**
-	 * @var boolean the minimum version. Currently the 4.5.0
-	 */
-	protected static $isMinimumVersion;
-
-	/**
 	 * @var	array	some default data configuration from the record
 	 */
 	protected $settings;
@@ -126,19 +121,9 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 	 * @return void
 	 */
 	public static function assembleConditions() {
-		$currentVersion = class_exists('t3lib_utility_VersionNumber')
-	        ? t3lib_utility_VersionNumber::convertVersionNumberToInteger(TYPO3_version)
-    	    : t3lib_div::int_from_ver(TYPO3_version);
-		self::$isMinimumVersion = $currentVersion >= 4005000;
-		if (self::$isMinimumVersion) {
-			self::$minimalConditionForTable = '###TABLE###.deleted=0 AND ###TABLE###.t3ver_state<=0 AND ###TABLE###.pid<>-1';
-			self::$groupsConditionForTable = ' AND (###TABLE###.fe_group=\'\' OR ###TABLE###.fe_group IS NULL OR ###TABLE###.fe_group=\'0\' OR FIND_IN_SET(\'0\',###TABLE###.fe_group) OR FIND_IN_SET(\'-1\',###TABLE###.fe_group))';
-			self::$baseConditionForTable = '(###MINIMAL_CONDITION### AND ###TABLE###.hidden=0 AND ###TABLE###.starttime<=###NOW### AND (###TABLE###.endtime=0 OR ###TABLE###.endtime>###NOW###)###GROUP_CONDITION###)';
-		} else {
-			self::$minimalConditionForTable = '###TABLE###.deleted=0 AND ###TABLE###.t3ver_state<=0';
-			self::$groupsConditionForTable = ' AND (###TABLE###.fe_group=\'\' OR ###TABLE###.fe_group IS NULL OR ###TABLE###.fe_group=\'0\' OR (###TABLE###.fe_group LIKE \'%,0,%\' OR  ###TABLE###.fe_group LIKE \'0,%\' OR ###TABLE###.fe_group LIKE \'%,0\' OR ###TABLE###.fe_group=\'0\') OR (###TABLE###.fe_group LIKE \'%,-1,%\' OR  ###TABLE###.fe_group LIKE \'-1,%\' OR ###TABLE###.fe_group LIKE \'%,-1\' OR ###TABLE###.fe_group=\'-1\'))';
-			self::$baseConditionForTable = '(###MINIMAL_CONDITION### AND ###TABLE###.hidden=0 AND ###TABLE###.starttime<=###NOW### AND (###TABLE###.endtime=0 OR ###TABLE###.endtime>###NOW###)###GROUP_CONDITION###)';
-		}
+		self::$minimalConditionForTable = '###TABLE###.deleted=0 AND ###TABLE###.t3ver_state<=0 AND ###TABLE###.pid<>-1';
+		self::$groupsConditionForTable = ' AND (###TABLE###.fe_group=\'\' OR ###TABLE###.fe_group IS NULL OR ###TABLE###.fe_group=\'0\' OR FIND_IN_SET(\'0\',###TABLE###.fe_group) OR FIND_IN_SET(\'-1\',###TABLE###.fe_group))';
+		self::$baseConditionForTable = '(###MINIMAL_CONDITION### AND ###TABLE###.hidden=0 AND ###TABLE###.starttime<=###NOW### AND (###TABLE###.endtime=0 OR ###TABLE###.endtime>###NOW###)###GROUP_CONDITION###)';
 			// NOTE: markers are used instead of the corresponding conditions, because the setUp() method
 			// is not invoked inside the data providers. Thus when using a data provider, it's not possible
 			// to refer to the conditions defined via setUp()

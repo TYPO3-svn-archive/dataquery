@@ -51,8 +51,9 @@ class tx_dataquery_sqlparser {
 	/**
 	 * This function parses a SQL query and extract structured information about it
 	 *
-	 * @param	string	$query: the SQL to parse
-	 * @return	array	An associative array with information about the query
+	 * @param string $query The SQL to parse
+	 * @throws tx_tesseract_exception
+	 * @return tx_dataquery_queryobject An object containing the parsed query information
 	 */
 	public function parseSQL($query) {
 		$this->queryObject = t3lib_div::makeInstance('tx_dataquery_queryobject');
@@ -67,7 +68,6 @@ class tx_dataquery_sqlparser {
 			// (example: EXTRACT(YEAR FROM tstamp))
 			// NOTE: sub-selects are not supported, but these could be a source
 			// of additional FROMs
-		$matches = array();
 		$queryParts = preg_split('/\bFROM\b/', $query);
 			// If the query was not split, FROM keyword is missing
 		if (count($queryParts) == 1) {
@@ -197,8 +197,9 @@ class tx_dataquery_sqlparser {
 	/**
 	 * This method parses the SELECT part of the statement and isolates each field in the selection
 	 *
-	 * @param	string	$select: the beginning of the SQL statement, between SELECT and FROM (both excluded)
-	 * @return	void
+	 * @param string $select The beginning of the SQL statement, between SELECT and FROM (both excluded)
+	 * @throws tx_tesseract_exception
+	 * @return void
 	 */
 	public function parseSelectStatement($select) {
 		if (empty($select)) {
@@ -306,8 +307,6 @@ class tx_dataquery_sqlparser {
 		if (empty($fieldString)) {
 			return;
 		}
-		$table = '';
-		$alias = '';
 
 			// If the string is just * (or possibly table.*), get all the fields for the table
 		if ($hasWildcard) {
@@ -350,7 +349,6 @@ class tx_dataquery_sqlparser {
 				// If there's an alias, extract it and continue parsing
 				// An alias is indicated by a "AS" keyword after the last closing bracket if any
 				// (brackets indicate a function call and there might be "AS" keywords inside them)
-			$field = '';
 			$fieldAlias = '';
 			$asPosition = strpos($fieldString, ' AS ', $lastBracketPosition);
 			if ($asPosition !== FALSE) {
@@ -427,8 +425,9 @@ class tx_dataquery_sqlparser {
 	 * This method parses the FROM statement of the query,
 	 * which may be comprised of a comma-separated list of tables
 	 *
-	 * @param	string	$from: the FROM statement
-	 * @return	void
+	 * @param string $from The FROM statement
+	 * @throws tx_tesseract_exception
+	 * @return void
 	 */
 	public function parseFromStatement($from) {
 		$fromTables = t3lib_div::trimExplode(',', $from, TRUE);

@@ -1,3 +1,8 @@
+2012-06-20 Francois Suter (Cobweb)  <typo3@cobweb.ch>
+
+	* Verified compatibility with TYPO3 4.7, raised requirements to TYPO3 4.5, resolves #38236
+	* Cleaned up unused bits of code, completed phpDoc comments
+
 2012-04-19 Francois Suter (Cobweb)  <typo3@cobweb.ch>
 
 	* Released to TER as version 1.6.0

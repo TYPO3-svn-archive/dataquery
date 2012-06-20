@@ -111,6 +111,7 @@ class tx_dataquery_parser {
 	 * It is a simple parser and no way generic. It expects queries to be written a certain way.
 	 *
 	 * @param string $query The query to be parsed
+	 * @throws tx_tesseract_exception
 	 * @return string A warning message, if any (fatal errors throw exceptions)
 	 */
 	public function parseQuery($query) {
@@ -794,7 +795,6 @@ class tx_dataquery_parser {
 			$idlistsPerTable = array();
 				// First assemble a list of all uid's for each table
 			foreach ($idArray as $item) {
-				$table = '';
 					// Code inspired from t3lib_loadDBGroup
 					// String is reversed before exploding, to get uid first
 				list($uid, $table) = explode('_', strrev($item), 2);
@@ -1081,9 +1081,10 @@ t3lib_div::debug($this->queryObject->structure['SELECT'], 'Updated select struct
 	 * (using this method) to match the tables from the other element to aliases used
 	 * in the query. This may lead to some kind of guess work in which case a warning is logged.
 	 *
-	 * @param	string	$name: name to match
-	 * @param	string	$identifier: some key identifying the circumstances in which the call was made (used for logging)
-	 * @return	string	Alias or table name
+	 * @param string $name Name to match
+	 * @param string $identifier Some key identifying the circumstances in which the call was made (used for logging)
+	 * @throws tx_tesseract_exception
+	 * @return string Alias or table name
 	 */
 	protected function matchAliasOrTableName($name, $identifier) {
 		$returnedName = $name;
@@ -1242,7 +1243,7 @@ t3lib_div::debug($this->queryObject->structure['SELECT'], 'Updated select struct
 				// Check if the alias contains a table name
 				// If yes, strip it, as this information is already handled
 			if (strpos($alias, '.') !== FALSE) {
-				list($table, $field) = explode('.', $alias);
+				list(, $field) = explode('.', $alias);
 				$alias = $field;
 			}
 			$trueNameInformation['mapping']['alias'] = $alias;
@@ -1370,7 +1371,7 @@ t3lib_div::debug($this->queryObject->structure['SELECT'], 'Updated select struct
 		}
 			// Loop on all possible keys and exit successfully if one matches a field mapped to "uid"
 		foreach ($possibleKeys as $key) {
-			if (isset($this->fieldTrueNames[$key]) && $this->fieldTrueNames[$key]['mapping']['field'] = 'uid') {
+			if (isset($this->fieldTrueNames[$key]) && $this->fieldTrueNames[$key]['mapping']['field'] == 'uid') {
 				$hasUid = TRUE;
 				break;
 			}

@@ -356,7 +356,7 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 			$finalRecordset = array();
 			if ($GLOBALS['TSFE']->sys_language_content == 0) {
 				$finalRecordset = array();
-				foreach ($versionedRecordset as $index => $subParts) {
+				foreach ($versionedRecordset as $subParts) {
 						// Reassemble the full record
 					$overlaidRecord = array();
 					foreach ($subParts as $alias => $subRow) {
@@ -505,7 +505,6 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 						// (if defined, otherwise stick to field name)
 					foreach (self::$sortingFields as $index => $orderInfo) {
 						$alias = $this->mainTable;
-						$field = '';
 							// Field may have a special alias which is also not the colum name
 							// found in the recordset, but should be used to find that name
 						$fieldName = (isset($orderInfo['alias'])) ? $orderInfo['alias'] : $orderInfo['field'];
@@ -536,7 +535,6 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 				// Loop on all records to sort them by table. This can be seen as "de-JOINing" the tables.
 				// This is necessary for such operations as overlays. When overlays are done, tables will be joined again
 				// but within the format of Standardised Data Structure
-			$oldUID = 0;
 			$handledUids = array();
 			foreach ($finalRecordset as $row) {
 				$currentUID = $row['uid'];
@@ -701,7 +699,7 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 	/**
 	 * Wrapper around prepareFullStructure() for harmonizing naming between data providers
 	 *
-	 * @param pointer $res Database resource from the executed query
+	 * @param resource $res Database resource from the executed query
 	 * @return array A recordset-type data structure
 	 * @see tx_dataquery_wrapper::prepareFullStructure()
 	 */
@@ -712,7 +710,7 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 	/**
 	 * Prepares an id-list type data structure based on the results of the SQL query
 	 *
-	 * @param pointer $res Database resource from the executed query
+	 * @param resource $res Database resource from the executed query
 	 * @return array An id-list type data structure
 	 */
 	protected function assembleIdListStructure($res) {
@@ -838,7 +836,8 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 	 * This method is used to retrieve a data structure stored in cache provided it fits all parameters
 	 * If no appropriate cache is found, it throws an exception
 	 *
-	 * @return	array	A standard data structure
+	 * @throws Exception
+	 * @return array A standard data structure
 	 */
 	protected function getCachedStructure() {
 			// Assemble condition for finding correct cache
