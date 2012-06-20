@@ -2,6 +2,7 @@
 
 	* Verified compatibility with TYPO3 4.7, raised requirements to TYPO3 4.5, resolves #38236
 	* Cleaned up unused bits of code, completed phpDoc comments
+	* Added note in the documentation about static values not being supported in queries, resolves #37179
 
 2012-04-19 Francois Suter (Cobweb)  <typo3@cobweb.ch>
 
