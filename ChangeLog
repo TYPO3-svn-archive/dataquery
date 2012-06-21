@@ -1,3 +1,7 @@
+2012-06-21 Francois Suter (Cobweb)  <typo3@cobweb.ch>
+
+	* Added note in the documentation about the use of brackets in queries, resolves #37151
+
 2012-06-20 Francois Suter (Cobweb)  <typo3@cobweb.ch>
 
 	* Verified compatibility with TYPO3 4.7, raised requirements to TYPO3 4.5, resolves #38236

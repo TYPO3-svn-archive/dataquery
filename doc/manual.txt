@@ -19,6 +19,7 @@ Screenshot	3
 Questions?	3
 Keeping the developer happy	3
 Installation	4
+Compatibility	4
 Upgrading to 1.5.0	4
 User manual	5
 Defining a query	5
@@ -30,20 +31,20 @@ SQL function calls	9
 Expressions in queries	9
 Comments	9
 Mandatory field “uid”	9
-Additional SQL in Data Filter	10
-Behind the scenes	11
-Query parsing and query building	11
-Translations, ordering and limits	11
-Versioning	12
-Limitations	12
-Queries and Data Filters	12
-Data Query output	13
-Advanced uses of aliases	13
-Caching	13
-Developer's Guide	15
-Hooks	15
-Known problems	16
-To-Do List	17
+Additional SQL in Data Filter	11
+Behind the scenes	12
+Query parsing and query building	12
+Translations, ordering and limits	12
+Versioning	13
+Limitations	13
+Queries and Data Filters	13
+Data Query output	14
+Advanced uses of aliases	14
+Caching	14
+Developer's Guide	16
+Hooks	16
+Known problems	17
+To-Do List	18
 
 Introduction
 What does it do?
@@ -62,6 +63,8 @@ The only condition is that “dataquery” must be installed after “datafilter
 “dataquery” requires TYPO3 4.3 or above.
 The extension provides to configuration options:
 Cache limit: Data Query comes with its own cache system, which is detailed later. The elements cached by Data Query may be quite large and may actually crash the database system. As such this option provides a way to limit the size of elements written to the cache table. Setting this option to 0 is equivalent to having no limit, but you should be cautious about this. See the chapter about cache for more details.
+Compatibility
+Since version 1.7.0, TYPO3 4.5 or more is required.
 Upgrading to 1.5.0
 Note that the "Debug" flag was removed from the extension configuration options as of version 1.5.0. Data Query now refers to the calling controller to get the status of the debug flag.
 User manual
@@ -111,6 +114,9 @@ DISTINCT at the beginning of the list of SELECTed fields. See more about the use
 ASC, DESC in the ORDER BY part.
 any function call in the list of SELECTed fields. More details in “SQL function calls” below.
 the alternate OFFSET syntax (i.e. you can use LIMIT x,y or LIMIT y OFFSET x).
+The following is not supported:
+static values in the SELECT part of the query
+using brackets around field names. Thus don't write "SELECT (title) AS headline FROM tt_news", but "SELECT title AS headline FROM tt_news"
 Using DISTINCT
 Using the DISTINCT keyword in your queries requires to pay attention to a couple of peculiarities:
 1. It is very likely that the DISTINCT field in your query is the actual primary key in your query. Assuming this, Data Query does not automatically add the "uid" field to this query (if it exists) to avoid messing up the effect of DISTINCT. Thus it is your responsibility to explicitly designate a "uid" in this case, using aliases. Example:
