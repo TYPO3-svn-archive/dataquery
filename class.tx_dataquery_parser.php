@@ -147,11 +147,11 @@ class tx_dataquery_parser {
 			$warning = 'Duplicate fields in query: ' . implode(' / ', $duplicates);
 		}
 
-//t3lib_div::debug($this->queryObject->aliases, 'Table aliases');
-//t3lib_div::debug($this->fieldAliases, 'Field aliases');
-//t3lib_div::debug($this->fieldTrueNames, 'Field true names');
-//t3lib_div::debug($this->queryFields, 'Query fields');
-//t3lib_div::debug($this->queryObject->structure, 'Structure');
+//t3lib_utility_Debug::debug($this->queryObject->aliases, 'Table aliases');
+//t3lib_utility_Debug::debug($this->fieldAliases, 'Field aliases');
+//t3lib_utility_Debug::debug($this->fieldTrueNames, 'Field true names');
+//t3lib_utility_Debug::debug($this->queryFields, 'Query fields');
+//t3lib_utility_Debug::debug($this->queryObject->structure, 'Structure');
 		return $warning;
 	}
 
@@ -389,7 +389,7 @@ class tx_dataquery_parser {
 				$localizedStructure[$tableAlias]['fields'][$fieldAlias] = $fieldName;
             }
         }
-//		t3lib_div::debug($localizedStructure, 'Localized structure');
+//		t3lib_utility_Debug::debug($localizedStructure, 'Localized structure');
 		return $localizedStructure;
     }
 
@@ -595,7 +595,7 @@ class tx_dataquery_parser {
 				}
 			}
 		}
-//t3lib_div::debug($this->doOverlays);
+//t3lib_utility_Debug::debug($this->doOverlays);
 	}
 
 	/**
@@ -653,7 +653,7 @@ class tx_dataquery_parser {
 				}
 			}
 		}
-//t3lib_div::debug($this->doVersioning);
+//t3lib_utility_Debug::debug($this->doVersioning);
 	}
 
 	/**
@@ -899,7 +899,7 @@ class tx_dataquery_parser {
 				$query .= ' OFFSET ' . $this->queryObject->structure['OFFSET'];
 			}
 		}
-//t3lib_div::debug($query);
+//t3lib_utility_Debug::debug($query);
 		return $query;
 	}
 
@@ -914,11 +914,11 @@ class tx_dataquery_parser {
 	 */
 	protected function preprocessOrderByFields() {
 /*
-t3lib_div::debug($this->queryObject->orderFields, 'Order fields');
-t3lib_div::debug($this->queryObject->fieldAliases, 'Field aliases');
-t3lib_div::debug($this->fieldTrueNames, 'Field true names');
-t3lib_div::debug($this->queryFields, 'Query fields');
-t3lib_div::debug($this->queryObject->structure['SELECT'], 'Select structure');
+t3lib_utility_Debug::debug($this->queryObject->orderFields, 'Order fields');
+t3lib_utility_Debug::debug($this->queryObject->fieldAliases, 'Field aliases');
+t3lib_utility_Debug::debug($this->fieldTrueNames, 'Field true names');
+t3lib_utility_Debug::debug($this->queryFields, 'Query fields');
+t3lib_utility_Debug::debug($this->queryObject->structure['SELECT'], 'Select structure');
  *
  */
 		if (count($this->queryObject->orderFields) > 0) {
@@ -1022,12 +1022,12 @@ t3lib_div::debug($this->queryObject->structure['SELECT'], 'Select structure');
 						$this->queryObject->structure['SELECT'] = array_merge($this->queryObject->structure['SELECT'], $newSelectFields);
 						$this->fieldTrueNames = t3lib_div::array_merge_recursive_overrule($this->fieldTrueNames, $newTrueNames);
 /*
-t3lib_div::debug($newQueryFields, 'New query fields');
-t3lib_div::debug($this->queryFields, 'Updated query fields');
-t3lib_div::debug($newTrueNames, 'New field true names');
-t3lib_div::debug($this->fieldTrueNames, 'Updated field true names');
-t3lib_div::debug($newSelectFields, 'New select fields');
-t3lib_div::debug($this->queryObject->structure['SELECT'], 'Updated select structure');
+t3lib_utility_Debug::debug($newQueryFields, 'New query fields');
+t3lib_utility_Debug::debug($this->queryFields, 'Updated query fields');
+t3lib_utility_Debug::debug($newTrueNames, 'New field true names');
+t3lib_utility_Debug::debug($this->fieldTrueNames, 'Updated field true names');
+t3lib_utility_Debug::debug($newSelectFields, 'New select fields');
+t3lib_utility_Debug::debug($this->queryObject->structure['SELECT'], 'Updated select structure');
  *
  */
 							// Free some memory

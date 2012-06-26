@@ -83,7 +83,7 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 		if (!empty($this->providerData['cache_duration']) && empty($GLOBALS['TSFE']->no_cache) && empty($GLOBALS['TSFE']->sys_page->versioningPreview)) {
 			try {
 				$dataStructure = $this->getCachedStructure();
-//t3lib_div::debug($dataStructure);
+//t3lib_utility_Debug::debug($dataStructure);
 				$hasStructure = TRUE;
 			}
 				// No structure was found, set flag that there's no structure yet
@@ -181,7 +181,7 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 					$returnStructure = $postProcessor->postProcessDataStructure($returnStructure, $this);
 				}
 			}
-//t3lib_div::debug($returnStructure);
+//t3lib_utility_Debug::debug($returnStructure);
 		}
 		return $returnStructure;
 	}
@@ -270,7 +270,7 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 		foreach ($allTables as $alias) {
 			$allTablesTrueNames[$alias] = $this->sqlParser->getTrueTableName($alias);
 		}
-//t3lib_div::debug($allTablesTrueNames, 'True table names');
+//t3lib_utility_Debug::debug($allTablesTrueNames, 'True table names');
 
 			// Prepare the header parts for all tables
 		$headers = array();
@@ -299,7 +299,7 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 				$rawRecordset[] = $row;
 
 			}
-//t3lib_div::debug($rawRecordset, 'Raw result');
+//t3lib_utility_Debug::debug($rawRecordset, 'Raw result');
 
 				// Analyze the first row of the raw recordset to get which column belongs to which table
 				// and which aliases are used, if any
@@ -308,16 +308,16 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 			$reverseColumnsMappings = array();
 			foreach ($testRow as $columnName => $value) {
 				$info = $this->sqlParser->getTrueFieldName($columnName);
-//t3lib_div::debug($info, 'Field info');
+//t3lib_utility_Debug::debug($info, 'Field info');
 				$columnsMappings[$columnName] = $info;
 				$reverseColumnsMappings[$info['aliasTable']][$info['field']] = $columnName;
 			}
-//t3lib_div::debug($columnsMappings, 'Columns mappings');
-//t3lib_div::debug($reverseColumnsMappings, 'Reversed columns mappings');
+//t3lib_utility_Debug::debug($columnsMappings, 'Columns mappings');
+//t3lib_utility_Debug::debug($reverseColumnsMappings, 'Reversed columns mappings');
 
 				// Split each row in the recordset into parts for each table in the query
 			$splitRecordset = $this->splitResultIntoSubparts($rawRecordset, $columnsMappings);
-//t3lib_div::debug($splitRecordset, 'Split result');
+//t3lib_utility_Debug::debug($splitRecordset, 'Split result');
 
 				// If workspace preview is on, records must be overlaid with appropriate version
 			$versionedRecordset = array();
@@ -348,7 +348,7 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 			} else {
 				$versionedRecordset = $splitRecordset;
 			}
-//t3lib_div::debug($versionedRecordset, 'Versioned split result');
+//t3lib_utility_Debug::debug($versionedRecordset, 'Versioned split result');
 
 				// Get overlays for each table, if language is not default
 				// Set a general flag about having been through this process or not
@@ -368,7 +368,7 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 					}
 					$finalRecordset[] = $overlaidRecord;
 				}
-//t3lib_div::debug($finalRecordset, 'Reassembled versioned result');
+//t3lib_utility_Debug::debug($finalRecordset, 'Reassembled versioned result');
 
 					// If no sorting is defined at all, perform fixed order sorting, if defined
 					// Note this will work only if the input structure's id list refers to a single table
@@ -380,12 +380,12 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 						$finalRecordset[$index]['tx_dataquery:fixed_order'] = $fixedOrder[$record['uid']];
 					}
 					unset($fixedOrder);
-//t3lib_div::debug($finalRecordset, 'Recordset with fixed order');
+//t3lib_utility_Debug::debug($finalRecordset, 'Recordset with fixed order');
 
 						// Sort recordset according to fixed order
 					usort($finalRecordset, array('tx_dataquery_wrapper', 'sortUsingFixedOrder'));
 				}
-//t3lib_div::debug($finalRecordset, 'Recordset after sorting (no overlays)');
+//t3lib_utility_Debug::debug($finalRecordset, 'Recordset after sorting (no overlays)');
 
 			} else {
 					// First collect all the uid's for each table
@@ -417,9 +417,9 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 						$hasBeenThroughOverlayProcess |= TRUE;
 					}
 				}
-//t3lib_div::debug($allUIDs, 'Unique IDs per table');
-//t3lib_div::debug($doOverlays, 'Do overlays?');
-//t3lib_div::debug($overlays, 'Overlays');
+//t3lib_utility_Debug::debug($allUIDs, 'Unique IDs per table');
+//t3lib_utility_Debug::debug($doOverlays, 'Do overlays?');
+//t3lib_utility_Debug::debug($overlays, 'Overlays');
 
 					// Loop on all recordset rows to overlay them
 				foreach ($versionedRecordset as $subParts) {
@@ -472,7 +472,7 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 							}
 						}
 					}
-//t3lib_div::debug($overlaidRecord, 'Overlaid record');
+//t3lib_utility_Debug::debug($overlaidRecord, 'Overlaid record');
 					if (isset($overlaidRecord['uid'])) {
 						$finalRecordset[] = $overlaidRecord;
 					}
@@ -481,7 +481,7 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 				unset($rawRecordset);
 				unset($overlays);
 				unset($subParts);
-//t3lib_div::debug($finalRecordset, 'Overlaid recordset');
+//t3lib_utility_Debug::debug($finalRecordset, 'Overlaid recordset');
 
 					// If the dataquery was provided with a structure,
 					// use the list of uid's to define a fixed order of records
@@ -493,7 +493,7 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 					}
 					unset($fixedOrder);
 				}
-//t3lib_div::debug($finalRecordset, 'Final recordset before sorting');
+//t3lib_utility_Debug::debug($finalRecordset, 'Final recordset before sorting');
 
 					// Perform sorting if not handled by SQL
 				if (!$this->sqlParser->isSqlUsedForOrdering()) {
@@ -521,10 +521,10 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 							self::$sortingFields[$index]['field'] = $field;
 						}
 					}
-//t3lib_div::debug(self::$sortingFields, 'Sorting fields');
+//t3lib_utility_Debug::debug(self::$sortingFields, 'Sorting fields');
 					self::$sortingLevel = 0;
 					usort($finalRecordset, array('tx_dataquery_wrapper', 'sortRecordset'));
-//t3lib_div::debug($finalRecordset, 'Sorted, overlaid recordset');
+//t3lib_utility_Debug::debug($finalRecordset, 'Sorted, overlaid recordset');
 
 					// If no sorting is defined at all, perform fixed order sorting, if defined
 				} elseif (!$this->sqlParser->hasOrdering() && isset($this->structure['uidList'])) {
@@ -590,7 +590,7 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 			}
 				// Clean up a potentially large array that is not used anymore
 			unset($finalRecordset);
-//t3lib_div::debug($rows, 'De-JOINed tables');
+//t3lib_utility_Debug::debug($rows, 'De-JOINed tables');
 
 				// Now loop on all the records of the main table and join them to their subtables
 			$hasInnerJoin = $this->sqlParser->hasInnerJoinOnFirstSubtable();
@@ -679,7 +679,7 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 						);
 			// Clean up a potentially large array that is not used anymore
 		unset($fullRecords);
-//t3lib_div::debug($dataStructure, 'Finished data structure');
+//t3lib_utility_Debug::debug($dataStructure, 'Finished data structure');
 
 			// Hook for post-processing the data structure before it is stored into cache
 		if (is_array($GLOBALS['TYPO3_CONF_VARS']['EXTCONF'][$this->extKey]['postProcessDataStructureBeforeCache'])) {

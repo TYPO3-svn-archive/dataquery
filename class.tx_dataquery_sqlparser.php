@@ -84,9 +84,9 @@ class tx_dataquery_sqlparser {
 			// The returned matches array contains the keywords matched (in position 2) and the string after each keyword (in position 3)
 		$regexp = '/(' . implode('|', self::$tokens) . ')/';
 		$matches = preg_split($regexp, $afterLastFrom, -1, PREG_SPLIT_NO_EMPTY | PREG_SPLIT_DELIM_CAPTURE);
-//t3lib_div::debug($regexp);
-//t3lib_div::debug($query);
-//t3lib_div::debug($matches, 'Matches');
+//t3lib_utility_Debug::debug($regexp);
+//t3lib_utility_Debug::debug($query);
+//t3lib_utility_Debug::debug($matches, 'Matches');
 
 			// The first position is the string that followed the main FROM keyword
 			// Parse that information. It's important to do this first,

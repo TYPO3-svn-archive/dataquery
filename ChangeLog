@@ -1,3 +1,7 @@
+2012-06-26 Francois Suter (Cobweb)  <typo3@cobweb.ch>
+
+	* Replaced all t3lib_div::debug() calls, references #38236
+
 2012-06-21 Francois Suter (Cobweb)  <typo3@cobweb.ch>
 
 	* Added note in the documentation about the use of brackets in queries, resolves #37151
