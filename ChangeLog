@@ -1,3 +1,7 @@
+2012-06-29 Francois Suter (Cobweb)  <typo3@cobweb.ch>
+
+	* Added definition of search fields, resolves #38483
+
 2012-06-26 Francois Suter (Cobweb)  <typo3@cobweb.ch>
 
 	* Replaced all t3lib_div::debug() calls, references #38236
