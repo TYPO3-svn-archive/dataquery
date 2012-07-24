@@ -764,7 +764,11 @@ class tx_dataquery_parser {
 						$completeField = $table . '.' . $orderData['field'];
 						$orderbyClause = $completeField . ' ' . $orderData['order'];
 						$this->queryObject->structure['ORDER BY'][] = $orderbyClause;
-						$this->queryObject->orderFields[] = array('field' => $completeField, 'order' => $orderData['order']);
+						$this->queryObject->orderFields[] = array(
+							'field' => $completeField,
+							'order' => $orderData['order'],
+							'engine' => isset($orderData['engine']) ? $orderData['engine'] : ''
+						);
 					}
 						// Table was not matched
 					catch (tx_tesseract_exception $e) {
@@ -923,7 +927,7 @@ t3lib_utility_Debug::debug($this->queryObject->structure['SELECT'], 'Select stru
  */
 		if (count($this->queryObject->orderFields) > 0) {
 				// If in the FE context and not the default language, start checking for possible use of SQL or not
-			if (TYPO3_MODE == 'FE' && $GLOBALS['TSFE']->sys_language_content > 0) {
+			if (isset($GLOBALS['TSFE']) && $GLOBALS['TSFE']->sys_language_content > 0) {
 					// Include the complete ctrl TCA
 				$GLOBALS['TSFE']->includeTCA();
 					// Initialise sorting mode flag
@@ -950,52 +954,42 @@ t3lib_utility_Debug::debug($this->queryObject->structure['SELECT'], 'Select stru
 							$this->queryObject->orderFields[$index]['alias'] = $this->queryObject->orderFields[$index]['field'];
 							$this->queryObject->orderFields[$index]['field'] = $this->queryObject->fieldAliases[$alias][$field];
 						}
-							// Get the field's true table and name, if defined, in case an alias is used in the ORDER BY statement
+							// Get the field's true table and field name, if defined, in case an alias is used in the ORDER BY statement
 						if (isset($this->fieldTrueNames[$field])) {
 							$alias = $this->fieldTrueNames[$field]['aliasTable'];
 							$field = $this->fieldTrueNames[$field]['field'];
 						}
-							// Get the true table name and initialise new field array, if necessary
+							// Get the true table name and initialize new field array, if necessary
 						$table = $this->getTrueTableName($alias);
 						if (!isset($newQueryFields[$alias])) {
-							$newQueryFields[$alias] = array('name' => $alias, 'table' => $table, 'fields' => array());
+							$newQueryFields[$alias] = array(
+								'name' => $alias,
+								'table' => $table,
+								'fields' => array()
+							);
 						}
-
-							// Check the type of the field in the TCA
-							// If the field is of some text type and that the table uses overlays,
-							// ordering cannot happen in SQL.
-						if (isset($GLOBALS['TCA'][$table])) {
-								// Check if table uses overlays
-							$usesOverlay = isset($GLOBALS['TCA'][$table]['ctrl']['languageField']) || isset($GLOBALS['TCA'][$table]['ctrl']['transForeignTable']);
-								// Check the field type (load full TCA first)
-								// NOTE: if there's no TCA available, we'll assume it's a text field
-								// We could query the database and get the SQL datatype, but is it worth it?
-							t3lib_div::loadTCA($table);
-							$isTextField = TRUE;
-							if (isset($GLOBALS['TCA'][$table]['columns'][$field])) {
-								$fieldConfig = $GLOBALS['TCA'][$table]['columns'][$field]['config'];
-									// It's text, easy :-)
-								if ($fieldConfig['type'] == 'text') {
-									$isTextField = TRUE;
-
-									// It's input, further check the "eval" property
-								} elseif ($fieldConfig['type'] == 'input') {
-										// If the field has no eval property, assume it's just text
-									if (empty($fieldConfig['eval'])) {
-										$isTextField = TRUE;
-									} else {
-										$evaluations = explode(',', $fieldConfig['eval']);
-											// Check if some eval types are common to both array. If yes, it's not a text field.
-										$foundTypes = array_intersect($evaluations, self::$notTextTypes);
-										$isTextField = (count($foundTypes) > 0) ? FALSE : TRUE;
-									}
-
-									// It's another type, it's definitely not text
-								} else {
-									$isTextField = FALSE;
-								}
+							// Check if there's some explicit engine information
+						if (!empty($orderInfo['engine'])) {
+								// If at least one field must be handled by the provider, set the flag to true
+							if ($orderInfo['engine'] == 'provider') {
+								$cannotUseSQLForSorting |= TRUE;
+							} else {
+								// Nothing to do here. If the field was forced to be applied to the source,
+								// it does not need to be checked further
 							}
-							$cannotUseSQLForSorting |= ($usesOverlay && $isTextField);
+						} else {
+
+								// Check the type of the field in the TCA
+								// If the field is of some text type and that the table uses overlays,
+								// ordering cannot happen in SQL.
+							if (isset($GLOBALS['TCA'][$table])) {
+									// Check if table uses overlays
+								$usesOverlay = isset($GLOBALS['TCA'][$table]['ctrl']['languageField']) || isset($GLOBALS['TCA'][$table]['ctrl']['transForeignTable']);
+									// Check the field type (load full TCA first)
+								$isTextField = $this->isATextField($table, $field);
+t3lib_div::devLog($table.'.'.$field.' is a text field: '.(($isTextField) ? 'yes' : 'no'), 'dataquery', 0);
+								$cannotUseSQLForSorting |= ($usesOverlay && $isTextField);
+							}
 						}
 							// Check if the field is already part of the SELECTed fields (under its true name or an alias)
 							// If not, get ready to add it by defining all necessary info in temporary arrays
@@ -1005,11 +999,11 @@ t3lib_utility_Debug::debug($this->queryObject->structure['SELECT'], 'Select stru
 							$newQueryFields[$alias]['fields'][] = array('name' => $field, 'function' => FALSE);
 							$newSelectFields[] = $alias . '.' . $field . ' AS ' . $fieldAlias;
 							$newTrueNames[$fieldAlias] = array(
-															'table' => $table,
-															'aliasTable' => $alias,
-															'field' => $field,
-															'mapping' => array('table' => $alias, 'field' => $field)
-														);
+								'table' => $table,
+								'aliasTable' => $alias,
+								'field' => $field,
+								'mapping' => array('table' => $alias, 'field' => $field)
+							);
 							$countNewFields++;
 						}
 					}
@@ -1045,6 +1039,43 @@ t3lib_utility_Debug::debug($this->queryObject->structure['SELECT'], 'Updated sel
 		} else {
 			$this->processOrderBy = TRUE;
 		}
+	}
+
+	/**
+	 * Tries to figure out if a given field of a given table is a text field, based on its TCA definition
+	 *
+	 * @param string $table Name of the table
+	 * @param string $field Name of the field
+	 * @return bool TRUE is the field can be considered to be text
+	 */
+	public function isATextField($table, $field) {
+		t3lib_div::loadTCA($table);
+		$isTextField = TRUE;
+			// We can guess only if there's a TCA definition
+		if (isset($GLOBALS['TCA'][$table]['columns'][$field])) {
+			$fieldConfig = $GLOBALS['TCA'][$table]['columns'][$field]['config'];
+				// It's text, easy :-)
+			if ($fieldConfig['type'] == 'text') {
+				$isTextField = TRUE;
+
+				// It's input, further check the "eval" property
+			} elseif ($fieldConfig['type'] == 'input') {
+					// If the field has no eval property, assume it's just text
+				if (empty($fieldConfig['eval'])) {
+					$isTextField = TRUE;
+				} else {
+					$evaluations = explode(',', $fieldConfig['eval']);
+						// Check if some eval types are common to both array. If yes, it's not a text field.
+					$foundTypes = array_intersect($evaluations, self::$notTextTypes);
+					$isTextField = (count($foundTypes) > 0) ? FALSE : TRUE;
+				}
+
+				// It's another type, it's definitely not text
+			} else {
+				$isTextField = FALSE;
+			}
+		}
+		return $isTextField;
 	}
 
 	/**

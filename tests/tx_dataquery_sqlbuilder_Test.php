@@ -546,12 +546,19 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 					'orderby' => array(
 						0 => array(
 							'table' => 'tt_content',
-							'field' => 'crdate',
+							'field' => 'starttime',
 							'order' => 'desc'
+						),
+						1 => array(
+							'table' => 'tt_content',
+							'field' => 'year',
+							'order' => 'asc',
+								// Test forcing the ordering  on the source (impact on language test)
+							'engine' => 'source'
 						)
 					)
 				),
-				'condition' => 'ORDER BY tt_content.crdate desc',
+				'condition' => 'ORDER BY tt_content.starttime desc, tt_content.year asc',
 				'sqlCondition' => FALSE
 			),
 			'random ordering' => array(
@@ -736,7 +743,6 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 		$this->sqlParser->setProviderData($this->settings);
 		$this->sqlParser->addTypo3Mechanisms();
 		$actualResult = $this->sqlParser->buildQuery();
-		$this->compareStringLetterPerLetter($expectedResult, $actualResult);
 
 		$this->assertEquals($expectedResult, $actualResult);
 	}
@@ -809,7 +815,6 @@ abstract class tx_dataquery_sqlbuilder_Test extends tx_phpunit_testcase {
 		$this->sqlParser->addTypo3Mechanisms();
 		$this->sqlParser->addFilter($filter);
 		$actualResult = $this->sqlParser->buildQuery();
-		$this->compareStringLetterPerLetter($expectedResult, $actualResult);
 
 		$this->assertEquals($expectedResult, $actualResult);
 	}
