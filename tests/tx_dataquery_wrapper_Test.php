@@ -96,11 +96,9 @@ class tx_dataquery_wrapper_Test extends tx_phpunit_testcase {
 	 * @dataProvider stuffToSortProvider
 	 */
 	public function testSortingMethod($records, $result) {
-		t3lib_div::devLog('before sorting', 'dataquery', 0, $records);
 		tx_dataquery_wrapper::$sortingFields[0]['field'] = 'age';
 		tx_dataquery_wrapper::$sortingFields[1]['field'] = 'name';
 		usort($records, array('tx_dataquery_wrapper', 'sortRecordset'));
-		t3lib_div::devLog('after sorting', 'dataquery', 0, $records);
 		$this->assertEquals($result, $records);
 	}
 }
