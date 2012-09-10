@@ -950,7 +950,7 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 		$level = self::$sortingLevel;
 		$field = self::$sortingFields[$level]['field'];
 		$order = (empty(self::$sortingFields[$level]['order'])) ? 'ASC' : strtoupper(self::$sortingFields[$level]['order']);
-		$result = strcmp($a[$field], $b[$field]);
+		$result = strnatcasecmp($a[$field], $b[$field]);
 		if ($result == 0) {
 				// If results are equal on the current level, check if there's a next level of sorting
 				// for differentiating the records

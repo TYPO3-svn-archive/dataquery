@@ -1,3 +1,7 @@
+2012-09-10 Francois Suter (Cobweb)  <typo3@cobweb.ch>
+
+	* Fixed error with natural sorting in PHP-side sorting algorithm, resolves #40655
+
 2012-07-30 Francois Suter (Cobweb)  <typo3@cobweb.ch>
 
 	* Released to TER as version 1.8.0
