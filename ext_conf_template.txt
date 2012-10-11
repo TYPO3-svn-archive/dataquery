@@ -1,0 +1,4 @@
+# customsubcategory=limits=LLL:EXT:dataquery/locallang.xml:limits
+
+# cat=basic/limits/; type=integer; label=Cache limit: Limit size (in bytes) beyond which the cache is not written to preserve the database. Leave empty or set to 0 for no limits.
+cacheLimit = 1000000

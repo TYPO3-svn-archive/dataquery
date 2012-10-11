@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<T3locallang>
+    <meta type="array">
+        <description>Labels for EM</description>
+        <type>module</type>
+        <csh_table></csh_table>
+        <labelContext type="array">
+        </labelContext>
+    </meta>
+    <data type="array">
+        <languageKey index="default" type="array">
+            <label index="limits">Limits</label>
+            <label index="query.success">The query was parsed successfully</label>
+			<label index="query.failure">The query is not valid</label>
+			<label index="query.warning">Problems in the query</label>
+            <label index="query.executionSuccessful">The query was executed successfully. Note that this is probably not the query that will be eventually executed, as it misses all the filters, TYPO3-specific conditions, etc.</label>
+            <label index="query.executionFailed">The query execution failed with the following error: %s</label>
+            <label index="query.exception-1272556228">The SELECT keyword is missing. Please add it.</label>
+            <label index="query.exception-1272556601">The FROM keyword is missing or is written in lowercase. Please add it or use uppercase.</label>
+            <label index="query.exception-1280323976">No columns selected. Nothing was detected between the SELECT and the FROM keywords.</label>
+            <label index="query.exception-1272954424">Bad SQL syntax, opening and closing brackets are not balanced. Note that Data Query supports only a sub-set of SQL features. It may also be that the query uses unsupported SQL elements. Please refer to the manual.</label>
+			<label index="query.exception-1280323639">No table name was found after the FROM statement. Note that Data Query supports only a sub-set of SQL features. It may also be that the query uses unsupported SQL elements. Please refer to the manual.</label>
+			<label index="query.exception-1313354033">A "uid" field seems to be missing for the main table. You must set it manually when using the DISTINCT keyword. Please refer to the manual.</label>
+            <label index="wizard.check.debugTab">Validate</label>
+            <label index="wizard.check.previewTab">Preview</label>
+            <label index="wizard.check.debugQuery">Validate the query</label>
+            <label index="wizard.check.previewQuery">Preview query results</label>
+            <label index="wizard.check.validateButton">Validate Query</label>
+        </languageKey>
+    </data>
+</T3locallang>
