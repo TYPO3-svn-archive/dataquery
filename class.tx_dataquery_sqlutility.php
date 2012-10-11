@@ -106,6 +106,18 @@ final class tx_dataquery_SqlUtility {
 
 				// Other operators are handled simply
 				// We just need to take care of special values: "\empty" and "\null"
+
+			} elseif ($conditionData['operator'] == 'fulltext') {
+
+				// Integration with EXT:dataquery_fulltext
+				if (! t3lib_extMgm::isLoaded('dataquery_fulltext')) {
+					throw new tx_tesseract_exception('Operator requires EXT:dataquery_fulltext to be loaded', 1349946406);
+				}
+
+				// Due to the nature of full-text search queries, the value must be repeated in the SELECT part along with the WHERE part.
+				// @see http://dev.mysql.com/doc/refman/5.5/en/fulltext-query-expansion.html
+				// Trick: place the value as placeholder to be processed when the query is completed
+				$condition = $field . '{' . $conditionData['value'] . '}';
 			} else {
 				$operator = $conditionData['operator'];
 					// Make sure values are an array

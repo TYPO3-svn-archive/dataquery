@@ -903,6 +903,15 @@ class tx_dataquery_parser {
 				$query .= ' OFFSET ' . $this->queryObject->structure['OFFSET'];
 			}
 		}
+
+		// Integration with EXT:dataquery_fulltext
+		if (t3lib_extMgm::isLoaded('dataquery_fulltext')) {
+
+			/** @var $fulltextParser tx_dataqueryfulltext_parser */
+			$fulltextParser = t3lib_div::makeInstance('tx_dataqueryfulltext_parser');
+			$query = $fulltextParser->parse($query, $this->queryObject->structure['FROM']['table']);
+		}
+
 //t3lib_utility_Debug::debug($query);
 		return $query;
 	}
