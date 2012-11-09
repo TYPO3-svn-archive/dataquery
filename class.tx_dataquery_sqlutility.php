@@ -32,7 +32,21 @@
  * $Id$
  */
 final class tx_dataquery_SqlUtility {
+
+	/**
+	 * Transforms a condition transmitted by data-filter to a real SQL segment.
+	 *
+	 * @throws tx_tesseract_exception
+	 * @param string $field
+	 * @param string $table
+	 * @param array $conditionData
+	 *              + operator: andgroup, orgroup, like, start, fulltext
+	 *              + value: the value given as input
+	 *              + negate: negate the expression
+	 * @return string
+	 */
 	static public function conditionToSql($field, $table, $conditionData) {
+
 		$condition = '';
 			// If the value is special value "\all", all values must be taken,
 			// so the condition is simply ignored
@@ -107,7 +121,13 @@ final class tx_dataquery_SqlUtility {
 				// Other operators are handled simply
 				// We just need to take care of special values: "\empty" and "\null"
 
-			} elseif ($conditionData['operator'] == 'fulltext') {
+			} elseif (in_array($conditionData['operator'], array('fulltext', 'fulltext_natural'))) {
+				// @todo document this operator: "fulltext" + "fulltext_natural"
+				// MySQL has support for full-text indexing and searching:
+				// A full-text index in MySQL is an index of type FULLTEXT.
+				// Full-text indexes can be used only with MyISAM tables, and can be created only for CHAR, VARCHAR, or TEXT columns.
+				// fulltext_natural acts as OR between keywords @see http://dev.mysql.com/doc/refman/5.1/en/fulltext-natural-language.html
+				// fulltext acts as AND between keywords @see http://dev.mysql.com/doc/refman/5.1/en/fulltext-boolean.html
 
 				// Integration with EXT:dataquery_fulltext
 				if (! t3lib_extMgm::isLoaded('dataquery_fulltext')) {
@@ -118,6 +138,11 @@ final class tx_dataquery_SqlUtility {
 				// @see http://dev.mysql.com/doc/refman/5.5/en/fulltext-query-expansion.html
 				// Trick: place the value as placeholder to be processed when the query is completed
 				$condition = $field . '{' . $conditionData['value'] . '}';
+
+				// Mark the difference between "fulltext_natural" and "fulltext"
+				if ($conditionData['operator'] == 'fulltext_natural') {
+					$condition = preg_replace('/fulltext/si', 'fulltext_natural', $condition, 1);
+				}
 			} else {
 				$operator = $conditionData['operator'];
 					// Make sure values are an array

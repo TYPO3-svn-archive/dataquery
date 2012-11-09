@@ -908,8 +908,8 @@ class tx_dataquery_parser {
 		if (t3lib_extMgm::isLoaded('dataquery_fulltext')) {
 
 			/** @var $fulltextParser tx_dataqueryfulltext_parser */
-			$fulltextParser = t3lib_div::makeInstance('tx_dataqueryfulltext_parser');
-			$query = $fulltextParser->parse($query, $this->queryObject->structure['FROM']['table']);
+			$fulltextParser = t3lib_div::makeInstance('tx_dataqueryfulltext_parser', $this->queryObject->structure['FROM']['table']);
+			$query = $fulltextParser->parse($query);
 		}
 
 //t3lib_utility_Debug::debug($query);
