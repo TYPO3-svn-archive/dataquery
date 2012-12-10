@@ -69,11 +69,11 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 	}
 
 	/**
-	 * This method is used to get the data for the given query and return it in a standardised format
+	 * Gets the data for the current query and return it in a standardised format
 	 *
-	 * @return	mixed		array containing the data structure or false if it failed
+	 * @return	mixed Array containing the data structure or false if it failed
 	 */
-	public function getData() {
+	protected function getQueryData() {
 		$dataStructure = array();
 		$returnStructure = array();
 
@@ -1063,7 +1063,7 @@ class tx_dataquery_wrapper extends tx_tesseract_providerbase {
 				$this->controller->addMessage($this->extKey, $e->getMessage() . ' (' . $e->getCode() . ')', 'Query parsing error', t3lib_FlashMessage::ERROR, $this->providerData);
 			}
 		} else {
-			return $this->getData();
+			return $this->getQueryData();
 		}
 		return $this->outputStructure;
 	}
