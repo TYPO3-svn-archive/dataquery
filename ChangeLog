@@ -1,6 +1,7 @@
 2012-12-10 Francois Suter (Cobweb)  <typo3@cobweb.ch>
 
 	* Fixed abusive overriding of parent method in tx_dataquery_wrapper, resolves #43843
+	* Released to TER as version 1.8.2
 
 2012-09-10 Francois Suter (Cobweb)  <typo3@cobweb.ch>
 
