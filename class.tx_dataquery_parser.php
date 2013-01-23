@@ -996,7 +996,6 @@ t3lib_utility_Debug::debug($this->queryObject->structure['SELECT'], 'Select stru
 								$usesOverlay = isset($GLOBALS['TCA'][$table]['ctrl']['languageField']) || isset($GLOBALS['TCA'][$table]['ctrl']['transForeignTable']);
 									// Check the field type (load full TCA first)
 								$isTextField = $this->isATextField($table, $field);
-t3lib_div::devLog($table.'.'.$field.' is a text field: '.(($isTextField) ? 'yes' : 'no'), 'dataquery', 0);
 								$cannotUseSQLForSorting |= ($usesOverlay && $isTextField);
 							}
 						}
