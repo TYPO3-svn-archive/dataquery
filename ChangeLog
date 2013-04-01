@@ -2,6 +2,7 @@
 
 	* Refactored SQL parser test suite, resolves #46846
 	* Added test cases for SQL parsing exceptions, resolves #46847
+	* Compatibility verified with TYPO3 CMS 6.0, resolves #46851
 
 2012-12-10 Francois Suter (Cobweb)  <typo3@cobweb.ch>
 

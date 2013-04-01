@@ -1,12 +1,12 @@
 <?php
 if (!defined ('TYPO3_MODE')) 	die ('Access denied.');
 
-$TCA['tx_dataquery_queries'] = array(
-	'ctrl' => $TCA['tx_dataquery_queries']['ctrl'],
+$GLOBALS['TCA']['tx_dataquery_queries'] = array(
+	'ctrl' => $GLOBALS['TCA']['tx_dataquery_queries']['ctrl'],
 	'interface' => array(
 		'showRecordFieldList' => 'hidden,title,description,sql_query,t3_mechanisms'
 	),
-	'feInterface' => $TCA['tx_dataquery_queries']['feInterface'],
+	'feInterface' => $GLOBALS['TCA']['tx_dataquery_queries']['feInterface'],
 	'columns' => array(
 		't3ver_label' => array(
 			'label'  => 'LLL:EXT:lang/locallang_general.xml:LGL.versionLabel',

@@ -6,7 +6,7 @@ if (!defined ('TYPO3_MODE')) 	die ('Access denied.');
 	// Define main TCA for table tx_dataquery_queries
 t3lib_extMgm::allowTableOnStandardPages('tx_dataquery_queries');
 
-$TCA['tx_dataquery_queries'] = array (
+$GLOBALS['TCA']['tx_dataquery_queries'] = array (
 	'ctrl' => array (
 		'title'     => 'LLL:EXT:dataquery/locallang_db.xml:tx_dataquery_queries',
 		'label'     => 'title',
@@ -35,8 +35,8 @@ t3lib_extMgm::addLLrefForTCAdescr('tx_dataquery_queries', 'EXT:' . $_EXTKEY . '/
 
 	// Register dataquery as a Data Provider
 t3lib_div::loadTCA('tt_content');
-$TCA['tt_content']['columns']['tx_displaycontroller_provider']['config']['allowed'] .= ',tx_dataquery_queries';
-$TCA['tt_content']['columns']['tx_displaycontroller_provider2']['config']['allowed'] .= ',tx_dataquery_queries';
+$GLOBALS['TCA']['tt_content']['columns']['tx_displaycontroller_provider']['config']['allowed'] .= ',tx_dataquery_queries';
+$GLOBALS['TCA']['tt_content']['columns']['tx_displaycontroller_provider2']['config']['allowed'] .= ',tx_dataquery_queries';
 
 	// Add a wizard for adding a dataquery
 $addDataqueryWizard = array(
@@ -50,8 +50,8 @@ $addDataqueryWizard = array(
 								'setValue' => 'append'
 							)
 						);
-$TCA['tt_content']['columns']['tx_displaycontroller_provider']['config']['wizards']['add_dataquery'] = $addDataqueryWizard;
-$TCA['tt_content']['columns']['tx_displaycontroller_provider2']['config']['wizards']['add_dataquery'] = $addDataqueryWizard;
+$GLOBALS['TCA']['tt_content']['columns']['tx_displaycontroller_provider']['config']['wizards']['add_dataquery'] = $addDataqueryWizard;
+$GLOBALS['TCA']['tt_content']['columns']['tx_displaycontroller_provider2']['config']['wizards']['add_dataquery'] = $addDataqueryWizard;
 
 	// Add SQL field to datafilter
 t3lib_div::loadTCA('tx_datafilter_filters');
