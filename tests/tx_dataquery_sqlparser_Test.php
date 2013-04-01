@@ -33,7 +33,12 @@
  */
 class tx_dataquery_sqlparser_Test extends tx_phpunit_testcase {
 
-	public function queryProvider() {
+	/**
+	 * Provides queries that can be parsed successfully
+	 *
+	 * @return array
+	 */
+	public function correctQueryProvider() {
 		return array(
 			'query with distinct' => array(
 				'query' => 'SELECT DISTINCT CType AS uid FROM tt_content',
@@ -226,7 +231,7 @@ class tx_dataquery_sqlparser_Test extends tx_phpunit_testcase {
 	 * @param string $query The SQL query to parse
 	 * @param array $parsedStructure The expected parsing result
 	 * @test
-	 * @dataProvider queryProvider
+	 * @dataProvider correctQueryProvider
 	 */
 	public function parseQuery($query, $parsedStructure) {
 		/** @var $parser tx_dataquery_sqlparser */
@@ -245,9 +250,7 @@ class tx_dataquery_sqlparser_Test extends tx_phpunit_testcase {
 	 * @test
 	 */
 	public function parseQueryWithWildcard() {
-		/**
-		 * @var tx_dataquery_sqlparser	$parser
-		 */
+		/** @var tx_dataquery_sqlparser	$parser */
 		$parser = t3lib_div::makeInstance('tx_dataquery_sqlparser');
 		$query = 'SELECT * FROM tt_content';
 		$expectedResult = array(
@@ -276,6 +279,45 @@ class tx_dataquery_sqlparser_Test extends tx_phpunit_testcase {
 		$actualResult = $parser->parseSQL($query);
 			// Check if the "structure" part if correct
 		$this->assertEquals($expectedResult, $actualResult->structure);
+	}
+
+	/**
+	 * Provides queries that trigger parsing exceptions
+	 *
+	 * @return array
+	 */
+	public function wrongQueryProvider() {
+		return array(
+			'missing select' => array(
+				'query' => '* FROM tt_content'
+			),
+			'missing from' => array(
+				'query' => 'SELECT uid, header tt_content'
+			),
+			'missing table' => array(
+				'query' => 'SELECT uid, header FROM'
+			),
+			'empty select' => array(
+				'query' => 'SELECT FROM tt_content'
+			),
+			'unbalanced brackets' => array(
+				'query' => 'SELECT FROM_UNIXTIME(tstamp, \'%Y\' AS year FROM tt_content'
+			),
+		);
+	}
+
+	/**
+	 * Parses a number of erroneous SQL queries
+	 *
+	 * @param string $query The SQL query to parse
+	 * @test
+	 * @dataProvider wrongQueryProvider
+	 * @expectedException tx_tesseract_exception
+	 */
+	public function parseWrongQuery($query) {
+		/** @var $parser tx_dataquery_sqlparser */
+		$parser = t3lib_div::makeInstance('tx_dataquery_sqlparser');
+		$parser->parseSQL($query);
 	}
 }
 ?>
