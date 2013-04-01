@@ -32,6 +32,29 @@
  * $Id$
  */
 class tx_dataquery_sqlparser_Test extends tx_phpunit_testcase {
+	/**
+	 * @var tx_dataquery_sqlparser
+	 */
+	protected $parser;
+
+	/**
+	 * Sets up the test environment
+	 *
+	 * @return void
+	 */
+	public function setUp() {
+		// NOTE: avoid using t3lib_div::makeInstance, to make sure no XCLASS interferes with the tests
+		$this->parser = new tx_dataquery_sqlparser();
+	}
+
+	/**
+	 * Cleans up the test environment
+	 *
+	 * @return void
+	 */
+	public function tearDown() {
+		unset($this->parser);
+	}
 
 	/**
 	 * Provides queries that can be parsed successfully
@@ -234,9 +257,7 @@ class tx_dataquery_sqlparser_Test extends tx_phpunit_testcase {
 	 * @dataProvider correctQueryProvider
 	 */
 	public function parseQuery($query, $parsedStructure) {
-		/** @var $parser tx_dataquery_sqlparser */
-		$parser = t3lib_div::makeInstance('tx_dataquery_sqlparser');
-		$actualResult = $parser->parseSQL($query);
+		$actualResult = $this->parser->parseSQL($query);
 			// Check if the "structure" part if correct
 		$this->assertEquals($parsedStructure, $actualResult->structure);
 	}
@@ -250,8 +271,6 @@ class tx_dataquery_sqlparser_Test extends tx_phpunit_testcase {
 	 * @test
 	 */
 	public function parseQueryWithWildcard() {
-		/** @var tx_dataquery_sqlparser	$parser */
-		$parser = t3lib_div::makeInstance('tx_dataquery_sqlparser');
 		$query = 'SELECT * FROM tt_content';
 		$expectedResult = array(
 			'DISTINCT' => FALSE,
@@ -276,7 +295,7 @@ class tx_dataquery_sqlparser_Test extends tx_phpunit_testcase {
 				'function' => FALSE
 			);
 		}
-		$actualResult = $parser->parseSQL($query);
+		$actualResult = $this->parser->parseSQL($query);
 			// Check if the "structure" part if correct
 		$this->assertEquals($expectedResult, $actualResult->structure);
 	}
@@ -315,9 +334,7 @@ class tx_dataquery_sqlparser_Test extends tx_phpunit_testcase {
 	 * @expectedException tx_tesseract_exception
 	 */
 	public function parseWrongQuery($query) {
-		/** @var $parser tx_dataquery_sqlparser */
-		$parser = t3lib_div::makeInstance('tx_dataquery_sqlparser');
-		$parser->parseSQL($query);
+		$this->parser->parseSQL($query);
 	}
 }
 ?>
