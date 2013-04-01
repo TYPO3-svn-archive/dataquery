@@ -33,12 +33,218 @@
  */
 class tx_dataquery_sqlparser_Test extends tx_phpunit_testcase {
 
+	public function queryProvider() {
+		return array(
+			'query with distinct' => array(
+				'query' => 'SELECT DISTINCT CType AS uid FROM tt_content',
+				'parsedStructure' => array(
+					'DISTINCT' => TRUE,
+					'SELECT' => array(
+						0 => array(
+							'table' => 'tt_content',
+							'tableAlias' => 'tt_content',
+							'field' => 'CType',
+							'fieldAlias' => 'uid',
+							'function' => FALSE
+						)
+					),
+					'FROM' => array('table' => 'tt_content', 'alias' => 'tt_content'),
+					'JOIN' => array(),
+					'WHERE' => array(),
+					'ORDER BY' => array(),
+					'GROUP BY' => array()
+				)
+			),
+			'query with function calls' => array(
+				'query' => 'SELECT uid, FROM_UNIXTIME(tstamp, \'%Y\') AS year, CONCAT(uid, \' in \', pid) FROM tt_content AS content',
+				'parsedStructure' => array(
+					'DISTINCT' => FALSE,
+					'SELECT' => array(
+						0 => array(
+							'table' => 'tt_content',
+							'tableAlias' => 'content',
+							'field' => 'uid',
+							'fieldAlias' => '',
+							'function' => FALSE
+						),
+						1 => array(
+							'table' => 'tt_content',
+							'tableAlias' => 'content',
+							'field' => 'FROM_UNIXTIME(tstamp, \'%Y\')',
+							'fieldAlias' => 'year',
+							'function' => TRUE
+						),
+						2 => array(
+							'table' => 'tt_content',
+							'tableAlias' => 'content',
+							'field' => 'CONCAT(uid, \' in \', pid)',
+							'fieldAlias' => 'function_2',
+							'function' => TRUE
+						)
+					),
+					'FROM' => array('table' => 'tt_content', 'alias' => 'content'),
+					'JOIN' => array(),
+					'WHERE' => array(),
+					'ORDER BY' => array(),
+					'GROUP BY' => array()
+				)
+			),
+			'query with implicit join' => array(
+				'query' => 'SELECT t.uid, p.uid FROM tt_content AS t, pages AS p WHERE p.uid = t.pid',
+				'parsedStructure' => array(
+					'DISTINCT' => FALSE,
+					'SELECT' => array(
+						0 => array(
+							'table' => 'tt_content',
+							'tableAlias' => 't',
+							'field' => 'uid',
+							'fieldAlias' => '',
+							'function' => FALSE
+						),
+						1 => array(
+							'table' => 'pages',
+							'tableAlias' => 'p',
+							'field' => 'uid',
+							'fieldAlias' => '',
+							'function' => FALSE
+						)
+					),
+					'FROM' => array('table' => 'tt_content', 'alias' => 't'),
+					'JOIN' => array(
+						'p' => array(
+							'type' => 'inner',
+							'table' => 'pages',
+							'alias' => 'p',
+							'on' => ''
+						)
+					),
+					'WHERE' => array(
+						0 => 'p.uid = t.pid'
+					),
+					'ORDER BY' => array(),
+					'GROUP BY' => array()
+				)
+			),
+			'query with explicit join' => array(
+				'query' => 'SELECT t.uid, p.uid FROM pages AS p LEFT JOIN tt_content AS t ON t.pid = p.uid',
+				'parsedStructure' => array(
+					'DISTINCT' => FALSE,
+					'SELECT' => array(
+						0 => array(
+							'table' => 'tt_content',
+							'tableAlias' => 't',
+							'field' => 'uid',
+							'fieldAlias' => '',
+							'function' => FALSE
+						),
+						1 => array(
+							'table' => 'pages',
+							'tableAlias' => 'p',
+							'field' => 'uid',
+							'fieldAlias' => '',
+							'function' => FALSE
+						)
+					),
+					'FROM' => array('table' => 'pages', 'alias' => 'p'),
+					'JOIN' => array(
+						't' => array(
+							'type' => 'left',
+							'table' => 'tt_content',
+							'alias' => 't',
+							'on' => 't.pid = p.uid'
+						)
+					),
+					'WHERE' => array(),
+					'ORDER BY' => array(),
+					'GROUP BY' => array()
+				)
+			),
+			'query with implicit limit and offset' => array(
+				'query' => 'SELECT uid, header FROM tt_content LIMIT 10, 20',
+				'parsedStructure' => array(
+					'DISTINCT' => FALSE,
+					'SELECT' => array(
+						0 => array(
+							'table' => 'tt_content',
+							'tableAlias' => 'tt_content',
+							'field' => 'uid',
+							'fieldAlias' => '',
+							'function' => FALSE
+						),
+						1 => array(
+							'table' => 'tt_content',
+							'tableAlias' => 'tt_content',
+							'field' => 'header',
+							'fieldAlias' => '',
+							'function' => FALSE
+						)
+					),
+					'FROM' => array('table' => 'tt_content', 'alias' => 'tt_content'),
+					'JOIN' => array(),
+					'WHERE' => array(),
+					'ORDER BY' => array(),
+					'GROUP BY' => array(),
+					'LIMIT' => 20,
+					'OFFSET' => 10
+				)
+			),
+			'query with explicit limit and offset' => array(
+				'query' => 'SELECT uid, header FROM tt_content LIMIT 20 OFFSET 10',
+				'parsedStructure' => array(
+					'DISTINCT' => FALSE,
+					'SELECT' => array(
+						0 => array(
+							'table' => 'tt_content',
+							'tableAlias' => 'tt_content',
+							'field' => 'uid',
+							'fieldAlias' => '',
+							'function' => FALSE
+						),
+						1 => array(
+							'table' => 'tt_content',
+							'tableAlias' => 'tt_content',
+							'field' => 'header',
+							'fieldAlias' => '',
+							'function' => FALSE
+						)
+					),
+					'FROM' => array('table' => 'tt_content', 'alias' => 'tt_content'),
+					'JOIN' => array(),
+					'WHERE' => array(),
+					'ORDER BY' => array(),
+					'GROUP BY' => array(),
+					'LIMIT' => 20,
+					'OFFSET' => 10
+				)
+			)
+		);
+	}
+
 	/**
-	 * Test a simple SELECT query
+	 * Parses a number of successful SQL queries
+	 *
+	 * @param string $query The SQL query to parse
+	 * @param array $parsedStructure The expected parsing result
+	 * @test
+	 * @dataProvider queryProvider
+	 */
+	public function parseQuery($query, $parsedStructure) {
+		/** @var $parser tx_dataquery_sqlparser */
+		$parser = t3lib_div::makeInstance('tx_dataquery_sqlparser');
+		$actualResult = $parser->parseSQL($query);
+			// Check if the "structure" part if correct
+		$this->assertEquals($parsedStructure, $actualResult->structure);
+	}
+
+	/**
+	 * Test a simple SELECT query containing a wildcard selector
+	 *
+	 * This is tested separately from the others, as the wildcard has to be expanded to create
+	 * the expected result
 	 *
 	 * @test
 	 */
-	public function simpleSelectQuery() {
+	public function parseQueryWithWildcard() {
 		/**
 		 * @var tx_dataquery_sqlparser	$parser
 		 */
@@ -67,266 +273,6 @@ class tx_dataquery_sqlparser_Test extends tx_phpunit_testcase {
 				'function' => FALSE
 			);
 		}
-		$actualResult = $parser->parseSQL($query);
-			// Check if the "structure" part if correct
-		$this->assertEquals($expectedResult, $actualResult->structure);
-	}
-
-	/**
-	 * Test a SELECT query with function calls
-	 *
-	 * @test
-	 */
-	public function selectQueryWithDistinct() {
-		/**
-		 * @var tx_dataquery_sqlparser	$parser
-		 */
-		$parser = t3lib_div::makeInstance('tx_dataquery_sqlparser');
-		$query = 'SELECT DISTINCT CType AS uid FROM tt_content';
-		$expectedResult = array(
-			'DISTINCT' => TRUE,
-			'SELECT' => array(
-				0 => array(
-					'table' => 'tt_content',
-					'tableAlias' => 'tt_content',
-					'field' => 'CType',
-					'fieldAlias' => 'uid',
-					'function' => FALSE
-				)
-			),
-			'FROM' => array('table' => 'tt_content', 'alias' => 'tt_content'),
-			'JOIN' => array(),
-			'WHERE' => array(),
-			'ORDER BY' => array(),
-			'GROUP BY' => array()
-		);
-		$actualResult = $parser->parseSQL($query);
-			// Check if the "structure" part if correct
-		$this->assertEquals($expectedResult, $actualResult->structure);
-	}
-
-	/**
-	 * Test a SELECT query with function calls
-	 *
-	 * @test
-	 */
-	public function selectQueryWithFunctionCalls() {
-		/**
-		 * @var tx_dataquery_sqlparser	$parser
-		 */
-		$parser = t3lib_div::makeInstance('tx_dataquery_sqlparser');
-		$query = 'SELECT uid, FROM_UNIXTIME(tstamp, \'%Y\') AS year, CONCAT(uid, \' in \', pid) FROM tt_content AS content';
-		$expectedResult = array(
-			'DISTINCT' => FALSE,
-			'SELECT' => array(
-				0 => array(
-					'table' => 'tt_content',
-					'tableAlias' => 'content',
-					'field' => 'uid',
-					'fieldAlias' => '',
-					'function' => FALSE
-				),
-				1 => array(
-					'table' => 'tt_content',
-					'tableAlias' => 'content',
-					'field' => 'FROM_UNIXTIME(tstamp, \'%Y\')',
-					'fieldAlias' => 'year',
-					'function' => TRUE
-				),
-				2 => array(
-					'table' => 'tt_content',
-					'tableAlias' => 'content',
-					'field' => 'CONCAT(uid, \' in \', pid)',
-					'fieldAlias' => 'function_2',
-					'function' => TRUE
-				)
-			),
-			'FROM' => array('table' => 'tt_content', 'alias' => 'content'),
-			'JOIN' => array(),
-			'WHERE' => array(),
-			'ORDER BY' => array(),
-			'GROUP BY' => array()
-		);
-		$actualResult = $parser->parseSQL($query);
-			// Check if the "structure" part if correct
-		$this->assertEquals($expectedResult, $actualResult->structure);
-	}
-
-	/**
-	 * Test a SELECT query with an implicit join
-	 *
-	 * @test
-	 */
-	public function selectQueryWithImplicitJoin() {
-		/**
-		 * @var tx_dataquery_sqlparser	$parser
-		 */
-		$parser = t3lib_div::makeInstance('tx_dataquery_sqlparser');
-		$query = 'SELECT t.uid, p.uid FROM tt_content AS t, pages AS p WHERE p.uid = t.pid';
-		$expectedResult = array(
-			'DISTINCT' => FALSE,
-			'SELECT' => array(
-				0 => array(
-					'table' => 'tt_content',
-					'tableAlias' => 't',
-					'field' => 'uid',
-					'fieldAlias' => '',
-					'function' => FALSE
-				),
-				1 => array(
-					'table' => 'pages',
-					'tableAlias' => 'p',
-					'field' => 'uid',
-					'fieldAlias' => '',
-					'function' => FALSE
-				)
-			),
-			'FROM' => array('table' => 'tt_content', 'alias' => 't'),
-			'JOIN' => array(
-				'p' => array(
-					'type' => 'inner',
-					'table' => 'pages',
-					'alias' => 'p',
-					'on' => ''
-				)
-			),
-			'WHERE' => array(
-				0 => 'p.uid = t.pid'
-			),
-			'ORDER BY' => array(),
-			'GROUP BY' => array()
-		);
-		$actualResult = $parser->parseSQL($query);
-			// Check if the "structure" part if correct
-		$this->assertEquals($expectedResult, $actualResult->structure);
-	}
-
-	/**
-	 * Test a SELECT query with an explicit join
-	 *
-	 * @test
-	 */
-	public function selectQueryWithExplicitJoin() {
-		/**
-		 * @var tx_dataquery_sqlparser	$parser
-		 */
-		$parser = t3lib_div::makeInstance('tx_dataquery_sqlparser');
-		$query = 'SELECT t.uid, p.uid FROM pages AS p LEFT JOIN tt_content AS t ON t.pid = p.uid';
-		$expectedResult = array(
-			'DISTINCT' => FALSE,
-			'SELECT' => array(
-				0 => array(
-					'table' => 'tt_content',
-					'tableAlias' => 't',
-					'field' => 'uid',
-					'fieldAlias' => '',
-					'function' => FALSE
-				),
-				1 => array(
-					'table' => 'pages',
-					'tableAlias' => 'p',
-					'field' => 'uid',
-					'fieldAlias' => '',
-					'function' => FALSE
-				)
-			),
-			'FROM' => array('table' => 'pages', 'alias' => 'p'),
-			'JOIN' => array(
-				't' => array(
-					'type' => 'left',
-					'table' => 'tt_content',
-					'alias' => 't',
-					'on' => 't.pid = p.uid'
-				)
-			),
-			'WHERE' => array(),
-			'ORDER BY' => array(),
-			'GROUP BY' => array()
-		);
-		$actualResult = $parser->parseSQL($query);
-			// Check if the "structure" part if correct
-		$this->assertEquals($expectedResult, $actualResult->structure);
-	}
-
-	/**
-	 * Test a SELECT query with LIMIT defined as LIMIT x,y
-	 *
-	 * @test
-	 */
-	public function selectQueryWithImplicitLimitAndOffset() {
-		/**
-		 * @var tx_dataquery_sqlparser	$parser
-		 */
-		$parser = t3lib_div::makeInstance('tx_dataquery_sqlparser');
-		$query = 'SELECT uid, header FROM tt_content LIMIT 10, 20';
-		$expectedResult = array(
-			'DISTINCT' => FALSE,
-			'SELECT' => array(
-				0 => array(
-					'table' => 'tt_content',
-					'tableAlias' => 'tt_content',
-					'field' => 'uid',
-					'fieldAlias' => '',
-					'function' => FALSE
-				),
-				1 => array(
-					'table' => 'tt_content',
-					'tableAlias' => 'tt_content',
-					'field' => 'header',
-					'fieldAlias' => '',
-					'function' => FALSE
-				)
-			),
-			'FROM' => array('table' => 'tt_content', 'alias' => 'tt_content'),
-			'JOIN' => array(),
-			'WHERE' => array(),
-			'ORDER BY' => array(),
-			'GROUP BY' => array(),
-			'LIMIT' => 20,
-			'OFFSET' => 10
-		);
-		$actualResult = $parser->parseSQL($query);
-			// Check if the "structure" part if correct
-		$this->assertEquals($expectedResult, $actualResult->structure);
-	}
-
-	/**
-	 * Test a SELECT query with LIMIT defined as LIMIT y OFFSET x
-	 *
-	 * @test
-	 */
-	public function selectQueryWithExplicitLimitAndOffset() {
-		/**
-		 * @var tx_dataquery_sqlparser	$parser
-		 */
-		$parser = t3lib_div::makeInstance('tx_dataquery_sqlparser');
-		$query = 'SELECT uid, header FROM tt_content LIMIT 20 OFFSET 10';
-		$expectedResult = array(
-			'DISTINCT' => FALSE,
-			'SELECT' => array(
-				0 => array(
-					'table' => 'tt_content',
-					'tableAlias' => 'tt_content',
-					'field' => 'uid',
-					'fieldAlias' => '',
-					'function' => FALSE
-				),
-				1 => array(
-					'table' => 'tt_content',
-					'tableAlias' => 'tt_content',
-					'field' => 'header',
-					'fieldAlias' => '',
-					'function' => FALSE
-				)
-			),
-			'FROM' => array('table' => 'tt_content', 'alias' => 'tt_content'),
-			'JOIN' => array(),
-			'WHERE' => array(),
-			'ORDER BY' => array(),
-			'GROUP BY' => array(),
-			'LIMIT' => 20,
-			'OFFSET' => 10
-		);
 		$actualResult = $parser->parseSQL($query);
 			// Check if the "structure" part if correct
 		$this->assertEquals($expectedResult, $actualResult->structure);
