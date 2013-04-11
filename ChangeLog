@@ -1,3 +1,7 @@
+2013-04-11 Francois Suter (Cobweb)  <typo3@cobweb.ch>
+
+	* Solved issue with trimming beyond query parts length, resolves #42802
+
 2013-04-01 Francois Suter (Cobweb)  <typo3@cobweb.ch>
 
 	* Refactored SQL parser test suite, resolves #46846

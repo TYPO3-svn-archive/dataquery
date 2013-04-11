@@ -350,7 +350,11 @@ class tx_dataquery_sqlparser {
 				// An alias is indicated by a "AS" keyword after the last closing bracket if any
 				// (brackets indicate a function call and there might be "AS" keywords inside them)
 			$fieldAlias = '';
-			$asPosition = strpos($fieldString, ' AS ', $lastBracketPosition);
+			if ($lastBracketPosition > strlen($fieldString)) {
+			    $asPosition = FALSE;
+			} else {
+			    $asPosition = strpos($fieldString, ' AS ', $lastBracketPosition);
+			}
 			if ($asPosition !== FALSE) {
 				$fieldAlias = trim(substr($fieldString, $asPosition + 4));
 				$fieldString = trim(substr($fieldString, 0, $asPosition));
