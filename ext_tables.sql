@@ -40,8 +40,8 @@ CREATE TABLE tx_dataquery_cache (
 	page_id int(11) DEFAULT '0' NOT NULL,
 	cache_hash varchar(32) DEFAULT '' NOT NULL,
 	expires int(11) DEFAULT '0' NOT NULL,
-	structure_cache mediumtext NOT NULL
-	KEY query (query_id,page_id),
+	structure_cache mediumtext NOT NULL,
+	KEY query (query_id, page_id)
 ) ENGINE = InnoDB;
 
 # Add a field for SQL conditions to the datafilter

@@ -1,3 +1,7 @@
+2013-05-22 Francois Suter (Cobweb)  <typo3@cobweb.ch>
+
+	* Corrected SQL definition of cache table, resolves #48454
+
 2013-04-11 Francois Suter (Cobweb)  <typo3@cobweb.ch>
 
 	* Solved issue with trimming beyond query parts length, resolves #42802
