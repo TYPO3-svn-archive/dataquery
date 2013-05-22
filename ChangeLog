@@ -1,6 +1,7 @@
 2013-05-22 Francois Suter (Cobweb)  <typo3@cobweb.ch>
 
 	* Corrected SQL definition of cache table, resolves #48454
+	* Compatibility verified with TYPO3 CMS 6.1, resolves #47517
 
 2013-04-11 Francois Suter (Cobweb)  <typo3@cobweb.ch>
 
