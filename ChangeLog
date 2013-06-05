@@ -1,3 +1,7 @@
+2013-06-06 Francois Suter (Cobweb)  <typo3@cobweb.ch>
+
+	* Added index on cache table for improved performance, resolves #48834
+
 2013-05-22 Francois Suter (Cobweb)  <typo3@cobweb.ch>
 
 	* Corrected SQL definition of cache table, resolves #48454
