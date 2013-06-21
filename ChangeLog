@@ -1,3 +1,7 @@
+2013-06-21 Francois Suter (Cobweb)  <typo3@cobweb.ch>
+
+	* Released to TER as version 1.9.0
+
 2013-06-06 Francois Suter (Cobweb)  <typo3@cobweb.ch>
 
 	* Added index on cache table for improved performance, resolves #48834
