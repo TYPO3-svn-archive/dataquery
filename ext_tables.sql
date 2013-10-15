@@ -41,7 +41,7 @@ CREATE TABLE tx_dataquery_cache (
 	cache_hash varchar(32) DEFAULT '' NOT NULL,
 	expires int(11) DEFAULT '0' NOT NULL,
 	structure_cache mediumtext NOT NULL,
-	KEY query (query_id, page_id),
+	KEY query (query_id,page_id),
 	KEY page (page_id)
 ) ENGINE = InnoDB;
 

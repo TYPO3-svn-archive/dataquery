@@ -1,3 +1,7 @@
+2013-10-15 Francois Suter (Cobweb)  <typo3@cobweb.ch>
+
+	* Adjusted SQL definition to fit TYPO3 Instal Tool, resolves #51967
+
 2013-06-21 Francois Suter (Cobweb)  <typo3@cobweb.ch>
 
 	* Released to TER as version 1.9.0
